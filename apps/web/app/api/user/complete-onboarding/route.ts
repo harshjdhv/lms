@@ -44,6 +44,32 @@ export async function POST(request: Request) {
       },
     });
 
+    // Auto-enroll logic
+    if (role === "STUDENT" && roleSpecificData.semester) {
+      const semester = roleSpecificData.semester;
+
+      // Find all published courses for this semester (or general ones)
+      const courses = await prisma.course.findMany({
+        where: {
+          isPublished: true,
+          OR: [
+            { semester: semester },
+            { semester: null }, // Include general courses too? Maybe.
+          ],
+        },
+      });
+
+      if (courses.length > 0) {
+        await prisma.enrollment.createMany({
+          data: courses.map((course) => ({
+            userId: user.id,
+            courseId: course.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Onboarding error:", error);

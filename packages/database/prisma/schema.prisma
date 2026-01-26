@@ -33,6 +33,7 @@ model User {
   // Student specific
   studentId String? // For students
   grade     String? // For students
+  semester  String? // "SEM-7" | "SEM-8"
 
   // Relations
   enrollments    Enrollment[]
@@ -49,6 +50,7 @@ model Course {
   imageUrl    String?
   price       Float?
   isPublished Boolean @default(false)
+  semester    String? // "SEM-7" | "SEM-8"
 
   teacherId String
   teacher   User   @relation("TeacherCourses", fields: [teacherId], references: [id])
@@ -59,6 +61,8 @@ model Course {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  assignments Assignment[]
 
   @@index([teacherId])
 }
@@ -126,4 +130,26 @@ model Enrollment {
 
   @@index([courseId])
   @@index([userId])
+}
+
+model Assignment {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attachmentUrl String?
+  status        AssignmentStatus @default(ACTIVE)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  REVIEW
+  STOPPED
 }

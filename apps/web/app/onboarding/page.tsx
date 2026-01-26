@@ -28,6 +28,7 @@ const studentSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     studentId: z.string().min(3, "Student ID is required"),
     grade: z.string().min(1, "Grade is required"),
+    semester: z.string().min(1, "Semester is required"),
     phone: z.string().optional(),
     bio: z.string().optional(),
 })
@@ -314,6 +315,25 @@ export default function OnboardingPage() {
                                                     {studentForm.formState.errors.grade && (
                                                         <p className="text-xs text-red-500 font-medium">
                                                             {studentForm.formState.errors.grade.message}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="semester">Current Semester *</Label>
+                                                    <select
+                                                        id="semester"
+                                                        disabled={isLoading}
+                                                        className="h-11 w-full rounded-md border border-input bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        {...studentForm.register("semester")}
+                                                    >
+                                                        <option value="">Select Semester</option>
+                                                        <option value="SEM-7">Semester 7</option>
+                                                        <option value="SEM-8">Semester 8</option>
+                                                    </select>
+                                                    {studentForm.formState.errors.semester && (
+                                                        <p className="text-xs text-red-500 font-medium">
+                                                            {studentForm.formState.errors.semester.message}
                                                         </p>
                                                     )}
                                                 </div>
