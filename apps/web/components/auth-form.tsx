@@ -112,7 +112,7 @@ export function AuthForm() {
                 }}
                 className="w-full"
             >
-                <TabsList className="grid w-full grid-cols-2 mb-8 bg-black/5 dark:bg-white/5 p-1 h-auto rounded-full border border-black/5 dark:border-white/5">
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-zinc-100 dark:bg-zinc-800 p-1 h-auto rounded-full border border-zinc-200 dark:border-zinc-700">
                     <TabsTrigger
                         value="login"
                         className="rounded-full data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm py-2.5 transition-all duration-300"
@@ -132,7 +132,7 @@ export function AuthForm() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
                 >
-                    <Card className="border-0 shadow-2xl shadow-black/10 dark:shadow-black/40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
+                    <Card className="border-0 shadow-none bg-transparent">
                         <CardHeader className="space-y-1">
                             <CardTitle className="text-2xl font-bold tracking-tight">
                                 {activeTab === "login" ? "Welcome back" : "Create an account"}
@@ -156,7 +156,7 @@ export function AuthForm() {
                                             autoComplete="email"
                                             autoCorrect="off"
                                             disabled={isLoading}
-                                            className="bg-transparent border-zinc-200 dark:border-zinc-800 focus-visible:ring-offset-0 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600"
+                                            className="h-12 bg-white/50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-800/50 focus-visible:ring-offset-0 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-all duration-200"
                                             {...register("email")}
                                         />
                                         {errors.email && (
@@ -172,7 +172,7 @@ export function AuthForm() {
                                             autoCapitalize="none"
                                             autoComplete="current-password"
                                             disabled={isLoading}
-                                            className="bg-transparent border-zinc-200 dark:border-zinc-800 focus-visible:ring-offset-0 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600"
+                                            className="h-12 bg-white/50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-800/50 focus-visible:ring-offset-0 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-600 transition-all duration-200"
                                             {...register("password")}
                                         />
                                         {errors.password && (
