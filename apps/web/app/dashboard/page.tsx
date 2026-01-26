@@ -19,6 +19,7 @@ import {
 import { AssignmentFeed } from "@/components/assignments/assignment-feed"
 import { TeacherDashboard } from "@/components/assignments/teacher-dashboard"
 import { StudentCourseCatalog } from "@/components/courses/student-course-catalog"
+import { StudentAnnouncementFeed } from "@/components/announcements/student-announcement-feed"
 
 // const prisma = new PrismaClient()
 
@@ -74,7 +75,8 @@ export default async function Page() {
                   Upcoming
                 </div>
               </div>
-              <div className="flex-1 rounded-xl md:min-h-min">
+              <div className="flex-1 rounded-xl md:min-h-min space-y-8">
+                <StudentAnnouncementFeed />
                 <AssignmentFeed />
               </div>
             </>

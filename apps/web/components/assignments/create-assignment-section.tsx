@@ -29,6 +29,7 @@ export function CreateAssignmentSection({ courses, onCreated }: { courses: Cours
     const [content, setContent] = useState("")
     const [courseId, setCourseId] = useState("")
     const [attachmentUrl, setAttachmentUrl] = useState("")
+    const [dueDate, setDueDate] = useState("")
     const [loading, setLoading] = useState(false)
 
     // Select the first course by default if only one exists or if user just created one
@@ -43,7 +44,7 @@ export function CreateAssignmentSection({ courses, onCreated }: { courses: Cours
             const res = await fetch("/api/assignments", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, content, courseId, attachmentUrl }),
+                body: JSON.stringify({ title, content, courseId, attachmentUrl, dueDate: dueDate ? new Date(dueDate).toISOString() : null }),
             })
 
             if (!res.ok) throw new Error("Failed")
@@ -53,6 +54,7 @@ export function CreateAssignmentSection({ courses, onCreated }: { courses: Cours
             setContent("")
             // Keep course selected
             setAttachmentUrl("")
+            setDueDate("")
             onCreated()
         } catch (e) {
             toast.error("Failed to create assignment")
@@ -109,6 +111,16 @@ export function CreateAssignmentSection({ courses, onCreated }: { courses: Cours
                             onChange={e => setContent(e.target.value)}
                             placeholder="Detailed instructions..."
                             className="min-h-[120px]"
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Due Date</Label>
+                        <Input
+                            type="datetime-local"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
                             required
                         />
                     </div>
