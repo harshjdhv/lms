@@ -5,6 +5,9 @@
  * @access Private
  */
 
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { PrismaClient } from "@prisma/client"
 import { AppSidebar } from "@/components/app-sidebar"
 
 import {
@@ -13,10 +16,32 @@ import {
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar"
 
-export default function Page() {
+const prisma = new PrismaClient()
+
+export default async function Page() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/auth")
+  }
+
+  // Get user from database
+  const dbUser = await prisma.user.findUnique({
+    where: { email: user.email! },
+  })
+
+  // Redirect to onboarding if not completed
+  if (!dbUser || !dbUser.hasCompletedOnboarding) {
+    redirect("/onboarding")
+  }
+
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar user={dbUser} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2">
           <div className="flex items-center gap-2 px-4">

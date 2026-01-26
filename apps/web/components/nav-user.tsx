@@ -19,6 +19,9 @@ import {
 } from "lucide-react"
 
 import { useTheme } from "next-themes"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 
 import {
   Avatar,
@@ -52,6 +55,34 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        toast.error("Logout failed", {
+          description: error.message,
+        })
+        return
+      }
+
+      toast.success("Logged out successfully", {
+        description: "See you next time!",
+      })
+
+      // Redirect to auth page
+      router.push("/auth")
+      router.refresh()
+    } catch (error) {
+      console.error("Logout error:", error)
+      toast.error("Something went wrong", {
+        description: "Please try again.",
+      })
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -118,7 +149,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
               <LogOut />
               Log out
             </DropdownMenuItem>

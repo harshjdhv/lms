@@ -15,101 +15,115 @@ enum UserRole {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  role      UserRole @default(STUDENT)
-  
+  id                     String    @id @default(uuid())
+  email                  String    @unique
+  name                   String?
+  role                   UserRole?
+  hasCompletedOnboarding Boolean   @default(false)
+
+  // Profile fields
+  bio    String?
+  avatar String?
+  phone  String?
+
+  // Teacher specific
+  expertise String? // For teachers
+  title     String? // For teachers (e.g., "Professor", "Instructor")
+
+  // Student specific
+  studentId String? // For students
+  grade     String? // For students
+
   // Relations
-  enrollments Enrollment[]
-  teacherCourses Course[] @relation("TeacherCourses")
+  enrollments    Enrollment[]
+  teacherCourses Course[]     @relation("TeacherCourses")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Course {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   description String?
   imageUrl    String?
   price       Float?
-  isPublished Boolean  @default(false)
-  
-  teacherId   String
-  teacher     User     @relation("TeacherCourses", fields: [teacherId], references: [id])
-  
+  isPublished Boolean @default(false)
+
+  teacherId String
+  teacher   User   @relation("TeacherCourses", fields: [teacherId], references: [id])
+
   attachments Attachment[]
   chapters    Chapter[]
   enrollments Enrollment[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([teacherId])
 }
 
 model Attachment {
-  id String @id @default(uuid())
-  name String 
-  url String 
-  
-  courseId String 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+  id   String @id @default(uuid())
+  name String
+  url  String
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([courseId])
 }
 
 model Chapter {
-  id String @id @default(uuid())
-  title String
-  description String? 
-  videoUrl String? 
-  position Int 
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  videoUrl    String?
+  position    Int
   isPublished Boolean @default(false)
-  isFree Boolean @default(false)
-  
-  courseId String 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+  isFree      Boolean @default(false)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   userProgress UserProgress[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([courseId])
 }
 
 model UserProgress {
-  id String @id @default(uuid())
-  userId String 
-  
-  chapterId String 
-  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(uuid())
+  userId String
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
   isCompleted Boolean @default(false)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  @@index([chapterId])
+
   @@unique([userId, chapterId])
+  @@index([chapterId])
 }
 
 model Enrollment {
-  id String @id @default(uuid())
+  id     String @id @default(uuid())
   userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   courseId String
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([courseId])
   @@index([userId])
 }
