@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next"
 
 import "@workspace/ui/globals.css"
 import { Providers } from "@/components/providers"
+import { GlobalCommandMenu } from "@/components/global-command-menu"
 
 const fontSans = Instrument_Sans({
   subsets: ["latin"],

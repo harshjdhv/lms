@@ -21,6 +21,8 @@ import {
 import { MoreHorizontal, FileText, PauseCircle, PlayCircle, Eye } from "lucide-react"
 import { toast } from "sonner"
 
+import { ReviewSubmissionsDialog } from "@/components/assignments/review-submissions-dialog"
+
 interface Assignment {
     id: string
     title: string
@@ -29,6 +31,9 @@ interface Assignment {
     createdAt: string
     course: {
         title: string
+    }
+    _count?: {
+        submissions: number
     }
 }
 
@@ -83,6 +88,7 @@ export function TeacherAssignmentList({ refreshTrigger }: { refreshTrigger: numb
                                 <TableHead className="w-[300px]">Assignment</TableHead>
                                 <TableHead>Course</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Submissions</TableHead>
                                 <TableHead>Posted</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -90,13 +96,13 @@ export function TeacherAssignmentList({ refreshTrigger }: { refreshTrigger: numb
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                         Loading assignments...
                                     </TableCell>
                                 </TableRow>
                             ) : assignments.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                         No assignments found. create one below.
                                     </TableCell>
                                 </TableRow>
@@ -122,6 +128,12 @@ export function TeacherAssignmentList({ refreshTrigger }: { refreshTrigger: numb
                                                 {assignment.status}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">{assignment._count?.submissions || 0}</span>
+                                                <span className="text-muted-foreground text-xs">submitted</span>
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="text-muted-foreground text-sm">
                                             {new Date(assignment.createdAt).toLocaleDateString()}
                                         </TableCell>
@@ -133,9 +145,15 @@ export function TeacherAssignmentList({ refreshTrigger }: { refreshTrigger: numb
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => toast.info("Review feature coming soon")}>
-                                                        <Eye className="mr-2 h-4 w-4" /> Review Submissions
-                                                    </DropdownMenuItem>
+                                                    <ReviewSubmissionsDialog
+                                                        assignmentId={assignment.id}
+                                                        assignmentTitle={assignment.title}
+                                                        trigger={
+                                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                                <Eye className="mr-2 h-4 w-4" /> Review Submissions
+                                                            </DropdownMenuItem>
+                                                        }
+                                                    />
                                                     {assignment.status === 'ACTIVE' ? (
                                                         <DropdownMenuItem onClick={() => updateStatus(assignment.id, 'STOPPED')}>
                                                             <PauseCircle className="mr-2 h-4 w-4" /> Stop / Close

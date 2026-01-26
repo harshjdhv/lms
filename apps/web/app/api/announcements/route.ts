@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@workspace/database";
 
-// const prisma = new PrismaClient();
-
 export async function POST(req: Request) {
   const supabase = await createClient();
   const {
@@ -15,14 +13,15 @@ export async function POST(req: Request) {
   const dbUser = await prisma.user.findUnique({
     where: { email: user.email! },
   });
+
   if (!dbUser || dbUser.role !== "TEACHER") {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  const { title, content, courseId, attachmentUrl, dueDate } = await req.json();
+  const { title, content, imageUrl, courseId } = await req.json();
 
-  if (!title || !content || !courseId) {
-    return new NextResponse("Missing fields", { status: 400 });
+  if (!title || !courseId) {
+    return new NextResponse("Missing title or courseId", { status: 400 });
   }
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
@@ -30,21 +29,19 @@ export async function POST(req: Request) {
     return new NextResponse("Forbidden course access", { status: 403 });
   }
 
-  const assignment = await prisma.assignment.create({
+  const announcement = await prisma.announcement.create({
     data: {
       title,
       content,
+      imageUrl,
       courseId,
-      attachmentUrl,
-      dueDate: dueDate ? new Date(dueDate) : null,
-      status: dueDate ? "ACTIVE" : "ACTIVE",
     },
   });
 
-  return NextResponse.json(assignment);
+  return NextResponse.json(announcement);
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -59,42 +56,43 @@ export async function GET(req: Request) {
 
   if (!dbUser) return new NextResponse("User not found", { status: 404 });
 
-  // Auto-expire assignments
-  await prisma.assignment.updateMany({
-    where: {
-      status: "ACTIVE",
-      dueDate: { lt: new Date() },
-    },
-    data: { status: "STOPPED" },
-  });
-
   if (dbUser.role === "TEACHER") {
-    const assignments = await prisma.assignment.findMany({
+    // Teachers see all announcements for their courses, regardless of date?
+    // Or maybe just valid ones? User said "annoucemnts disapepar after a week".
+    // I will assume for teachers they might want to see history, but the user requirement implies they "disappear".
+    // I'll stick to the 1 week rule for students. Teachers might want to see what they posted.
+    // I'll return all for teachers for now, or maybe add a query param.
+    // Let's return all for teachers so they can manage them (if we add delete later).
+
+    // Actually, "annoucemnts disapepar after a week of being on teh annoucemtns page"
+    // Usually teachers want to verify if it's there.
+    // I'll allow teachers to see all, but maybe frontend can filter.
+
+    const announcements = await prisma.announcement.findMany({
       where: { course: { teacherId: dbUser.id } },
       include: {
         course: { select: { title: true } },
-        _count: { select: { submissions: true } },
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(assignments);
+    return NextResponse.json(announcements);
   } else {
-    // For students, show all assignments (Active, Stopped) so they can see history
-    // But maybe filter out "REVIEW" if that was a thing (not using it much yet)
+    // Students see announcements from enrolled courses, created within last 7 days.
     const courseIds = dbUser.enrollments.map((e) => e.courseId);
-    const assignments = await prisma.assignment.findMany({
+
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const announcements = await prisma.announcement.findMany({
       where: {
         courseId: { in: courseIds },
+        createdAt: { gte: oneWeekAgo },
       },
       include: {
         course: { select: { title: true } },
-        submissions: {
-          where: { studentId: dbUser.id },
-          take: 1,
-        },
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(assignments);
+    return NextResponse.json(announcements);
   }
 }
