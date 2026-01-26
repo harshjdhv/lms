@@ -40,21 +40,14 @@ export default function AuthPage() {
             {/* Right Side - Auth Form */}
             <div className="flex flex-col justify-center items-center p-8 lg:p-12 relative">
                 <div className="mx-auto flex w-full flex-col justify-center space-y-6 max-w-[400px]">
-                    <div className="flex flex-col space-y-2 text-center">
-                        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-                            Welcome back
-                        </h1>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            Enter your credentials to sign in to your account
-                        </p>
-                    </div>
+
                     <AuthForm />
                 </div>
 
                 {/* Footer */}
                 <div className="mt-8 pt-8 text-center text-xs text-muted-foreground w-full max-w-[400px]">
                     <p>
-                        Protected by componentry.com secure systems.
+                        UI tailored by componentry.fun
                     </p>
                 </div>
             </div>
