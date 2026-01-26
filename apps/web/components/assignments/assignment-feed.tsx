@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card"
+import { Card, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import { ScrollArea } from "@workspace/ui/components/scroll-area"
+import { FileIcon, ExternalLink, Clock, Calendar } from "lucide-react"
 
 interface Assignment {
     id: string
@@ -16,11 +17,9 @@ interface Assignment {
     }
 }
 
-import { FileIcon, ExternalLink } from "lucide-react"
-import { Button } from "@workspace/ui/components/button"
-
 export function AssignmentFeed() {
     const [assignments, setAssignments] = useState<Assignment[]>([])
+    const [filter, setFilter] = useState<'ALL' | string>('ALL')
 
     useEffect(() => {
         const fetchAssignments = async () => {
@@ -36,64 +35,90 @@ export function AssignmentFeed() {
         }
 
         fetchAssignments()
-        const interval = setInterval(fetchAssignments, 5000) // Poll every 5s
-
+        const interval = setInterval(fetchAssignments, 5000)
         return () => clearInterval(interval)
     }, [])
 
+    const filtered = filter === 'ALL' ? assignments : assignments.filter(a => a.course.title === filter)
+    const courses = Array.from(new Set(assignments.map(a => a.course.title)))
+
     return (
-        <Card className="h-full flex flex-col border-none shadow-none bg-transparent">
-            <CardHeader className="px-0 pt-0 pb-4">
-                <CardTitle className="text-xl font-semibold tracking-tight">Recent Updates</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 p-0 min-h-0">
-                <ScrollArea className="h-[400px] w-full pr-4">
-                    <div className="flex flex-col gap-4">
-                        {assignments.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground border-2 border-dashed rounded-xl">
-                                <p>No assignments or announcements yet.</p>
-                                <p className="text-sm mt-2">Join a course to see updates.</p>
-                            </div>
-                        ) : (
-                            assignments.map((assignment) => (
-                                <div key={assignment.id} className="group flex flex-col gap-3 rounded-xl border bg-card p-5 text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-primary/20">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <h3 className="font-semibold leading-tight">{assignment.title}</h3>
-                                        <Badge variant="outline" className="shrink-0 bg-background/50">
-                                            {assignment.course.title}
-                                        </Badge>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                        {assignment.content}
-                                    </p>
-                                    {assignment.attachmentUrl && (
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <a
-                                                href={assignment.attachmentUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-2 text-sm text-primary hover:underline bg-primary/5 px-3 py-2 rounded-md transition-colors hover:bg-primary/10"
-                                            >
-                                                <FileIcon className="h-4 w-4" />
-                                                View Attachment
-                                                <ExternalLink className="h-3 w-3 opacity-50" />
-                                            </a>
-                                        </div>
-                                    )}
-                                    <div className="text-xs text-muted-foreground/60 font-medium pt-1">
-                                        {new Date(assignment.createdAt).toLocaleDateString(undefined, {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: 'numeric',
-                                            minute: 'numeric'
-                                        })}
-                                    </div>
+        <div className="flex flex-col h-full bg-sidebar/50 backdrop-blur-sm border rounded-2xl overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between p-4 border-b bg-background/50">
+                <h3 className="font-semibold text-lg">Assignments Feed</h3>
+                <div className="flex gap-2 overflow-x-auto pb-1 max-w-[50%] no-scrollbar">
+                    <Badge
+                        variant={filter === 'ALL' ? "default" : "outline"}
+                        className="cursor-pointer whitespace-nowrap"
+                        onClick={() => setFilter('ALL')}
+                    >
+                        All
+                    </Badge>
+                    {courses.map(c => (
+                        <Badge
+                            key={c}
+                            variant={filter === c ? "default" : "outline"}
+                            className="cursor-pointer whitespace-nowrap"
+                            onClick={() => setFilter(c)}
+                        >
+                            {c}
+                        </Badge>
+                    ))}
+                </div>
+            </div>
+
+            <ScrollArea className="flex-1 p-4 h-[400px]">
+                <div className="flex flex-col gap-4">
+                    {filtered.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground border-2 border-dashed rounded-xl bg-background/50">
+                            <p>No active assignments found.</p>
+                            <p className="text-sm mt-1">Check back later!</p>
+                        </div>
+                    ) : (
+                        filtered.map((assignment) => (
+                            <div key={assignment.id} className="group relative flex flex-col gap-3 rounded-xl border bg-card p-5 text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-primary/20 bg-gradient-to-br from-card to-background">
+                                <div className="absolute top-4 right-4 text-xs text-muted-foreground flex items-center gap-1 bg-muted/50 px-2 py-1 rounded-full">
+                                    <Clock className="w-3 h-3" />
+                                    <span>Due in 3 days</span>
                                 </div>
-                            ))
-                        )}
-                    </div>
-                </ScrollArea>
-            </CardContent>
-        </Card>
+
+                                <div className="flex flex-col gap-1 pr-20">
+                                    <Badge variant="outline" className="w-fit mb-1 border-primary/20 text-primary bg-primary/5">
+                                        {assignment.course.title}
+                                    </Badge>
+                                    <h3 className="font-semibold text-lg leading-tight tracking-tight">{assignment.title}</h3>
+                                </div>
+
+                                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap line-clamp-3">
+                                    {assignment.content}
+                                </p>
+
+                                {assignment.attachmentUrl && (
+                                    <a
+                                        href={assignment.attachmentUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 p-3 mt-2 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors group-hover:border-primary/20"
+                                    >
+                                        <div className="h-8 w-8 rounded bg-background flex items-center justify-center shadow-sm">
+                                            <FileIcon className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium truncate">Attached Resource</p>
+                                        </div>
+                                        <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    </a>
+                                )}
+
+                                <div className="flex items-center gap-2 pt-2 mt-auto text-xs text-muted-foreground border-t">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>Posted {new Date(assignment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}</span>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </ScrollArea>
+        </div>
     )
 }

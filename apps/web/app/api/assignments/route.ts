@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  const { title, content, courseId, attachmentUrl } = await req.json();
+  const { title, content, courseId, attachmentUrl, dueDate } = await req.json();
 
   if (!title || !content || !courseId) {
     return new NextResponse("Missing fields", { status: 400 });
@@ -36,6 +36,8 @@ export async function POST(req: Request) {
       content,
       courseId,
       attachmentUrl,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      status: dueDate ? "ACTIVE" : "ACTIVE",
     },
   });
 
@@ -57,21 +59,40 @@ export async function GET(req: Request) {
 
   if (!dbUser) return new NextResponse("User not found", { status: 404 });
 
+  // Auto-expire assignments
+  await prisma.assignment.updateMany({
+    where: {
+      status: "ACTIVE",
+      dueDate: { lt: new Date() },
+    },
+    data: { status: "STOPPED" },
+  });
+
   if (dbUser.role === "TEACHER") {
     const assignments = await prisma.assignment.findMany({
       where: { course: { teacherId: dbUser.id } },
-      include: { course: { select: { title: true } } },
+      include: {
+        course: { select: { title: true } },
+        _count: { select: { submissions: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(assignments);
   } else {
+    // For students, show all assignments (Active, Stopped) so they can see history
+    // But maybe filter out "REVIEW" if that was a thing (not using it much yet)
     const courseIds = dbUser.enrollments.map((e) => e.courseId);
     const assignments = await prisma.assignment.findMany({
       where: {
         courseId: { in: courseIds },
-        status: "ACTIVE", // Only show active assignments to students
       },
-      include: { course: { select: { title: true } } },
+      include: {
+        course: { select: { title: true } },
+        submissions: {
+          where: { studentId: dbUser.id },
+          take: 1,
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(assignments);
