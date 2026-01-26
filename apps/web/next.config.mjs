@@ -3,5 +3,5 @@ const nextConfig = {
   transpilePackages: ["@workspace/ui"],
 }
 
-// Force restart
+// Force restart - client update
 export default nextConfig

@@ -56,9 +56,10 @@ model Course {
   teacherId String
   teacher   User   @relation("TeacherCourses", fields: [teacherId], references: [id])
 
-  attachments Attachment[]
-  chapters    Chapter[]
-  enrollments Enrollment[]
+  attachments   Attachment[]
+  chapters      Chapter[]
+  enrollments   Enrollment[]
+  announcements Announcement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -66,6 +67,21 @@ model Course {
   assignments Assignment[]
 
   @@index([teacherId])
+}
+
+model Announcement {
+  id       String  @id @default(uuid())
+  title    String
+  content  String?
+  imageUrl String?
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
 }
 
 model Attachment {

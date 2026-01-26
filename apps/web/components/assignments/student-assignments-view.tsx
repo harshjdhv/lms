@@ -251,7 +251,7 @@ function StatsCard({ label, value, icon: Icon, color }: { label: string, value: 
 function AssignmentCard({ assignment, index, isHistory = false, onUpdate }: { assignment: Assignment, index: number, isHistory?: boolean, onUpdate: () => void }) {
     const submission = assignment.submissions?.[0]
     const status = submission?.status || 'PENDING_SUBMISSION'
-    const isLate = assignment.dueDate && new Date(assignment.dueDate) < new Date() && status === 'PENDING_SUBMISSION'
+    const isLate = assignment.dueDate ? new Date(assignment.dueDate) < new Date() && status === 'PENDING_SUBMISSION' : false
 
     // Explicitly check for Rejected state to style differently
     const isRejected = status === 'REJECTED'
