@@ -49,7 +49,7 @@ export default function OnboardingPage() {
         resolver: zodResolver(studentSchema),
     })
 
-    const currentForm = selectedRole === "TEACHER" ? teacherForm : studentForm
+    const currentForm: any = selectedRole === "TEACHER" ? teacherForm : studentForm
 
     async function onSubmit(data: TeacherFormData | StudentFormData) {
         setIsLoading(true)
@@ -200,8 +200,8 @@ export default function OnboardingPage() {
                                 <div className="mb-6 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${selectedRole === "STUDENT"
-                                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                                                : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                                            : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
                                             }`}>
                                             {selectedRole === "STUDENT" ? (
                                                 <GraduationCap className="w-6 h-6" />

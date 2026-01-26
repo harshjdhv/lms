@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -383,9 +384,9 @@ export function AuthForm() {
                                         <div className="flex items-center justify-between">
                                             <Label htmlFor="password">Password</Label>
                                             {mode === "login" && (
-                                                <a href="/forgot-password" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 transition-colors">
+                                                <Link href="/forgot-password" className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 transition-colors">
                                                     Forgot password?
-                                                </a>
+                                                </Link>
                                             )}
                                         </div>
                                         <Input
