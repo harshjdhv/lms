@@ -7,10 +7,7 @@ import {
   useTransform,
   useSpring,
   useMotionValue,
-  useMotionTemplate,
-  useAnimationFrame,
-  useInView,
-  AnimatePresence
+  useAnimationFrame
 } from "framer-motion"
 import {
   ChevronRight,
@@ -28,46 +25,6 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import Link from "next/link"
 import { cn } from "@workspace/ui/lib/utils"
-
-// --- Utility Components ---
-
-/**
- * A spotlight card effect that follows the mouse
- */
-function SpotlightCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    const { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
-
-  return (
-    <div
-      className={cn(
-        "group relative border border-neutral-200 bg-white overflow-hidden rounded-xl",
-        className
-      )}
-      onMouseMove={handleMouseMove}
-    >
-      <motion.div
-        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100"
-        style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(14, 165, 233, 0.15),
-              transparent 80%
-            )
-          `,
-        }}
-      />
-      <div className="relative h-full">{children}</div>
-    </div>
-  );
-}
 
 // --- Sections ---
 
@@ -96,11 +53,11 @@ function Navbar() {
         )}
       >
         <div className="flex items-center gap-2">
-          <div className="size-9 bg-black rounded-lg flex items-center justify-center text-white font-bold font-mono">
-            L
+          <div className="size-9 bg-black rounded-lg flex items-center justify-center text-white">
+            <Command className="size-5" />
           </div>
           <span className="font-bold tracking-tight text-lg text-neutral-900">
-            LMS Pro
+            ConnectX
           </span>
         </div>
 
@@ -152,7 +109,7 @@ function Hero() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
           </span>
-          <span className="text-xs font-semibold text-neutral-600 tracking-wide uppercase">Introducing Version 2.0</span>
+          <span className="text-xs font-semibold text-neutral-600 tracking-wide uppercase">Powered by ConnectX</span>
         </div>
 
         <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-black mb-6 leading-[0.9]">
@@ -284,7 +241,7 @@ function Hero() {
 // --- Velocity Scroll Component ---
 function VelocityText() {
   const { scrollY } = useScroll();
-  const baseVelocity = -2;
+  const baseVelocity = -15;
   const smoothVelocity = useSpring(scrollY, {
     damping: 50,
     stiffness: 400
@@ -304,322 +261,249 @@ function VelocityText() {
       directionFactor.current = 1;
     }
     moveBy += directionFactor.current * moveBy * velocityFactor.get();
-    x.set(x.get() + moveBy);
+
+    let newX = x.get() + moveBy;
+
+    // Wrap the x value to create infinite loop
+    // Adjust this value based on your content width
+    const wrapAt = -2000; // negative because we're scrolling left
+    if (newX < wrapAt) {
+      newX = 0;
+    } else if (newX > 0) {
+      newX = wrapAt;
+    }
+
+    x.set(newX);
   });
 
   return (
-    <div className="py-20 bg-white border-y border-neutral-100 overflow-hidden flex whitespace-nowrap">
-      <motion.div style={{ x }} className="flex gap-20 text-6xl md:text-8xl font-black text-neutral-300 tracking-tighter uppercase select-none">
-        <span>Structure your knowledge.</span>
-        <span>Empower your students.</span>
-        <span>Build with confidence.</span>
-        <span>Structure your knowledge.</span>
-      </motion.div>
+    <div className="relative py-32 bg-linear-to-br from-neutral-50 via-white to-blue-50/30 border-y border-neutral-200/50 overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
+
+      <div className="relative flex whitespace-nowrap">
+        <motion.div
+          style={{ x }}
+          className="flex gap-24 items-center"
+        >
+          {[...Array(4)].map((_, i) => (
+            <React.Fragment key={i}>
+              <span className="text-5xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter select-none">
+                Structure your knowledge.
+              </span>
+              <div className="size-3 rounded-full bg-blue-500 shrink-0" />
+              <span className="text-5xl md:text-7xl lg:text-8xl font-black text-blue-600 tracking-tighter select-none">
+                Empower your students.
+              </span>
+              <div className="size-3 rounded-full bg-purple-500 shrink-0" />
+              <span className="text-5xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter select-none">
+                Build with confidence.
+              </span>
+              <div className="size-3 rounded-full bg-neutral-400 shrink-0" />
+            </React.Fragment>
+          ))}
+        </motion.div>
+      </div>
     </div>
   );
 }
 
-// --- Sticky Scroll Feature ---
-const features = [
-  {
-    title: "Curriculum Design",
-    description: "Build complex courses with a simple drag-and-drop interface. Support for video, code, quizzes, and projects.",
-    color: "bg-blue-500",
-    visual: (
-      <div className="w-full h-full bg-blue-50 rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden group">
+// --- Modern Features Section ---
+function ModernFeatures() {
+  return (
+    <section className="bg-white py-32 px-4 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto relative z-10">
         <motion.div
-          className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-          transition={{ duration: 4, repeat: Infinity }}
-        />
-        {[1, 2, 3].map(i => (
+          className="text-center mb-20"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <h2 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-black">
+            Built for the future.
+          </h2>
+          <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
+            Everything you need to create, manage, and scale your learning platform.
+          </p>
+        </motion.div>
+
+        {/* Bento Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          {/* Feature 1 - Large Card */}
           <motion.div
-            key={i}
-            className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 flex items-center gap-4 z-10"
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2 + (i * 0.1) }}
+            className="md:col-span-2 bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 md:p-12 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <div className="size-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold">{i}</div>
-            <div className="flex-1">
-              <div className="h-2 w-24 bg-blue-100 rounded-full mb-2" />
-              <div className="h-1.5 w-full bg-neutral-100 rounded-full" />
-            </div>
-            <div className="text-neutral-300"><ChevronRight size={16} /></div>
-          </motion.div>
-        ))}
-      </div>
-    )
-  },
-  {
-    title: "Real-time Analytics",
-    description: "Track student progress across all courses. Identify drop-off points and improve your content based on data.",
-    color: "bg-purple-500",
-    visual: (
-      <div className="w-full h-full bg-purple-50 rounded-2xl p-6 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute bottom-0 left-0 w-full h-1/2 bg-linear-to-t from-purple-100 to-transparent" />
-        <div className="flex items-end gap-3 h-48 w-full max-w-sm z-10">
-          {[40, 70, 50, 90, 60, 80].map((h, i) => (
-            <motion.div
-              key={i}
-              className="flex-1 bg-purple-500 rounded-t-lg shadow-lg shadow-purple-500/20"
-              initial={{ height: "10%" }}
-              animate={{ height: `${h}%` }}
-              transition={{ type: "spring", stiffness: 100, delay: 0.2 + (i * 0.05) }}
-            />
-          ))}
-        </div>
-      </div>
-    )
-  },
-  {
-    title: "Community First",
-    description: "Built-in discussion forums and live chat events. Turn your course into a thriving community.",
-    color: "bg-orange-500",
-    visual: (
-      <div className="w-full h-full bg-orange-50 rounded-2xl p-6 relative overflow-hidden">
-        <div className="space-y-4 pt-10">
-          {[1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className={`flex gap-4 ${i === 2 ? 'flex-row-reverse' : ''}`}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 * i }}
-            >
-              <div className="size-10 rounded-full bg-orange-200 shrink-0" />
-              <div className={`p-4 rounded-2xl max-w-[80%] ${i === 2 ? 'bg-orange-500 text-white' : 'bg-white text-neutral-600 shadow-sm'}`}>
-                <div className="h-2 w-32 bg-current opacity-20 rounded-full mb-2" />
-                <div className="h-2 w-48 bg-current opacity-20 rounded-full" />
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-]
-
-function ScrollFeatureText({ feature, index, setActiveCard }: { feature: typeof features[0], index: number, setActiveCard: (i: number) => void }) {
-  const ref = React.useRef(null)
-  const isInView = useInView(ref, { margin: "-50% 0px -50% 0px" })
-
-  React.useEffect(() => {
-    if (isInView) setActiveCard(index)
-  }, [isInView, index, setActiveCard])
-
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "transition-all duration-500 py-20",
-        isInView ? "opacity-100 scale-100" : "opacity-30 scale-95 blur-sm"
-      )}
-    >
-      <h3 className="text-4xl font-bold mb-4 tracking-tight">{feature.title}</h3>
-      <p className="text-xl text-neutral-500 leading-relaxed max-w-md">{feature.description}</p>
-    </div>
-  )
-}
-
-function StickyScroll() {
-  const [activeCard, setActiveCard] = React.useState(0);
-
-  return (
-    <section className="bg-[#F5F5F7] py-32 px-4">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-20">
-
-        <div className="lg:w-1/2 space-y-20 lg:py-20">
-          {features.map((feature, index) => (
-            <ScrollFeatureText key={index} feature={feature} index={index} setActiveCard={setActiveCard} />
-          ))}
-        </div>
-
-        <div className="lg:w-1/2 h-[60vh] sticky top-32">
-          <div className="relative w-full h-full bg-white rounded-3xl shadow-2xl border border-neutral-100 overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeCard}
-                className="absolute inset-0 p-2"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                transition={{ duration: 0.4 }}
-              >
-                <div className="w-full h-full rounded-2xl overflow-hidden bg-neutral-50">
-                  {features[activeCard]?.visual}
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-
-      </div>
-    </section>
-  )
-}
-
-function GridFeatures() {
-  return (
-    <section className="bg-white py-32 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-24">
-          <h2 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6">Designed for speed.</h2>
-          <p className="text-xl text-neutral-500 max-w-2xl mx-auto">Every interaction has been obsessively tuned to feel instant.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-6 gap-8 grid-rows-[300px_300px_300px] md:grid-rows-[300px_300px]">
-
-          {/* Card 1: Global Network (Large 4 cols) */}
-          <SpotlightCard className="col-span-1 md:col-span-4 lg:col-span-4 p-8 flex flex-col justify-between overflow-hidden relative">
-            <div className="absolute inset-0 flex items-center justify-center opacity-10">
-              <div className="w-[800px] h-[800px] border border-neutral-950/20 rounded-full flex items-center justify-center">
-                <div className="w-[600px] h-[600px] border border-neutral-950/20 rounded-full flex items-center justify-center">
-                  <div className="w-[400px] h-[400px] border border-neutral-950/20 rounded-full"></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute inset-0">
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute size-2 bg-blue-500 rounded-full"
-                  style={{
-                    top: `${20 + Math.random() * 60}%`,
-                    left: `${20 + Math.random() * 60}%`
-                  }}
-                  animate={{ scale: [0, 1.5, 0], opacity: [0, 0.8, 0] }}
-                  transition={{ duration: 3, delay: i * 0.5, repeat: Infinity, ease: "easeInOut" }}
-                />
-              ))}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                <motion.path
-                  d="M 100 150 Q 250 50 400 150 T 700 150"
-                  fill="none"
-                  stroke="url(#gradient-line)"
-                  strokeWidth="2"
-                  strokeDasharray="10 10"
-                  animate={{ strokeDashoffset: [0, -20] }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="opacity-20"
-                />
-                <defs>
-                  <linearGradient id="gradient-line" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="transparent" />
-                    <stop offset="50%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-
             <div className="relative z-10">
-              <div className="size-12 rounded-xl bg-blue-100 flex items-center justify-center mb-6">
-                <Globe className="size-6 text-blue-600" />
+              <div className="inline-flex items-center justify-center size-14 bg-blue-100 rounded-2xl mb-6">
+                <Code className="size-7 text-blue-600" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">Global Edge Network</h3>
-              <p className="text-neutral-500 max-w-sm">Content delivered from 200+ regions. 50ms latency worldwide.</p>
-            </div>
-          </SpotlightCard>
+              <h3 className="text-3xl md:text-4xl font-bold text-black mb-4 tracking-tight">
+                Drag & Drop Course Builder
+              </h3>
+              <p className="text-lg text-neutral-600 mb-8 max-w-xl">
+                Create complex learning paths with our intuitive visual editor. Add videos, quizzes, assignments, and live sessions with zero code.
+              </p>
 
-          {/* Card 2: Realtime Sync (Small 2 cols) */}
-          <SpotlightCard className="col-span-1 md:col-span-2 lg:col-span-2 p-8 flex flex-col justify-between overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10">
-              <motion.div
-                className="size-48 border-4 border-dashed border-neutral-950 rounded-full"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              />
-              <motion.div
-                className="absolute inset-0 size-48 border-4 border-dashed border-neutral-950 rounded-full max-w-[150px] max-h-[150px] m-auto"
-                animate={{ rotate: -360 }}
-                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-              />
-            </div>
-            <div>
-              <div className="size-12 rounded-xl bg-yellow-100 flex items-center justify-center mb-6">
-                <Zap className="size-6 text-yellow-600" />
+              {/* Visual Demo */}
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="bg-white border-2 border-neutral-200 rounded-xl p-4 flex items-center gap-4 hover:border-blue-300 transition-all"
+                    initial={{ x: -20, opacity: 0 }}
+                    whileInView={{ x: 0, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 + i * 0.1 }}
+                  >
+                    <div className="size-10 rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold">
+                      {i}
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-2 w-32 bg-neutral-200 rounded-full mb-2" />
+                      <div className="h-1.5 w-full bg-neutral-100 rounded-full" />
+                    </div>
+                    <ChevronRight className="size-5 text-neutral-400" />
+                  </motion.div>
+                ))}
               </div>
-              <h3 className="text-xl font-bold mb-2">Instant Sync</h3>
-              <p className="text-neutral-500 text-sm">State propagates to all clients in milliseconds.</p>
             </div>
-          </SpotlightCard>
+          </motion.div>
 
-          {/* Card 3: AI Assistant (Small 2 cols) */}
-          <SpotlightCard className="col-span-1 md:col-span-2 lg:col-span-2 p-8 flex flex-col justify-between group">
-            <div className="absolute top-8 right-8 space-y-2 w-32 pointer-events-none">
-              <motion.div
-                className="bg-neutral-100 rounded-2xl p-3 rounded-tr-none text-xs text-neutral-500 ml-auto w-fit"
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                Summarize this
-              </motion.div>
-              <motion.div
-                className="bg-neutral-900 rounded-2xl p-3 rounded-tl-none text-xs text-white shadow-lg w-full"
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 }}
-              >
-                <div className="flex gap-1">
-                  <motion.div className="size-1 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }} />
-                  <motion.div className="size-1 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }} />
-                  <motion.div className="size-1 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} />
+          {/* Feature 2 - Tall Card */}
+          <motion.div
+            className="bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div className="relative z-10 h-full flex flex-col">
+              <div className="inline-flex items-center justify-center size-14 bg-purple-100 rounded-2xl mb-6">
+                <Activity className="size-7 text-purple-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-black mb-4 tracking-tight">
+                Real-time Analytics
+              </h3>
+              <p className="text-neutral-600 mb-8">
+                Track every metric that matters. Student engagement, completion rates, and more.
+              </p>
+
+              {/* Chart Visual */}
+              <div className="flex-1 flex items-end gap-2 mt-auto">
+                {[40, 70, 50, 90, 60, 80, 75].map((h, i) => (
+                  <motion.div
+                    key={i}
+                    className="flex-1 bg-purple-500 rounded-t-lg"
+                    initial={{ height: 0 }}
+                    whileInView={{ height: `${h}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: 0.3 + i * 0.05, type: "spring" }}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Feature 3 - Wide Card */}
+          <motion.div
+            className="md:col-span-2 bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <div className="flex flex-col md:flex-row gap-8 items-center">
+              <div className="flex-1">
+                <div className="inline-flex items-center justify-center size-14 bg-green-100 rounded-2xl mb-6">
+                  <Shield className="size-7 text-green-600" />
                 </div>
-              </motion.div>
-            </div>
-
-            <div>
-              <div className="size-12 rounded-xl bg-purple-100 flex items-center justify-center mb-6">
-                <Sparkles className="size-6 text-purple-600" />
+                <h3 className="text-3xl font-bold text-black mb-4 tracking-tight">
+                  Enterprise Security
+                </h3>
+                <p className="text-lg text-neutral-600 mb-6">
+                  SOC2 Type II certified. Your data encrypted at rest and in transit. GDPR compliant.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {['SSO', 'RBAC', '2FA', 'Audit Logs'].map((tag) => (
+                    <span key={tag} className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium border-2 border-green-200">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <h3 className="text-xl font-bold mb-2">AI Tutoring</h3>
-              <p className="text-neutral-500 text-sm">Personalized help for every student, 24/7.</p>
-            </div>
-          </SpotlightCard>
 
-          {/* Card 4: Keyboard (Small 2 cols) */}
-          <SpotlightCard className="col-span-1 md:col-span-2 lg:col-span-2 p-8 flex flex-col justify-between group">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-2">
-              {['C', 'M', 'D'].map((key, i) => (
+              {/* Lock Visual */}
+              <div className="relative">
                 <motion.div
-                  key={key}
-                  className="size-10 bg-white border-b-4 border-neutral-200 rounded-lg flex items-center justify-center font-bold text-neutral-400 shadow-xs group-hover:border-b-0 group-hover:translate-y-1 transition-all duration-100"
-                  style={{ transitionDelay: `${i * 50}ms` }}
+                  className="size-32 border-4 border-green-200 rounded-full flex items-center justify-center"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 >
-                  {key}
+                  <Lock className="size-16 text-green-300" />
                 </motion.div>
-              ))}
-            </div>
-            <div>
-              <div className="size-12 rounded-xl bg-neutral-100 flex items-center justify-center mb-6">
-                <Command className="size-6 text-neutral-600" />
+                <motion.div
+                  className="absolute inset-0 border-4 border-dashed border-green-300 rounded-full"
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                />
               </div>
-              <h3 className="text-xl font-bold mb-2">Keyboard First</h3>
-              <p className="text-neutral-500 text-sm">Power user shortcuts for everything.</p>
             </div>
-          </SpotlightCard>
+          </motion.div>
 
-          {/* Card 5: Security (Small 2 cols) */}
-          <SpotlightCard className="col-span-1 md:col-span-2 lg:col-span-2 p-8 flex flex-col justify-between overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center opacity-10">
-              <Shield className="size-48 text-green-500" />
-            </div>
-            <motion.div
-              className="absolute top-0 bottom-0 left-0 w-8 bg-linear-to-r from-transparent via-green-500/10 to-transparent skew-x-12"
-              animate={{ left: ["0%", "150%"] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            />
-            <div>
-              <div className="size-12 rounded-xl bg-green-100 flex items-center justify-center mb-6">
-                <Lock className="size-6 text-green-600" />
+          {/* Feature 4 - Square Card */}
+          <motion.div
+            className="bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <div className="relative z-10">
+              <div className="inline-flex items-center justify-center size-14 bg-orange-100 rounded-2xl mb-6">
+                <Sparkles className="size-7 text-orange-600" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Enterprise Security</h3>
-              <p className="text-neutral-500 text-sm">SOC2 Type II certified. Encryption at rest.</p>
+              <h3 className="text-2xl font-bold text-black mb-4 tracking-tight">
+                AI-Powered
+              </h3>
+              <p className="text-neutral-600 mb-6">
+                Smart recommendations, automated grading, and personalized learning paths.
+              </p>
+
+              {/* AI Chat Bubbles */}
+              <div className="space-y-3">
+                <motion.div
+                  className="bg-white border-2 border-neutral-200 rounded-2xl rounded-tr-sm p-3 text-sm text-neutral-700 ml-auto w-fit max-w-[80%]"
+                  initial={{ x: 20, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.5 }}
+                >
+                  Explain this concept
+                </motion.div>
+                <motion.div
+                  className="bg-orange-500 rounded-2xl rounded-tl-sm p-3 text-sm text-white w-fit max-w-[80%]"
+                  initial={{ x: -20, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <div className="flex gap-1 mb-2">
+                    <motion.div className="size-1.5 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }} />
+                    <motion.div className="size-1.5 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }} />
+                    <motion.div className="size-1.5 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} />
+                  </div>
+                </motion.div>
+              </div>
             </div>
-          </SpotlightCard>
+          </motion.div>
 
         </div>
       </div>
@@ -629,18 +513,15 @@ function GridFeatures() {
 
 function Footer() {
   return (
-    <footer className="bg-neutral-950 text-white py-32 px-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none"></div>
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
-
+    <footer className="bg-black text-white py-24 px-6 relative overflow-hidden">
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex flex-col items-center text-center mb-32">
-          <h2 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 max-w-4xl mx-auto">
+        <div className="flex flex-col items-center text-center mb-20">
+          <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 max-w-3xl mx-auto">
             Ready to transform your <br />
             <span className="text-neutral-500">teaching experience?</span>
           </h2>
-          <p className="text-neutral-400 text-xl mb-12 max-w-2xl">
-            Join thousands of educators who are already building the future of learning with LMS Pro.
+          <p className="text-neutral-400 text-lg mb-10 max-w-2xl">
+            Join thousands of educators who are already building the future of learning with ConnectX.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
             <input
@@ -654,59 +535,47 @@ function Footer() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12 border-t border-neutral-900 pt-20">
-          <div className="col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-2 mb-8">
-              <div className="size-8 bg-white rounded-lg flex items-center justify-center text-black font-bold font-mono">
-                L
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-neutral-800 pt-16">
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="size-8 bg-white rounded-lg flex items-center justify-center text-black">
+                <Command className="size-5" />
               </div>
-              <span className="font-bold tracking-tight text-lg">LMS Pro</span>
+              <span className="font-bold tracking-tight text-lg">ConnectX</span>
             </div>
-            <p className="text-neutral-500 text-sm leading-relaxed max-w-xs">
-              Designing the future of education technology. Built for performance, scalability, and beauty.
+            <p className="text-neutral-500 text-sm leading-relaxed">
+              Designing the future of education technology.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-6 text-neutral-200">Product</h4>
+            <h4 className="font-semibold mb-6 text-neutral-200">Navigation</h4>
             <ul className="space-y-4 text-sm text-neutral-500">
-              {["Features", "Integrations", "Pricing", "Changelog", "Docs"].map(item => (
-                <li key={item} className="hover:text-white transition-colors cursor-pointer">{item}</li>
-              ))}
+              <li className="hover:text-white transition-colors">
+                <Link href="/dashboard" className="cursor-pointer">Dashboard</Link>
+              </li>
+              <li className="hover:text-white transition-colors">
+                <Link href="/auth" className="cursor-pointer">Authentication</Link>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-6 text-neutral-200">Company</h4>
+            <h4 className="font-semibold mb-6 text-neutral-200">Legal</h4>
             <ul className="space-y-4 text-sm text-neutral-500">
-              {["About", "Careers", "Blog", "Legal", "Brand"].map(item => (
-                <li key={item} className="hover:text-white transition-colors cursor-pointer">{item}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-6 text-neutral-200">Resources</h4>
-            <ul className="space-y-4 text-sm text-neutral-500">
-              {["Community", "Contact", "DPA", "Terms", "Privacy"].map(item => (
-                <li key={item} className="hover:text-white transition-colors cursor-pointer">{item}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-6 text-neutral-200">Social</h4>
-            <ul className="space-y-4 text-sm text-neutral-500">
-              {["Twitter", "GitHub", "Discord", "YouTube"].map(item => (
-                <li key={item} className="hover:text-white transition-colors cursor-pointer">{item}</li>
-              ))}
+              <li className="hover:text-white transition-colors cursor-pointer">Terms</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Privacy</li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-neutral-900 mt-20 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-neutral-600 text-sm">
-            © 2024 LMS Pro Inc. All rights reserved.
+        <div className="border-t border-neutral-800 mt-16 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col md:flex-row items-center gap-4 text-neutral-600 text-sm">
+            <span>© 2024 ConnectX Inc. All rights reserved.</span>
+            <span className="text-neutral-700">•</span>
+            <a href="https://componentry.fun" target="_blank" rel="noopener noreferrer" className="text-neutral-500 hover:text-neutral-300 transition-colors">
+              UI components from <span className="font-semibold">componentry.fun</span>
+            </a>
           </div>
           <div className="flex gap-6">
             {[Globe, Server, Code].map((Icon, i) => (
@@ -720,7 +589,7 @@ function Footer() {
         {/* Massive Background Text */}
         <div className="absolute -bottom-40 -left-20 right-0 pointer-events-none select-none opacity-[0.02] overflow-hidden">
           <h1 className="text-[20rem] font-black tracking-tighter text-white leading-none whitespace-nowrap">
-            LMS PRO
+            CONNECTX
           </h1>
         </div>
       </div>
@@ -734,8 +603,7 @@ export default function Page() {
       <Navbar />
       <Hero />
       <VelocityText />
-      <StickyScroll />
-      <GridFeatures />
+      <ModernFeatures />
       <Footer />
     </main>
   )
