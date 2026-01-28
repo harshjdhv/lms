@@ -7,6 +7,7 @@
 
 "use client"
 
+import Link from "next/link"
 import * as React from "react"
 import {
   BookOpen,
@@ -51,64 +52,75 @@ type User = {
   updatedAt: Date
 }
 
-const navMain = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    isActive: true,
-  },
-  {
-    title: "Courses",
-    url: "/courses",
-    icon: BookOpen,
-    items: [
-      {
-        title: "My Courses",
-        url: "/courses/my",
-      },
-      {
-        title: "Catalog",
-        url: "/courses/catalog",
-      },
-    ],
-  },
-  {
-    title: "Assignments",
-    url: "/assignments",
-    icon: FileText,
-  },
-  {
-    title: "Schedule",
-    url: "/schedule",
-    icon: Calendar,
-  },
-  {
-    title: "Grades",
-    url: "/grades",
-    icon: GraduationCap,
-  },
-  {
-    title: "Community",
-    url: "/community",
-    icon: Users,
-  },
-]
 
-const navSecondary = [
-  {
-    title: "Support",
-    url: "#",
-    icon: LifeBuoy,
-  },
-  {
-    title: "Feedback",
-    url: "#",
-    icon: Send,
-  },
-]
+import { usePathname } from "next/navigation"
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
+  const pathname = usePathname()
+
+  const navMain = [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
+      isActive: pathname === "/dashboard",
+    },
+    {
+      title: "Courses",
+      url: "/dashboard/courses",
+      icon: BookOpen,
+      isActive: pathname.startsWith("/dashboard/courses"),
+      items: [
+        {
+          title: "My Courses",
+          url: "/dashboard/courses/my",
+        },
+        {
+          title: "Catalog",
+          url: "/dashboard/courses/catalog",
+        },
+      ],
+    },
+    {
+      title: "Assignments",
+      url: "/dashboard/assignments",
+      icon: FileText,
+      isActive: pathname.startsWith("/dashboard/assignments"),
+    },
+    {
+      title: "Schedule",
+      url: "/dashboard/schedule",
+      icon: Calendar,
+      isActive: pathname.startsWith("/dashboard/schedule"),
+    },
+    {
+      title: "Grades",
+      url: "/dashboard/grades",
+      icon: GraduationCap,
+      isActive: pathname.startsWith("/dashboard/grades"),
+    },
+    {
+      title: "Community",
+      url: "/dashboard/community",
+      icon: Users,
+      isActive: pathname.startsWith("/dashboard/community"),
+    },
+  ]
+
+
+  const navSecondary = [
+    {
+      title: "Support",
+      url: "#",
+      icon: LifeBuoy,
+    },
+    {
+      title: "Feedback",
+      url: "#",
+      icon: Send,
+    },
+  ]
+
   const getRoleBadge = () => {
     if (!user.role) return null
 
@@ -134,7 +146,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link href="/dashboard">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Command className="size-4" />
                 </div>
@@ -144,7 +156,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
                     {getRoleBadge()}
                   </div>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
