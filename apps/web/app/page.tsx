@@ -74,12 +74,9 @@ function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm font-medium hover:opacity-70 transition-opacity hidden sm:block">
+          <Link href="/auth" className="text-sm font-medium hover:opacity-70 transition-opacity hidden sm:block">
             Log in
           </Link>
-          <Button className="rounded-full bg-black text-white hover:bg-neutral-800 transition-all hover:scale-105 active:scale-95">
-            Get Pro
-          </Button>
         </div>
       </div>
     </motion.header>
