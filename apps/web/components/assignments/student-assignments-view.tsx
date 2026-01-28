@@ -17,6 +17,7 @@ import {
     RefreshCw
 } from "lucide-react"
 
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
     Card,
     CardHeader,
@@ -190,7 +191,13 @@ export function StudentAssignmentsView() {
                 </div>
 
                 <TabsContent value="todo" className="space-y-4">
-                    {todoAssignments.length === 0 && !isLoading ? (
+                    {isLoading ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <AssignmentCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    ) : todoAssignments.length === 0 ? (
                         <EmptyState title="All caught up!" description="No pending assignments." />
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -204,7 +211,13 @@ export function StudentAssignmentsView() {
                 </TabsContent>
 
                 <TabsContent value="done" className="space-y-4">
-                    {doneAssignments.length === 0 && !isLoading ? (
+                    {isLoading ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {[1, 2, 3].map((i) => (
+                                <AssignmentCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    ) : doneAssignments.length === 0 ? (
                         <EmptyState title="No history" description="Completed assignments will show here." />
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -447,6 +460,36 @@ function SubmissionDialog({ assignment, onSubmitted, submission }: { assignment:
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+    )
+}
+
+function AssignmentCardSkeleton() {
+    return (
+        <Card className="h-full flex flex-col overflow-hidden border bg-card">
+            <CardHeader className="pb-3 space-y-3">
+                <div className="flex justify-between items-start">
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <div>
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 pb-3 space-y-4">
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                </div>
+                <Skeleton className="h-10 w-full rounded-lg" />
+            </CardContent>
+            <Separator />
+            <CardFooter className="p-3 bg-muted/5 flex items-center justify-between gap-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+            </CardFooter>
+        </Card>
     )
 }
 
