@@ -41,7 +41,7 @@ export function StudentAnnouncementFeed() {
 
     if (loading) {
         return (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-4">
                 {[1, 2, 3].map((i) => (
                     <Card key={i} className="overflow-hidden">
                         <div className="h-48 bg-muted animate-pulse" />
@@ -71,40 +71,38 @@ export function StudentAnnouncementFeed() {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-xl font-semibold tracking-tight">Announcements</h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {announcements.map((announcement) => (
-                    <Card key={announcement.id} className="overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow">
-                        {announcement.imageUrl && (
-                            <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                                <img
-                                    src={announcement.imageUrl}
-                                    alt={announcement.title}
-                                    className="object-cover w-full h-full"
-                                />
-                            </div>
-                        )}
-                        <CardHeader>
-                            <div className="flex items-center justify-between mb-2">
-                                <Badge variant="secondary" className="text-xs font-normal">
-                                    {announcement.course.title}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {new Date(announcement.createdAt).toLocaleDateString()}
-                                </span>
-                            </div>
-                            <CardTitle className="text-lg line-clamp-1">{announcement.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-1">
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">
-                                {announcement.content}
-                            </p>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+        <div className="flex flex-col gap-6">
+            {announcements.map((announcement) => (
+                <Card key={announcement.id} className="overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow group">
+                    {announcement.imageUrl && (
+                        <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                            <img
+                                src={announcement.imageUrl}
+                                alt={announcement.title}
+                                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                            />
+                        </div>
+                    )}
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between mb-2">
+                            <Badge variant="secondary" className="text-xs font-normal bg-secondary/50">
+                                {announcement.course.title}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {new Date(announcement.createdAt).toLocaleDateString()}
+                            </span>
+                        </div>
+                        <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">{announcement.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 pb-4">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 leading-relaxed">
+                            {announcement.content}
+                        </p>
+                    </CardContent>
+                </Card>
+            ))}
         </div>
     )
+
 }
