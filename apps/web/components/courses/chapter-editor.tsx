@@ -79,6 +79,17 @@ export function ChapterEditor({
 
             toast.success("Chapter updated");
             router.refresh();
+
+            // Generate and cache transcript for quiz questions (fire-and-forget)
+            if (values.videoUrl?.trim()) {
+                fetch("/api/reflection/transcript", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chapterId }),
+                }).then((r) => {
+                    if (r.ok) toast.success("Transcript cached for quizzes");
+                }).catch(() => {});
+            }
         } catch {
             toast.error("Something went wrong");
         } finally {

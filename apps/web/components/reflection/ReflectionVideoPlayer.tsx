@@ -12,12 +12,14 @@ type Props = {
   videoId: string;
   reflectionPoints: ReflectionPoint[];
   studentId: string;
+  chapterId?: string | null;
 };
 
 export function ReflectionVideoPlayer({
   videoId,
   reflectionPoints,
   studentId,
+  chapterId,
 }: Props) {
   const [showReflection, setShowReflection] = useState(false);
   const [currentReflection, setCurrentReflection] =
@@ -30,8 +32,9 @@ export function ReflectionVideoPlayer({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastTriggeredRef = useRef<number[]>([]);
   const onReadyFiredRef = useRef(false);
+  const videoPausedRef = useRef(false);
 
-  // Add debug logging
+  // Debug logging: only update React state for important events (not every state change or tick)
   const addDebugLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setDebugLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
@@ -39,72 +42,53 @@ export function ReflectionVideoPlayer({
   }, []);
 
   const handleReflectionPoint = useCallback((reflection: ReflectionPoint) => {
-    addDebugLog(
-      `🚫 PAUSING VIDEO at ${reflection.time}s for reflection on "${reflection.topic}"`,
-    );
-
-    // Pause the video
-    if (playerRef.current && playerRef.current.pauseVideo) {
+    videoPausedRef.current = true;
+    if (playerRef.current?.pauseVideo) {
       playerRef.current.pauseVideo();
     }
-
     setVideoPaused(true);
     setCurrentReflection(reflection);
     setShowReflection(true);
-
-    // Stop polling while modal is open
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
-      addDebugLog("⏸️ Stopped time polling during reflection");
+      intervalRef.current = null;
     }
-  }, [addDebugLog]);
+  }, []);
 
   const startPolling = useCallback(() => {
-    addDebugLog("Starting time polling every 500ms");
+    addDebugLog("Starting time polling");
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     intervalRef.current = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime) {
-        const currentTime = playerRef.current.getCurrentTime();
+      if (!playerRef.current?.getCurrentTime) return;
+      const currentTime = playerRef.current.getCurrentTime();
+      // Use ref to avoid re-renders and stale closure; don't trigger when modal is open or paused
+      if (videoPausedRef.current) return;
 
-        // Only log every 5 seconds to reduce spam
-        if (Math.floor(currentTime) % 5 === 0) {
-          addDebugLog(`Current time: ${currentTime.toFixed(1)}s`);
+      const nextReflection = reflectionPoints.find((point) => {
+        const timeDiff = Math.abs(currentTime - point.time);
+        const shouldTrigger =
+          timeDiff < 0.5 && !lastTriggeredRef.current.includes(point.time);
+
+        if (shouldTrigger) {
+          lastTriggeredRef.current = [...lastTriggeredRef.current, point.time];
         }
+        return shouldTrigger;
+      });
 
-        // Check if we've reached a reflection point
-        const nextReflection = reflectionPoints.find((point) => {
-          const timeDiff = Math.abs(currentTime - point.time);
-          const shouldTrigger =
-            timeDiff < 0.5 &&
-            !videoPaused &&
-            !lastTriggeredRef.current.includes(point.time);
-
-          if (shouldTrigger) {
-            addDebugLog(
-              `🎯 TRIGGER: Reflection point at ${point.time}s - "${point.topic}"`,
-            );
-            lastTriggeredRef.current = [
-              ...lastTriggeredRef.current,
-              point.time,
-            ];
-          }
-
-          return shouldTrigger;
-        });
-
-        if (nextReflection) {
-          handleReflectionPoint(nextReflection);
-        }
+      if (nextReflection) {
+        addDebugLog(`🎯 Reflection at ${nextReflection.time}s - "${nextReflection.topic}"`);
+        handleReflectionPoint(nextReflection);
       }
-    }, 500); // Poll every 500ms
-  }, [reflectionPoints, videoPaused, handleReflectionPoint, addDebugLog]);
+    }, 800);
+  }, [reflectionPoints, handleReflectionPoint, addDebugLog]);
 
   const tryStartPlaybackAndPolling = useCallback(() => {
     if (onReadyFiredRef.current) return;
     onReadyFiredRef.current = true;
-    addDebugLog("✅ Starting playback and monitoring");
+    videoPausedRef.current = false;
+    addDebugLog("✅ Player ready, starting playback");
     try {
       if (playerRef.current?.playVideo) {
         playerRef.current.playVideo();
@@ -152,11 +136,11 @@ export function ReflectionVideoPlayer({
             tryStartPlaybackAndPolling();
           },
           onStateChange: (event: any) => {
-            addDebugLog(`Player state changed to: ${event.data}`);
+            // Ref only — no setState to avoid re-renders and flicker during playback
             if (event.data === window.YT.PlayerState.PLAYING) {
-              setVideoPaused(false);
+              videoPausedRef.current = false;
             } else if (event.data === window.YT.PlayerState.PAUSED) {
-              setVideoPaused(true);
+              videoPausedRef.current = true;
             }
           },
           onError: (event: any) => {
@@ -178,158 +162,119 @@ export function ReflectionVideoPlayer({
     }
   }, [videoId, containerId, addDebugLog, tryStartPlaybackAndPolling]);
 
-  // Initialize YouTube player
+  // Initialize YouTube player (run once per videoId)
   useEffect(() => {
-    addDebugLog(`Initializing with videoId: ${videoId}`);
-    addDebugLog(
-      `Reflection points: ${JSON.stringify(reflectionPoints, null, 2)}`,
-    );
+    addDebugLog(`Initializing videoId: ${videoId}`);
 
-    // Clean up existing player if videoId changes
-    if (playerRef.current && playerRef.current.destroy) {
-      addDebugLog("Cleaning up existing player");
-      try {
-        playerRef.current.destroy();
-      } catch (error) {
-        addDebugLog(`Error destroying player: ${error}`);
+    let mounted = true;
+
+    const cleanupPlayer = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-      playerRef.current = null;
+      if (playerRef.current?.destroy) {
+        try {
+          playerRef.current.destroy();
+        } catch (_) {}
+        playerRef.current = null;
+      }
       onReadyFiredRef.current = false;
-    }
+    };
 
-    // Reset triggered points when video changes
+    if (playerRef.current) {
+      cleanupPlayer();
+    }
     lastTriggeredRef.current = [];
 
-    if (typeof window !== "undefined" && window.YT && window.YT.Player) {
-      // API already loaded, initialize immediately (but wait for iframe)
-      setTimeout(() => {
-        initializePlayer();
-      }, 100);
-    } else {
-      // Load YouTube API if not already loaded
-      addDebugLog("Loading YouTube API...");
-      
-      // Check if script is already being loaded
-      const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
-      if (existingScript) {
-        addDebugLog("YouTube API script already exists, waiting for it to load...");
-        // Wait a bit and check again
-        const checkInterval = setInterval(() => {
-          if (window.YT && window.YT.Player) {
-            clearInterval(checkInterval);
-            setTimeout(() => initializePlayer(), 100);
-          }
-        }, 100);
-        // Cleanup after 10 seconds
-        setTimeout(() => clearInterval(checkInterval), 10000);
-      } else {
-        const tag = document.createElement("script");
-        tag.src = "https://www.youtube.com/iframe_api";
-        tag.async = true;
-        const firstScriptTag = document.getElementsByTagName("script")[0];
-        if (firstScriptTag?.parentNode) {
-          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        }
-
-        // Store the original callback if it exists
-        const originalCallback = window.onYouTubeIframeAPIReady;
-        window.onYouTubeIframeAPIReady = () => {
-          addDebugLog("YouTube API ready callback fired");
-          if (originalCallback) {
-            originalCallback();
-          }
-          setTimeout(() => {
-            initializePlayer();
-          }, 100);
-        };
-      }
-    }
-
-    // Listen for dev pause requests
-    const handleDevPause = (event: CustomEvent) => {
-      addDebugLog(
-        `🛑 DEV PAUSE REQUEST from: ${event.detail?.source || "unknown"}`,
-      );
-
-      if (playerRef.current && playerRef.current.pauseVideo && !videoPaused) {
-        playerRef.current.pauseVideo();
-        setVideoPaused(true);
-
-        // Create a temporary reflection point for dev pause
-        const devReflection: ReflectionPoint = {
-          time: playerRef.current.getCurrentTime(),
-          topic: "Manual Dev Pause - Testing",
-        };
-
-        setCurrentReflection(devReflection);
-        setShowReflection(true);
-
-        // Stop polling while modal is open
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          addDebugLog("⏸️ Stopped time polling during dev pause");
-        }
+    const handleDevPause = (_event: CustomEvent) => {
+      if (!playerRef.current?.pauseVideo || videoPausedRef.current) return;
+      videoPausedRef.current = true;
+      playerRef.current.pauseVideo();
+      setVideoPaused(true);
+      setCurrentReflection({
+        time: playerRef.current.getCurrentTime?.() ?? 0,
+        topic: "Manual Dev Pause - Testing",
+      });
+      setShowReflection(true);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
 
     window.addEventListener("devPauseRequest", handleDevPause as EventListener);
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+    if (typeof window === "undefined" || !window.YT?.Player) {
+      addDebugLog("Loading YouTube API...");
+      const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+      if (existingScript) {
+        const checkInterval = setInterval(() => {
+          if (mounted && window.YT?.Player) {
+            clearInterval(checkInterval);
+            setTimeout(() => mounted && initializePlayer(), 100);
+          }
+        }, 100);
+        const t = setTimeout(() => clearInterval(checkInterval), 10000);
+        return () => {
+          mounted = false;
+          clearTimeout(t);
+          clearInterval(checkInterval);
+          cleanupPlayer();
+          window.removeEventListener("devPauseRequest", handleDevPause as EventListener);
+        };
       }
-      window.removeEventListener(
-        "devPauseRequest",
-        handleDevPause as EventListener,
-      );
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.async = true;
+      const firstScriptTag = document.getElementsByTagName("script")[0];
+      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+      const originalCb = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (originalCb) originalCb();
+        if (mounted) setTimeout(() => initializePlayer(), 100);
+      };
+    } else {
+      setTimeout(() => mounted && initializePlayer(), 100);
+    }
+
+    return () => {
+      mounted = false;
+      cleanupPlayer();
+      window.removeEventListener("devPauseRequest", handleDevPause as EventListener);
     };
   }, [videoId, reflectionPoints.length, initializePlayer, addDebugLog]);
 
 
   const handleReflectionComplete = useCallback(() => {
-    addDebugLog(`✅ Reflection complete, resuming video`);
     setShowReflection(false);
     setVideoPaused(false);
     setCurrentReflection(null);
+    videoPausedRef.current = false;
 
-    // Resume video and restart polling
-    if (playerRef.current && playerRef.current.playVideo) {
+    if (playerRef.current?.playVideo) {
       playerRef.current.playVideo();
     }
-
-    setTimeout(() => {
-      addDebugLog("🔄 Restarted time polling");
-      startPolling();
-    }, 1000); // Small delay before resuming polling
-  }, [startPolling, addDebugLog]);
+    setTimeout(() => startPolling(), 800);
+  }, [startPolling]);
 
   const triggerDevPause = useCallback(() => {
-    if (playerRef.current && playerRef.current.pauseVideo && !videoPaused) {
-      try {
-        playerRef.current.pauseVideo();
-        setVideoPaused(true);
-
-        const currentTime = playerRef.current.getCurrentTime ? playerRef.current.getCurrentTime() : 0;
-        const devReflection: ReflectionPoint = {
-          time: currentTime,
-          topic: "Manual Dev Pause - Testing",
-        };
-
-        setCurrentReflection(devReflection);
-        setShowReflection(true);
-
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          addDebugLog("⏸️ Stopped time polling during dev pause");
-        }
-        addDebugLog("🛑 Dev pause triggered via button");
-      } catch (error) {
-        addDebugLog(`❌ Error triggering dev pause: ${error}`);
+    if (!playerRef.current?.pauseVideo || videoPausedRef.current) return;
+    try {
+      videoPausedRef.current = true;
+      playerRef.current.pauseVideo();
+      setVideoPaused(true);
+      setCurrentReflection({
+        time: playerRef.current.getCurrentTime?.() ?? 0,
+        topic: "Manual Dev Pause - Testing",
+      });
+      setShowReflection(true);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-    } else {
-      addDebugLog("⚠️ Dev pause skipped (no player, already paused, or modal open)");
-    }
-  }, [videoPaused, addDebugLog]);
+    } catch (_) {}
+  }, []);
 
   return (
     <div className="space-y-4 w-full max-w-full p-0">
@@ -380,6 +325,7 @@ export function ReflectionVideoPlayer({
           reflection={currentReflection}
           studentId={studentId}
           onComplete={handleReflectionComplete}
+          chapterId={chapterId}
         />
       )}
     </div>

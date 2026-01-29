@@ -112,6 +112,9 @@ model Chapter {
   isPublished Boolean @default(false)
   isFree      Boolean @default(false)
 
+  /// Cached transcript segments: [{ start: number (seconds), text: string }]. Fetched after video upload for quiz generation.
+  transcriptJson Json?
+
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 

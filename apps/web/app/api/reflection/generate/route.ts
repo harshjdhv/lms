@@ -7,14 +7,35 @@ const MODELS = {
   upgrade: "llama-3.3-70b-versatile", // Used when student fails twice
 };
 
-async function generateQuestionWithGroq(
-  topic: string,
+async function generateQuizWithGroq(
+  input: { topic?: string; transcriptText?: string },
   model: string = MODELS.default,
-) {
+): Promise<{ question: string; options: string[]; correctIndex: number }> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error("Groq API key not configured");
   }
+
+  const hasTranscript = Boolean(input.transcriptText?.trim());
+  const systemContent = hasTranscript
+    ? `You are an expert educational assistant. You will be given a video transcript (content the student has watched up to a certain point). Generate a single quiz question (multiple choice) that tests understanding of the content in that transcript ONLY. Do not ask about anything beyond the transcript.
+Return ONLY a valid JSON object with this exact shape (no markdown, no extra text):
+{"question": "the question text", "options": ["option A", "option B", "option C", "option D"], "correctIndex": 0}
+- question: one clear multiple-choice question about the transcript content.
+- options: exactly 4 plausible options, one correct and three plausible distractors.
+- correctIndex: 0-3, the index of the correct option in the options array.
+Be concise. The question should feel like a quiz/test.`
+    : `You are an expert educational assistant. Generate a single quiz question (multiple choice) that tests understanding of the topic.
+Return ONLY a valid JSON object with this exact shape (no markdown, no extra text):
+{"question": "the question text", "options": ["option A", "option B", "option C", "option D"], "correctIndex": 0}
+- question: one clear multiple-choice question about the topic.
+- options: exactly 4 plausible options, one correct and three plausible distractors.
+- correctIndex: 0-3, the index of the correct option in the options array.
+Be concise. The question should feel like a quiz/test.`;
+
+  const userContent = hasTranscript
+    ? `Transcript (content watched so far):\n\n${(input.transcriptText ?? "").slice(0, 8000)}\n\nGenerate a quiz question based ONLY on this transcript.`
+    : `Topic: ${input.topic ?? "general"}. Generate a quiz question.`;
 
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
@@ -27,18 +48,12 @@ async function generateQuestionWithGroq(
       body: JSON.stringify({
         model,
         messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert educational assistant. Generate a thoughtful, open-ended question that tests understanding of the given topic. The question should be clear, concise, and encourage critical thinking. Avoid yes/no questions.",
-          },
-          {
-            role: "user",
-            content: `Generate a reflection question about: ${topic}`,
-          },
+          { role: "system", content: systemContent },
+          { role: "user", content: userContent },
         ],
-        max_tokens: 150,
-        temperature: 0.7,
+        max_tokens: 350,
+        temperature: 0.5,
+        response_format: { type: "json_object" },
       }),
     },
   );
@@ -48,44 +63,70 @@ async function generateQuestionWithGroq(
   }
 
   const data = await response.json();
-  return data.choices[0].message.content.trim();
+  const content = data.choices[0].message.content.trim();
+  try {
+    const parsed = JSON.parse(content);
+    const question = typeof parsed.question === "string" ? parsed.question : "";
+    const options = Array.isArray(parsed.options) ? parsed.options.slice(0, 4).map(String) : [];
+    let correctIndex = typeof parsed.correctIndex === "number" ? parsed.correctIndex : 0;
+    if (correctIndex < 0 || correctIndex >= options.length) correctIndex = 0;
+    return { question, options, correctIndex };
+  } catch {
+    throw new Error("Invalid quiz JSON from model");
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { topic } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const { topic, transcriptText } = body as { topic?: string; transcriptText?: string };
 
-    if (!topic) {
-      return NextResponse.json({ error: "Topic is required" }, { status: 400 });
+    const hasTranscript = Boolean(transcriptText?.trim());
+    if (!topic && !hasTranscript) {
+      return NextResponse.json(
+        { error: "Either topic or transcriptText is required" },
+        { status: 400 },
+      );
     }
 
-    let question;
+    const input = { topic: topic ?? "content so far", transcriptText };
+
+    let result: { question: string; options: string[]; correctIndex: number };
     let modelUsed = MODELS.default;
 
     try {
-      // Try primary model first
-      question = await generateQuestionWithGroq(topic, MODELS.default);
+      result = await generateQuizWithGroq(input, MODELS.default);
       modelUsed = MODELS.default;
     } catch (error) {
       console.warn("Primary model failed, trying fallback:", error);
-
       try {
-        // Try fallback model
-        question = await generateQuestionWithGroq(topic, MODELS.fallback);
+        result = await generateQuizWithGroq(input, MODELS.fallback);
         modelUsed = MODELS.fallback;
       } catch (fallbackError) {
         console.error("All models failed:", fallbackError);
-
-        // Return a fallback question if all AI models fail
-        question = `What key concepts did you learn about ${topic}? How would you explain them to someone else?`;
+        result = {
+          question: hasTranscript
+            ? "What was a key point covered in the content you just watched?"
+            : `What is a key concept or takeaway regarding ${input.topic}?`,
+          options: [
+            "I need to review the material.",
+            "I understood the main idea.",
+            "I can explain it to someone else.",
+            "I'm not sure yet.",
+          ],
+          correctIndex: 1,
+        };
         modelUsed = "fallback";
       }
     }
 
     return NextResponse.json({
-      question,
+      question: result.question,
+      options: result.options,
+      correctIndex: result.correctIndex,
       modelUsed,
-      topic,
+      topic: input.topic,
+      fromTranscript: hasTranscript,
     });
   } catch (error) {
     console.error("Error generating question:", error);

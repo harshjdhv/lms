@@ -106,6 +106,7 @@ export function EnhancedChapterPlayer({
               videoId={videoId}
               reflectionPoints={reflectionPoints}
               studentId={studentId}
+              chapterId={chapter.id}
             />
           ) : (
             <Card>
