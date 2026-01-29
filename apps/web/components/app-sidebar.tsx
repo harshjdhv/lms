@@ -5,10 +5,10 @@
  * @access Public
  */
 
-"use client"
+"use client";
 
-import Link from "next/link"
-import * as React from "react"
+import Link from "next/link";
+import * as React from "react";
 import {
   BookOpen,
   Calendar,
@@ -19,12 +19,12 @@ import {
   LifeBuoy,
   Send,
   Users,
-} from "lucide-react"
+} from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
+import { NavMain } from "@/components/nav-main";
 
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -33,30 +33,32 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui/components/sidebar"
+} from "@workspace/ui/components/sidebar";
 
 type User = {
-  id: string
-  email: string
-  name: string | null
-  role: string | null
-  hasCompletedOnboarding: boolean
-  bio: string | null
-  avatar: string | null
-  phone: string | null
-  expertise: string | null
-  title: string | null
-  studentId: string | null
-  grade: string | null
-  createdAt: Date
-  updatedAt: Date
-}
+  id: string;
+  email: string;
+  name: string | null;
+  role: string | null;
+  hasCompletedOnboarding: boolean;
+  bio: string | null;
+  avatar: string | null;
+  phone: string | null;
+  expertise: string | null;
+  title: string | null;
+  studentId: string | null;
+  grade: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
+import { usePathname } from "next/navigation";
 
-import { usePathname } from "next/navigation"
-
-export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
-  const pathname = usePathname()
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { user: User }) {
+  const pathname = usePathname();
 
   const navMain = [
     {
@@ -66,20 +68,10 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       isActive: pathname === "/dashboard",
     },
     {
-      title: "Courses",
-      url: "/dashboard/courses",
+      title: "My Courses",
+      url: "/dashboard/courses/my",
       icon: BookOpen,
-      isActive: pathname.startsWith("/dashboard/courses"),
-      items: [
-        {
-          title: "My Courses",
-          url: "/dashboard/courses/my",
-        },
-        {
-          title: "Catalog",
-          url: "/dashboard/courses/catalog",
-        },
-      ],
+      isActive: pathname === "/dashboard/courses/my",
     },
     {
       title: "Assignments",
@@ -105,8 +97,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       icon: Users,
       isActive: pathname.startsWith("/dashboard/community"),
     },
-  ]
-
+  ];
 
   const navSecondary = [
     {
@@ -119,26 +110,32 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       url: "#",
       icon: Send,
     },
-  ]
+  ];
 
   const getRoleBadge = () => {
-    if (!user.role) return null
+    if (!user.role) return null;
 
     const roleColors = {
-      STUDENT: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-      TEACHER: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-      ADMIN: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    }
+      STUDENT:
+        "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      TEACHER:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+      ADMIN:
+        "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    };
 
-    const roleLabel = user.role.charAt(0) + user.role.slice(1).toLowerCase()
-    const colorClass = roleColors[user.role as keyof typeof roleColors] || roleColors.STUDENT
+    const roleLabel = user.role.charAt(0) + user.role.slice(1).toLowerCase();
+    const colorClass =
+      roleColors[user.role as keyof typeof roleColors] || roleColors.STUDENT;
 
     return (
-      <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${colorClass}`}>
+      <span
+        className={`text-xs font-medium px-2 py-0.5 rounded-md ${colorClass}`}
+      >
         {roleLabel}
       </span>
-    )
-  }
+    );
+  };
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -167,12 +164,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{
-          name: user.name || 'User',
-          email: user.email,
-          avatar: user.avatar || '/avatars/default.jpg'
-        }} />
+        <NavUser
+          user={{
+            name: user.name || "User",
+            email: user.email,
+            avatar: user.avatar || "/avatars/default.jpg",
+          }}
+        />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
