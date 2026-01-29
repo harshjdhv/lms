@@ -168,7 +168,7 @@ export default function CommunityPage() {
     )
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+        <div className="flex h-[calc(100vh-4rem)] min-h-0 overflow-hidden bg-background">
             <UserListSidebar
                 users={users}
                 selectedUserId={selectedUserId}
