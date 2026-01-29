@@ -7,7 +7,7 @@
 
 "use client"
 
-import { User } from "./types"
+import { Chat } from "./types"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Button } from "@workspace/ui/components/button"
 import { ScrollArea } from "@workspace/ui/components/scroll-area"
@@ -15,17 +15,19 @@ import { Plus, Users as UsersIcon } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 
 interface UserListSidebarProps {
-    users: User[]
-    selectedUserId: string | null
-    onSelectUser: (userId: string) => void
+    chats: Chat[]
+    selectedChatId: string | null
+    onSelectChat: (chatId: string) => void
     onAddUserClick: () => void
+    loading?: boolean
 }
 
 export function UserListSidebar({
-    users,
-    selectedUserId,
-    onSelectUser,
+    chats,
+    selectedChatId,
+    onSelectChat,
     onAddUserClick,
+    loading = false,
 }: UserListSidebarProps) {
     const getInitials = (name: string) => {
         return name
@@ -36,9 +38,10 @@ export function UserListSidebar({
             .slice(0, 2)
     }
 
-    const formatLastSeen = (lastSeen: Date) => {
+    const formatTimestamp = (timestamp: string | Date) => {
+        const date = new Date(timestamp)
         const now = new Date()
-        const diffMs = now.getTime() - lastSeen.getTime()
+        const diffMs = now.getTime() - date.getTime()
         const diffMins = Math.floor(diffMs / 60000)
         const diffHours = Math.floor(diffMs / 3600000)
         const diffDays = Math.floor(diffMs / 86400000)
@@ -47,7 +50,12 @@ export function UserListSidebar({
         if (diffMins < 60) return `${diffMins}m ago`
         if (diffHours < 24) return `${diffHours}h ago`
         if (diffDays < 7) return `${diffDays}d ago`
-        return lastSeen.toLocaleDateString()
+        return date.toLocaleDateString()
+    }
+
+    const formatLastMessage = (content: string, maxLength: number = 50) => {
+        if (content.length <= maxLength) return content
+        return content.substring(0, maxLength) + "..."
     }
 
     return (
@@ -69,51 +77,63 @@ export function UserListSidebar({
             </div>
             <ScrollArea className="flex-1 min-h-0">
                 <div className="p-2 space-y-1">
-                    {users.length === 0 ? (
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+                            <UsersIcon className="h-12 w-12 text-muted-foreground mb-2 animate-pulse" />
+                            <p className="text-sm text-muted-foreground">Loading chats...</p>
+                        </div>
+                    ) : chats.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-8 text-center px-4">
                             <UsersIcon className="h-12 w-12 text-muted-foreground mb-2" />
                             <p className="text-sm text-muted-foreground mb-4">
-                                No users yet. Add someone to get started!
+                                No chats yet. Start a conversation!
                             </p>
                             <Button onClick={onAddUserClick} size="sm">
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add User
+                                New Chat
                             </Button>
                         </div>
                     ) : (
-                        users.map((user) => (
+                        chats.map((chat) => (
                             <button
-                                key={user.id}
-                                onClick={() => onSelectUser(user.id)}
+                                key={chat.id}
+                                onClick={() => onSelectChat(chat.id)}
                                 className={cn(
                                     "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
                                     "hover:bg-accent hover:text-accent-foreground",
-                                    selectedUserId === user.id
+                                    selectedChatId === chat.id
                                         ? "bg-accent text-accent-foreground"
                                         : ""
                                 )}
                             >
                                 <div className="relative">
                                     <Avatar size="default">
-                                        {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
-                                        <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                                        {chat.otherUser.avatar && (
+                                            <AvatarImage src={chat.otherUser.avatar} alt={chat.otherUser.name} />
+                                        )}
+                                        <AvatarFallback>{getInitials(chat.otherUser.name)}</AvatarFallback>
                                     </Avatar>
-                                    {user.isOnline && (
+                                    {chat.otherUser.isOnline && (
                                         <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-background rounded-full" />
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium truncate">{user.name}</p>
+                                        <p className="text-sm font-medium truncate">{chat.otherUser.name}</p>
+                                        {chat.lastMessage && (
+                                            <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                                                {formatTimestamp(chat.lastMessage.createdAt)}
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        {user.isOnline ? (
-                                            <span className="text-xs text-green-600 dark:text-green-400">
-                                                Online
+                                        {chat.lastMessage ? (
+                                            <span className="text-xs text-muted-foreground truncate">
+                                                {formatLastMessage(chat.lastMessage.content)}
                                             </span>
                                         ) : (
-                                            <span className="text-xs text-muted-foreground">
-                                                {formatLastSeen(user.lastSeen)}
+                                            <span className="text-xs text-muted-foreground italic">
+                                                No messages yet
                                             </span>
                                         )}
                                     </div>

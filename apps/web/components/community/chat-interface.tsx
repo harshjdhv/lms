@@ -13,20 +13,31 @@ import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/av
 import { Button } from "@workspace/ui/components/button"
 import { ScrollArea } from "@workspace/ui/components/scroll-area"
 import { Textarea } from "@workspace/ui/components/textarea"
-import { Send, MessageSquare } from "lucide-react"
+import { Send, MessageSquare, Loader2 } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 import { useUserStore } from "@/providers/user-store-provider"
 
 interface ChatInterfaceProps {
     user: User | null | undefined
+    chatId: string | null
     messages: Message[]
     onSendMessage: (content: string) => void
+    loading?: boolean
+    sending?: boolean
 }
 
-export function ChatInterface({ user, messages, onSendMessage }: ChatInterfaceProps) {
+export function ChatInterface({
+    user,
+    chatId,
+    messages,
+    onSendMessage,
+    loading = false,
+    sending = false,
+}: ChatInterfaceProps) {
     const [input, setInput] = useState("")
     const scrollAreaRef = useRef<HTMLDivElement>(null)
     // Select individual values to avoid creating new object references on each render
+    const currentUserId = useUserStore((state) => state.id || "")
     const currentUserName = useUserStore((state) => state.name || "User")
     const currentUserImage = useUserStore((state) => state.image)
 
@@ -40,15 +51,19 @@ export function ChatInterface({ user, messages, onSendMessage }: ChatInterfacePr
         }
     }, [messages])
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!input.trim() || !user) return
+        if (!input.trim() || !user || !chatId || sending) return
 
-        onSendMessage(input.trim())
+        // Clear input immediately for better UX
+        const messageContent = input.trim()
         setInput("")
+        
+        // Send message (optimistic update happens in parent)
+        await onSendMessage(messageContent)
     }
 
-    const formatTimestamp = (timestamp: Date) => {
+    const formatTimestamp = (timestamp: string | Date) => {
         const date = new Date(timestamp)
         const now = new Date()
         const isToday = date.toDateString() === now.toDateString()
@@ -88,7 +103,7 @@ export function ChatInterface({ user, messages, onSendMessage }: ChatInterfacePr
                     <div>
                         <h3 className="text-lg font-semibold mb-2">Select a conversation</h3>
                         <p className="text-sm text-muted-foreground">
-                            Choose a user from the sidebar to start chatting
+                            Choose a chat from the sidebar to start messaging
                         </p>
                     </div>
                 </div>
@@ -123,62 +138,75 @@ export function ChatInterface({ user, messages, onSendMessage }: ChatInterfacePr
 
             {/* Messages */}
             <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0 p-4">
-                <div className="space-y-4">
-                    {messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h4 className="text-sm font-semibold mb-2">No messages yet</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Start the conversation by sending a message!
-                            </p>
-                        </div>
-                    ) : (
-                        messages.map((message) => {
-                            const isCurrentUser = message.userId === "current"
-                            const messageUserName = isCurrentUser ? currentUserName : user.name
-                            const messageUserImage = isCurrentUser ? currentUserImage : user.avatar
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <Loader2 className="h-8 w-8 text-muted-foreground mb-4 animate-spin" />
+                        <p className="text-sm text-muted-foreground">Loading messages...</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {messages.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                                <h4 className="text-sm font-semibold mb-2">No messages yet</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Start the conversation by sending a message!
+                                </p>
+                            </div>
+                        ) : (
+                            messages.map((message) => {
+                                const isCurrentUser = message.senderId === currentUserId
+                                const messageUserName = isCurrentUser
+                                    ? currentUserName
+                                    : message.sender.name
+                                const messageUserImage = isCurrentUser
+                                    ? currentUserImage
+                                    : message.sender.avatar
 
-                            return (
-                                <div
-                                    key={message.id}
-                                    className={cn(
-                                        "flex gap-3",
-                                        isCurrentUser ? "flex-row-reverse" : "flex-row"
-                                    )}
-                                >
-                                    <Avatar size="sm" className="shrink-0">
-                                        {messageUserImage && (
-                                            <AvatarImage src={messageUserImage} alt={messageUserName} />
-                                        )}
-                                        <AvatarFallback>
-                                            {getInitials(messageUserName || "U")}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                return (
                                     <div
+                                        key={message.id}
                                         className={cn(
-                                            "flex flex-col gap-1 max-w-[70%]",
-                                            isCurrentUser ? "items-end" : "items-start"
+                                            "flex gap-3",
+                                            isCurrentUser ? "flex-row-reverse" : "flex-row"
                                         )}
                                     >
+                                        <Avatar size="sm" className="shrink-0">
+                                            {messageUserImage && (
+                                                <AvatarImage src={messageUserImage} alt={messageUserName} />
+                                            )}
+                                            <AvatarFallback>
+                                                {getInitials(messageUserName || "U")}
+                                            </AvatarFallback>
+                                        </Avatar>
                                         <div
                                             className={cn(
-                                                "rounded-lg px-4 py-2 text-sm",
-                                                isCurrentUser
-                                                    ? "bg-primary text-primary-foreground"
-                                                    : "bg-muted"
+                                                "flex flex-col gap-1 max-w-[70%]",
+                                                isCurrentUser ? "items-end" : "items-start"
                                             )}
                                         >
-                                            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                                            <div
+                                                className={cn(
+                                                    "rounded-lg px-4 py-2 text-sm",
+                                                    isCurrentUser
+                                                        ? "bg-primary text-primary-foreground"
+                                                        : "bg-muted"
+                                                )}
+                                            >
+                                                <p className="whitespace-pre-wrap break-words">
+                                                    {message.content}
+                                                </p>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground px-1">
+                                                {formatTimestamp(message.createdAt)}
+                                            </span>
                                         </div>
-                                        <span className="text-xs text-muted-foreground px-1">
-                                            {formatTimestamp(message.timestamp)}
-                                        </span>
                                     </div>
-                                </div>
-                            )
-                        })
-                    )}
-                </div>
+                                )
+                            })
+                        )}
+                    </div>
+                )}
             </ScrollArea>
 
             {/* Input */}
@@ -189,15 +217,25 @@ export function ChatInterface({ user, messages, onSendMessage }: ChatInterfacePr
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={`Message ${user.name}...`}
                         className="min-h-[60px] max-h-[120px] resize-none"
+                        disabled={sending || !chatId}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
+                            if (e.key === "Enter" && !e.shiftKey && !sending) {
                                 e.preventDefault()
                                 handleSubmit(e)
                             }
                         }}
                     />
-                    <Button type="submit" size="icon" disabled={!input.trim()} className="shrink-0">
-                        <Send className="h-4 w-4" />
+                    <Button
+                        type="submit"
+                        size="icon"
+                        disabled={!input.trim() || sending || !chatId}
+                        className="shrink-0"
+                    >
+                        {sending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
                     </Button>
                 </form>
             </div>

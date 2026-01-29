@@ -39,6 +39,10 @@ model User {
   enrollments    Enrollment[]
   teacherCourses Course[]               @relation("TeacherCourses")
   submissions    AssignmentSubmission[] @relation("StudentSubmissions")
+  chatsAsUser1   Chat[]                 @relation("ChatUser1")
+  chatsAsUser2   Chat[]                 @relation("ChatUser2")
+  sentMessages   Message[]
+  presence       UserPresence?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -194,4 +198,45 @@ enum SubmissionStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model Chat {
+  id      String   @id @default(uuid())
+  user1Id String
+  user1   User     @relation("ChatUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id String
+  user2   User     @relation("ChatUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
+}
+
+model Message {
+  id       String   @id @default(uuid())
+  chatId   String
+  chat     Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId String
+  sender   User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chatId, createdAt])
+  @@index([senderId])
+}
+
+model UserPresence {
+  id       String   @id @default(uuid())
+  userId   String   @unique
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isOnline Boolean  @default(false)
+  lastSeen DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
 }
