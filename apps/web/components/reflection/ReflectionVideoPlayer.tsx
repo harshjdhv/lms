@@ -332,16 +332,16 @@ export function ReflectionVideoPlayer({
   }, [videoPaused, addDebugLog]);
 
   return (
-    <div className="space-y-6 w-full max-w-full p-6">
-      {/* Debug Panel */}
-      <div className="mb-4 p-3 bg-gray-100 rounded border border-gray-300">
+    <div className="space-y-4 w-full max-w-full p-0">
+      {/* Debug Panel - theme-aware for dark mode */}
+      <div className="mb-3 p-3 rounded-lg border bg-muted/50 border-border">
         <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
           <h3 className="font-mono text-sm font-bold">🐛 Debug Panel</h3>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={triggerDevPause}
-              className="text-xs px-3 py-1.5 bg-amber-500 text-amber-950 rounded hover:bg-amber-400 font-medium"
+              className="text-xs px-3 py-1.5 bg-amber-500 text-amber-950 rounded hover:bg-amber-400 font-medium dark:bg-amber-500 dark:text-amber-950"
               title="Pause video now and open reflection modal (for testing)"
             >
               Dev: Trigger pause
@@ -349,18 +349,18 @@ export function ReflectionVideoPlayer({
             <button
               type="button"
               onClick={() => setDebugLogs([])}
-              className="text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+              className="text-xs px-2 py-1 rounded border bg-background hover:bg-muted border-border"
             >
               Clear Logs
             </button>
           </div>
         </div>
-        <div className="text-xs font-mono bg-white p-2 rounded border border-gray-200 h-32 overflow-y-auto">
+        <div className="text-xs font-mono p-2 rounded border bg-background border-border h-28 overflow-y-auto">
           {debugLogs.length === 0 ? (
-            <div className="text-gray-500">No logs yet...</div>
+            <div className="text-muted-foreground">No logs yet...</div>
           ) : (
             debugLogs.map((log, index) => (
-              <div key={index} className="border-b border-gray-100 pb-1">
+              <div key={index} className="border-b border-border/50 pb-1 last:border-0">
                 {log}
               </div>
             ))
@@ -368,10 +368,10 @@ export function ReflectionVideoPlayer({
         </div>
       </div>
 
-      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+      <div className="relative aspect-video max-w-full bg-black rounded-lg overflow-hidden">
         <div
           id={containerId}
-          className="w-full h-full min-h-[250px]"
+          className="w-full h-full min-h-[200px]"
         />
       </div>
 

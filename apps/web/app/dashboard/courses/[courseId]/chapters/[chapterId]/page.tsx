@@ -31,6 +31,11 @@ export default async function ChapterPage({
         where: {
             id: courseId,
         },
+        include: {
+            chapters: {
+                orderBy: { position: "asc" },
+            },
+        },
     });
 
     if (!chapter || !course) {
@@ -73,13 +78,19 @@ export default async function ChapterPage({
         return <ChapterEditor initialData={chapter} courseId={courseId} chapterId={chapterId} />;
     }
 
+    const allChapters = "chapters" in course ? course.chapters : [];
+    const chapters = isTeacher ? allChapters : allChapters.filter((c) => c.isPublished);
+
     return (
         <EnhancedChapterPlayer
             chapter={chapter}
-            isLocked={isLocked}
+            chapters={chapters}
             courseId={courseId}
+            courseTitle={course.title}
             studentId={dbUser.id}
             reflectionPoints={chapter.reflectionPoints}
+            isLocked={isLocked}
+            isEnrolled={isEnrolled}
         />
     );
 }

@@ -59,8 +59,8 @@ export default async function MyCoursesPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 p-6">
-            <div className="flex items-center justify-between">
+        <div className="w-full flex flex-col gap-6 p-6 max-w-[1600px] mx-auto">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">My Courses</h1>
                     <p className="text-muted-foreground">
@@ -80,7 +80,7 @@ export default async function MyCoursesPage() {
             </div>
 
             {courses.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[300px] border border-dashed rounded-lg p-8 text-center animate-in fade-in-50">
+                <div className="flex flex-col items-center justify-center min-h-[300px] border border-dashed rounded-lg p-8 text-center animate-in fade-in-50 bg-muted/20 border-border">
                     <div className="p-4 bg-muted rounded-full mb-4">
                         <PlusCircle className="w-8 h-8 text-muted-foreground" />
                     </div>
@@ -102,7 +102,7 @@ export default async function MyCoursesPage() {
                     )}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                     {courses.map((course) => (
                         <CourseCard
                             key={course.id}

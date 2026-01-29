@@ -15,12 +15,12 @@ interface CourseOverviewProps {
 
 export function CourseOverview({ course, isEnrolled }: CourseOverviewProps) {
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <div className="w-full max-w-5xl 2xl:max-w-6xl mx-auto p-6 space-y-6">
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                     <h1 className="text-3xl font-bold">{course.title}</h1>
                     {isEnrolled ? (
-                        <Badge variant="outline" className="text-green-600 border-green-600">Enrolled</Badge>
+                        <Badge variant="outline" className="text-green-600 dark:text-green-400 border-green-600 dark:border-green-400">Enrolled</Badge>
                     ) : (
                         <EnrollButton courseId={course.id} />
                     )}
@@ -40,23 +40,26 @@ export function CourseOverview({ course, isEnrolled }: CourseOverviewProps) {
                             return (
                                 <Link
                                     key={chapter.id}
-                                    href={`/dashboard/courses/${course.id}/chapters/${chapter.id}`}
+                                    href={isLocked ? "#" : `/dashboard/courses/${course.id}/chapters/${chapter.id}`}
                                     className={cn(
-                                        "flex items-center p-3 w-full rounded-md border text-sm transition-all hover:shadow-sm",
-                                        isLocked ? "bg-slate-50 text-slate-500 cursor-not-allowed hover:bg-slate-50" : "bg-white hover:bg-slate-100/50 cursor-pointer border-slate-200"
+                                        "flex items-center p-3 w-full rounded-lg border text-sm transition-all",
+                                        isLocked
+                                            ? "bg-muted/50 text-muted-foreground cursor-not-allowed border-border"
+                                            : "bg-card hover:bg-muted/50 cursor-pointer border-border hover:border-primary/30"
                                     )}
+                                    onClick={isLocked ? (e) => e.preventDefault() : undefined}
                                 >
                                     <div className="flex items-center gap-x-3 w-full">
                                         <div className={cn(
-                                            "flex items-center justify-center w-8 h-8 rounded-full border",
-                                            isLocked ? "bg-slate-200 border-slate-300" : "bg-sky-100 border-sky-300 text-sky-700"
+                                            "flex items-center justify-center w-8 h-8 rounded-full border shrink-0",
+                                            isLocked ? "bg-muted border-border" : "bg-primary/10 border-primary/20 text-primary"
                                         )}>
                                             {isLocked ? <Lock className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
                                         </div>
-                                        <div className="flex flex-col">
+                                        <div className="flex flex-col min-w-0 flex-1">
                                             <span className={cn(
                                                 "font-medium line-clamp-1",
-                                                isLocked && "text-slate-500"
+                                                isLocked && "text-muted-foreground"
                                             )}>
                                                 {chapter.title}
                                             </span>
@@ -64,7 +67,7 @@ export function CourseOverview({ course, isEnrolled }: CourseOverviewProps) {
                                                 Chapter {index + 1}
                                             </span>
                                         </div>
-                                        <div className="ml-auto flex items-center">
+                                        <div className="ml-auto flex items-center shrink-0">
                                             {chapter.isFree && !isEnrolled && (
                                                 <Badge variant="secondary" className="mr-2">
                                                     Free Preview

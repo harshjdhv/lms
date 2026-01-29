@@ -13,7 +13,7 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="w-full flex flex-col gap-6 p-6 max-w-[1600px] mx-auto">
       {/* Dev Fallback Pause Button - Remove this later */}
       <div className="fixed top-20 right-4 z-50">
         <Button
@@ -26,9 +26,9 @@ export default function CoursesPage() {
         </Button>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Courses</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Courses</h1>
           <p className="text-muted-foreground">Overview of all courses.</p>
         </div>
       </div>
