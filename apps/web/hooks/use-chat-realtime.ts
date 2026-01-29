@@ -18,8 +18,10 @@ export interface RealtimeMessage {
 
 export function useChatRealtime(chatId: string | null) {
   const [newMessage, setNewMessage] = useState<RealtimeMessage | null>(null);
-  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
-  
+  const channelRef = useRef<ReturnType<
+    ReturnType<typeof createClient>["channel"]
+  > | null>(null);
+
   // Memoize supabase client to prevent recreating it
   const supabase = useMemo(() => createClient(), []);
 
@@ -40,15 +42,17 @@ export function useChatRealtime(chatId: string | null) {
     // Subscribe to INSERT events on messages table
     // Strategy: Listen to all INSERTs and filter in code (more reliable than server-side filters)
     const tableName = "Message";
-    
+
     console.log(`🔍 Setting up Realtime subscription for chat ${chatId}`);
     console.log(`   Table: ${tableName}`);
     console.log(`   Listening to all INSERTs, filtering for chatId: ${chatId}`);
-    
+
     channel
-      .on<RealtimePostgresChangesPayload<{
-        [key: string]: any;
-      }>>(
+      .on<
+        RealtimePostgresChangesPayload<{
+          [key: string]: any;
+        }>
+      >(
         "postgres_changes",
         {
           event: "INSERT",
@@ -58,8 +62,8 @@ export function useChatRealtime(chatId: string | null) {
         },
         (payload) => {
           console.log("📨 Realtime payload received:", payload);
-          
-          const messageData = payload.new as {
+
+          const messageData = (payload as any).new as {
             id: string;
             chatId: string;
             senderId: string;
@@ -69,12 +73,17 @@ export function useChatRealtime(chatId: string | null) {
 
           // Filter in code - only process messages for this chat
           if (messageData.chatId !== chatId) {
-            console.log(`⏭️ Message for different chat (${messageData.chatId}), ignoring`);
+            console.log(
+              `⏭️ Message for different chat (${messageData.chatId}), ignoring`,
+            );
             return;
           }
 
-          console.log(`✅ Processing Realtime message for chat ${chatId}:`, messageData.id);
-          
+          console.log(
+            `✅ Processing Realtime message for chat ${chatId}:`,
+            messageData.id,
+          );
+
           // Set the new message immediately - no API call needed!
           setNewMessage({
             id: messageData.id,
@@ -89,12 +98,17 @@ export function useChatRealtime(chatId: string | null) {
               avatar: null,
             },
           });
-        }
+        },
       )
       .subscribe((status) => {
-        console.log(`📡 Realtime subscription status for chat ${chatId}:`, status);
+        console.log(
+          `📡 Realtime subscription status for chat ${chatId}:`,
+          status,
+        );
         if (status === "SUBSCRIBED") {
-          console.log(`✅ Realtime subscribed successfully! Messages will appear instantly`);
+          console.log(
+            `✅ Realtime subscribed successfully! Messages will appear instantly`,
+          );
         } else if (status === "CHANNEL_ERROR") {
           console.error(`❌ Realtime subscription error:`, status);
         } else if (status === "TIMED_OUT") {

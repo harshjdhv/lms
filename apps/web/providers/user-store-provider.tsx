@@ -1,54 +1,63 @@
-'use client'
+"use client";
 
-import { type ReactNode, createContext, useRef, useContext, useMemo, useSyncExternalStore } from 'react'
+import {
+  type ReactNode,
+  createContext,
+  useRef,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 
-import { type UserStore, createUserStore, type UserState } from '@/stores/user-store'
+import {
+  type UserStore,
+  createUserStore,
+  type UserState,
+} from "@/stores/user-store";
 
-export type UserStoreApi = ReturnType<typeof createUserStore>
+export type UserStoreApi = ReturnType<typeof createUserStore>;
 
 export const UserStoreContext = createContext<UserStoreApi | undefined>(
-    undefined,
-)
+  undefined,
+);
 
 export interface UserStoreProviderProps {
-    children: ReactNode
-    user: UserState
+  children: ReactNode;
+  user: UserState;
 }
 
 export const UserStoreProvider = ({
-    children,
-    user,
+  children,
+  user,
 }: UserStoreProviderProps) => {
-    const storeRef = useRef<UserStoreApi>()
-    
-    if (!storeRef.current) {
-        storeRef.current = createUserStore(user)
-    }
+  const storeRef = useRef<UserStoreApi>(null);
 
-    // Memoize the store to prevent recreating it
-    const store = useMemo(() => storeRef.current!, [])
+  if (!storeRef.current) {
+    storeRef.current = createUserStore(user);
+  }
 
-    return (
-        <UserStoreContext.Provider value={store}>
-            {children}
-        </UserStoreContext.Provider>
-    )
-}
+  // Memoize the store to prevent recreating it
+  const store = useMemo(() => storeRef.current!, []);
 
-export const useUserStore = <T,>(
-    selector: (store: UserStore) => T,
-): T => {
-    const userStoreContext = useContext(UserStoreContext)
+  return (
+    <UserStoreContext.Provider value={store}>
+      {children}
+    </UserStoreContext.Provider>
+  );
+};
 
-    if (!userStoreContext) {
-        throw new Error(`useUserStore must be used within UserStoreProvider`)
-    }
+export const useUserStore = <T,>(selector: (store: UserStore) => T): T => {
+  const userStoreContext = useContext(UserStoreContext);
 
-    // Use useSyncExternalStore directly to avoid React 19 getServerSnapshot issues
-    // This properly caches the snapshot and avoids infinite loops
-    return useSyncExternalStore(
-        userStoreContext.subscribe,
-        () => selector(userStoreContext.getState()),
-        () => selector(userStoreContext.getState()) // Server snapshot (same as client for now)
-    )
-}
+  if (!userStoreContext) {
+    throw new Error(`useUserStore must be used within UserStoreProvider`);
+  }
+
+  // Use useSyncExternalStore directly to avoid React 19 getServerSnapshot issues
+  // This properly caches the snapshot and avoids infinite loops
+  return useSyncExternalStore(
+    userStoreContext.subscribe,
+    () => selector(userStoreContext.getState()),
+    () => selector(userStoreContext.getState()), // Server snapshot (same as client for now)
+  );
+};
