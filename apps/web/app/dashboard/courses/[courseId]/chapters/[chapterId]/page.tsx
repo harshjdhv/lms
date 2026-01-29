@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@workspace/database";
 import { redirect } from "next/navigation";
 import { ChapterEditor } from "@/components/courses/chapter-editor";
-import { ChapterPlayer } from "@/components/courses/chapter-player";
+import { EnhancedChapterPlayer } from "@/components/courses/enhanced-chapter-player";
 
 export default async function ChapterPage({
     params,
@@ -21,6 +21,9 @@ export default async function ChapterPage({
         where: {
             id: chapterId,
             courseId: courseId,
+        },
+        include: {
+            reflectionPoints: true,
         },
     });
 
@@ -71,10 +74,12 @@ export default async function ChapterPage({
     }
 
     return (
-        <ChapterPlayer
+        <EnhancedChapterPlayer
             chapter={chapter}
             isLocked={isLocked}
             courseId={courseId}
+            studentId={dbUser.id}
+            reflectionPoints={chapter.reflectionPoints}
         />
     );
 }

@@ -38,7 +38,7 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
-// Generate reflection points based on video length
+// Generate reflection points based on video length with random timestamps
 function generateReflectionPoints(
   videoLengthSeconds: number,
   chapterTitle: string,
@@ -49,19 +49,33 @@ function generateReflectionPoints(
     Math.max(3, Math.floor(videoLengthSeconds / 120)),
   ); // 3-8 points, one every 2 minutes
 
-  // Distribute points evenly throughout the video
+  // Generate random timestamps throughout the video
+  const usedTimestamps = new Set<number>();
+
   for (let i = 0; i < numberOfPoints; i++) {
-    const timePosition = (videoLengthSeconds / numberOfPoints) * (i + 1);
+    let timePosition: number;
+
+    // Generate random timestamp, avoiding duplicates
+    do {
+      // Spread timestamps across the video with some randomness
+      const minTime = (videoLengthSeconds / numberOfPoints) * i + 30; // At least 30 seconds into each segment
+      const maxTime = (videoLengthSeconds / numberOfPoints) * (i + 1) - 30; // Leave 30 seconds before next segment
+      timePosition = Math.random() * (maxTime - minTime) + minTime;
+    } while (usedTimestamps.has(Math.round(timePosition)));
+
+    usedTimestamps.add(Math.round(timePosition));
 
     // Generate topic based on position and chapter title
     let topic: string;
+    const normalizedPosition = timePosition / videoLengthSeconds;
+
     if (i === 0) {
       topic = `Introduction to ${chapterTitle}`;
     } else if (i === numberOfPoints - 1) {
       topic = `Summary of ${chapterTitle}`;
-    } else if (timePosition < videoLengthSeconds * 0.33) {
+    } else if (normalizedPosition < 0.33) {
       topic = `Core Concepts in ${chapterTitle}`;
-    } else if (timePosition < videoLengthSeconds * 0.66) {
+    } else if (normalizedPosition < 0.66) {
       topic = `Advanced ${chapterTitle} Techniques`;
     } else {
       topic = `Practical Applications of ${chapterTitle}`;
@@ -73,7 +87,8 @@ function generateReflectionPoints(
     });
   }
 
-  return points;
+  // Sort by time to maintain chronological order
+  return points.sort((a, b) => a.time - b.time);
 }
 
 // Generate reflection points for all chapters with videos

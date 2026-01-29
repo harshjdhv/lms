@@ -87,8 +87,8 @@ export function EnhancedChapterPlayer({
         </div>
       </div>
 
-      {/* Use ReflectionVideoPlayer if we have reflection points and a valid YouTube video */}
-      {videoId && hasReflectionPoints ? (
+      {/* Use ReflectionVideoPlayer for any YouTube video (shows dev panel + optional reflection points) */}
+      {videoId ? (
         <ReflectionVideoPlayer
           videoId={videoId}
           reflectionPoints={reflectionPoints}
