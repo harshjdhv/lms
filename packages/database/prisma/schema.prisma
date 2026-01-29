@@ -43,6 +43,7 @@ model User {
   chatsAsUser2   Chat[]                 @relation("ChatUser2")
   sentMessages   Message[]
   presence       UserPresence?
+  reflectionMemory StudentReflectionMemory?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -115,6 +116,7 @@ model Chapter {
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   userProgress UserProgress[]
+  reflectionPoints ReflectionPoint[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -239,4 +241,34 @@ model UserPresence {
   lastSeen DateTime @default(now())
 
   updatedAt DateTime @updatedAt
+}
+
+model ReflectionPoint {
+  id     String @id @default(uuid())
+  time   Float  // seconds in video
+  topic  String
+  
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+model StudentReflectionMemory {
+  id           String @id @default(uuid())
+  userId       String
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  weakTopics   String[] // JSON array of topics student struggles with
+  accuracyRate Float   @default(0.0) // overall accuracy percentage
+  totalAttempts Int    @default(0)
+  correctAttempts Int  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId])
 }
