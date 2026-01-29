@@ -20,17 +20,72 @@ import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { toast } from "sonner"
+import { User } from "./types"
 
 interface AddUserDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    onAddUser: (email: string, name: string) => void
+    onChatCreated: (chat: { id: string; otherUser: User }) => void
 }
 
-export function AddUserDialog({ open, onOpenChange, onAddUser }: AddUserDialogProps) {
+export function AddUserDialog({ open, onOpenChange, onChatCreated }: AddUserDialogProps) {
     const [email, setEmail] = useState("")
-    const [name, setName] = useState("")
     const [loading, setLoading] = useState(false)
+    const [searchResults, setSearchResults] = useState<User[]>([])
+    const [searching, setSearching] = useState(false)
+
+    const handleSearch = async (searchQuery: string) => {
+        if (!searchQuery.trim() || searchQuery.length < 2) {
+            setSearchResults([])
+            return
+        }
+
+        setSearching(true)
+        try {
+            const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`)
+            if (!response.ok) {
+                throw new Error("Failed to search users")
+            }
+            const data = await response.json()
+            setSearchResults(data.users || [])
+        } catch (error) {
+            console.error("Search error:", error)
+            toast.error("Failed to search users")
+            setSearchResults([])
+        } finally {
+            setSearching(false)
+        }
+    }
+
+    const handleSelectUser = async (user: User) => {
+        setLoading(true)
+        try {
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ userId: user.id }),
+            })
+
+            if (!response.ok) {
+                const error = await response.json()
+                throw new Error(error.error || "Failed to create chat")
+            }
+
+            const data = await response.json()
+            onChatCreated(data.chat)
+            setEmail("")
+            setSearchResults([])
+            onOpenChange(false)
+            toast.success(`Started chat with ${user.name}`)
+        } catch (error: any) {
+            console.error("Create chat error:", error)
+            toast.error(error.message || "Failed to create chat")
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -45,23 +100,13 @@ export function AddUserDialog({ open, onOpenChange, onAddUser }: AddUserDialogPr
             return
         }
 
-        setLoading(true)
-
-        // Simulate API call
-        setTimeout(() => {
-            const userName = name.trim() || email.split("@")[0]
-            onAddUser(email.trim(), userName)
-            setEmail("")
-            setName("")
-            setLoading(false)
-            toast.success(`Added ${userName} to your community`)
-        }, 500)
+        await handleSearch(email.trim())
     }
 
     const handleOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
             setEmail("")
-            setName("")
+            setSearchResults([])
         }
         onOpenChange(newOpen)
     }
@@ -70,38 +115,53 @@ export function AddUserDialog({ open, onOpenChange, onAddUser }: AddUserDialogPr
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Add New User</DialogTitle>
+                    <DialogTitle>Start New Chat</DialogTitle>
                     <DialogDescription>
-                        Add a new user to your community by entering their email address.
+                        Search for a user by email or name to start a new conversation.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
+                        <Label htmlFor="email">Search by Email or Name</Label>
                         <Input
                             id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="user@example.com"
-                            required
-                            disabled={loading}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Name (Optional)</Label>
-                        <Input
-                            id="name"
                             type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Display name"
+                            value={email}
+                            onChange={(e) => {
+                                setEmail(e.target.value)
+                                handleSearch(e.target.value)
+                            }}
+                            placeholder="user@example.com or name"
                             disabled={loading}
                         />
-                        <p className="text-xs text-muted-foreground">
-                            If not provided, the name will be derived from the email.
-                        </p>
                     </div>
+                    {searching && (
+                        <p className="text-sm text-muted-foreground">Searching...</p>
+                    )}
+                    {searchResults.length > 0 && (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            <Label>Select a user:</Label>
+                            <div className="space-y-1">
+                                {searchResults.map((user) => (
+                                    <button
+                                        key={user.id}
+                                        type="button"
+                                        onClick={() => handleSelectUser(user)}
+                                        disabled={loading}
+                                        className="w-full text-left p-3 rounded-lg border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <div className="font-medium">{user.name}</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {user.email}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {!searching && searchResults.length === 0 && email.length >= 2 && (
+                        <p className="text-sm text-muted-foreground">No users found</p>
+                    )}
                     <DialogFooter>
                         <Button
                             type="button"
@@ -110,9 +170,6 @@ export function AddUserDialog({ open, onOpenChange, onAddUser }: AddUserDialogPr
                             disabled={loading}
                         >
                             Cancel
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "Adding..." : "Add User"}
                         </Button>
                     </DialogFooter>
                 </form>

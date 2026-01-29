@@ -10,13 +10,33 @@ export interface User {
     name: string
     email: string
     avatar: string | null
-    isOnline: boolean
-    lastSeen: Date
+    isOnline?: boolean
+    lastSeen?: Date
 }
 
 export interface Message {
     id: string
-    userId: string // "current" for current user, otherwise user id
+    chatId: string
+    senderId: string
     content: string
-    timestamp: Date
+    createdAt: string | Date
+    sender: {
+        id: string
+        name: string
+        email: string
+        avatar: string | null
+    }
+}
+
+export interface Chat {
+    id: string
+    otherUser: User
+    lastMessage: {
+        id: string
+        content: string
+        senderId: string
+        createdAt: string | Date
+    } | null
+    updatedAt: string | Date
+    createdAt: string | Date
 }

@@ -1,7 +1,6 @@
 'use client'
 
-import { type ReactNode, createContext, useRef, useContext } from 'react'
-import { useStore } from 'zustand'
+import { type ReactNode, createContext, useRef, useContext, useMemo, useSyncExternalStore } from 'react'
 
 import { type UserStore, createUserStore, type UserState } from '@/stores/user-store'
 
@@ -20,13 +19,17 @@ export const UserStoreProvider = ({
     children,
     user,
 }: UserStoreProviderProps) => {
-    const storeRef = useRef<UserStoreApi>(null)
+    const storeRef = useRef<UserStoreApi>()
+    
     if (!storeRef.current) {
         storeRef.current = createUserStore(user)
     }
 
+    // Memoize the store to prevent recreating it
+    const store = useMemo(() => storeRef.current!, [])
+
     return (
-        <UserStoreContext.Provider value={storeRef.current}>
+        <UserStoreContext.Provider value={store}>
             {children}
         </UserStoreContext.Provider>
     )
@@ -41,5 +44,11 @@ export const useUserStore = <T,>(
         throw new Error(`useUserStore must be used within UserStoreProvider`)
     }
 
-    return useStore(userStoreContext, selector)
+    // Use useSyncExternalStore directly to avoid React 19 getServerSnapshot issues
+    // This properly caches the snapshot and avoids infinite loops
+    return useSyncExternalStore(
+        userStoreContext.subscribe,
+        () => selector(userStoreContext.getState()),
+        () => selector(userStoreContext.getState()) // Server snapshot (same as client for now)
+    )
 }
