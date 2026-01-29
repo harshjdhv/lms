@@ -17,9 +17,27 @@ interface CourseOverviewProps {
     isEnrolled: boolean;
 }
 
-export function CourseOverview({ course, isEnrolled }: CourseOverviewProps) {
+import { useQuery } from "@tanstack/react-query";
+
+export function CourseOverview({ course: initialCourse, isEnrolled }: CourseOverviewProps) {
     const [isPending, startTransition] = useTransition();
     const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+
+    const { data: course } = useQuery({
+        queryKey: ["course", initialCourse.id],
+        queryFn: async () => {
+            const res = await fetch(`/api/courses/${initialCourse.id}`);
+            if (!res.ok) throw new Error("Failed to fetch course");
+            const data = await res.json();
+            // Ensure we filter published chapters for students as the API returns all
+            return {
+                ...data,
+                chapters: data.chapters.filter((c: Chapter) => c.isPublished),
+            } as typeof initialCourse;
+        },
+        initialData: initialCourse,
+        staleTime: 5 * 60 * 1000,
+    });
 
     return (
         <div className="w-full max-w-5xl 2xl:max-w-6xl mx-auto p-6 space-y-8">
