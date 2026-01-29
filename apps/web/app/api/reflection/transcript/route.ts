@@ -16,57 +16,63 @@ function extractVideoId(urlOrId: string): string | null {
 
 export type TranscriptSegment = { start: number; text: string };
 
-/** youtube-transcript returns { text, offset (seconds), duration } */
-function normalizeSegment(raw: Record<string, unknown>): { start: number; text: string } | null {
-  const text = typeof raw.text === "string" ? raw.text.trim() : "";
-  if (!text) return null;
-
-  let start = 0;
-  if (typeof raw.offset === "number") {
-    start = raw.offset >= 1000 ? raw.offset / 1000 : raw.offset;
-  } else if (typeof raw.start === "number") {
-    start = raw.start >= 1000 ? raw.start / 1000 : raw.start;
-  } else if (typeof raw.startMs === "number") {
-    start = raw.startMs / 1000;
-  }
-  return { start, text };
-}
-
 async function fetchYouTubeTranscript(
   videoId: string,
   videoUrl?: string | null,
 ): Promise<TranscriptSegment[]> {
-  const { YoutubeTranscript } = await import("youtube-transcript");
-  // Package accepts videoId or full URL; try URL first if we have it (some videos need it)
-  const input = videoUrl?.trim() && videoUrl.includes(videoId) ? videoUrl : videoId;
-  let list: unknown;
+  const apiKey = process.env.TRANSCRIPT_API_KEY;
+  if (!apiKey) {
+    console.warn("TRANSCRIPT_API_KEY is not set");
+    return [];
+  }
+
+  // Use the provided videoUrl if available, otherwise fallback to videoId
+  // The API accepts a video_url or bare 11-char ID
+  const queryParam =
+    videoUrl?.trim() &&
+    (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be"))
+      ? videoUrl
+      : videoId;
+
+  const url = new URL("https://transcriptapi.com/api/v2/youtube/transcript");
+  url.searchParams.set("video_url", queryParam);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("include_timestamp", "true");
+
   try {
-    list = await YoutubeTranscript.fetchTranscript(input);
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      // cache: 'no-store' // dynamic fetch
+    });
+
+    if (!response.ok) {
+      console.warn(
+        `[transcript] API error: ${response.status} ${response.statusText}`,
+      );
+      if (response.status === 402) {
+        console.error("[transcript] Payment Required - Check credits");
+      }
+      return [];
+    }
+
+    const data = await response.json();
+
+    // Validate response structure
+    // Schema: { transcript: [{ text, start, duration }, ...] }
+    if (data && Array.isArray(data.transcript)) {
+      return data.transcript.map((item: any) => ({
+        start: typeof item.start === "number" ? item.start : 0,
+        text: item.text || "",
+      }));
+    }
+
+    return [];
   } catch (err) {
     console.warn("[transcript] fetchTranscript threw for", videoId, err);
-    throw err;
-  }
-  if (!Array.isArray(list)) {
-    console.warn("[transcript] fetchTranscript did not return an array:", typeof list);
     return [];
   }
-  if (list.length === 0) {
-    console.warn("[transcript] fetchTranscript returned empty array for videoId:", videoId, "- Video may have captions disabled.");
-    return [];
-  }
-
-  const segments: TranscriptSegment[] = [];
-  for (const item of list) {
-    const raw = item as Record<string, unknown>;
-    const seg = normalizeSegment(raw);
-    if (seg) segments.push(seg);
-  }
-
-  if (segments.length === 0 && list.length > 0) {
-    const sample = list[0] as Record<string, unknown>;
-    console.warn("[transcript] Segment keys:", Object.keys(sample), "sample:", JSON.stringify(sample).slice(0, 300));
-  }
-  return segments;
 }
 
 /**
@@ -77,7 +83,10 @@ export async function GET(request: NextRequest) {
   try {
     const chapterId = request.nextUrl.searchParams.get("chapterId");
     if (!chapterId) {
-      return NextResponse.json({ error: "chapterId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "chapterId required" },
+        { status: 400 },
+      );
     }
 
     const chapter = await prisma.chapter.findUnique({
@@ -99,10 +108,7 @@ export async function GET(request: NextRequest) {
 
     const videoId = extractVideoId(chapter.videoUrl);
     if (!videoId) {
-      return NextResponse.json(
-        { error: "Invalid video URL" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid video URL" }, { status: 400 });
     }
 
     const segments = await fetchYouTubeTranscript(videoId, chapter.videoUrl);
@@ -127,7 +133,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Transcript GET error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get transcript" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get transcript",
+      },
       { status: 500 },
     );
   }
@@ -142,7 +151,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { chapterId } = body as { chapterId?: string };
     if (!chapterId) {
-      return NextResponse.json({ error: "chapterId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "chapterId required" },
+        { status: 400 },
+      );
     }
 
     const chapter = await prisma.chapter.findUnique({
@@ -159,10 +171,7 @@ export async function POST(request: NextRequest) {
 
     const videoId = extractVideoId(chapter.videoUrl);
     if (!videoId) {
-      return NextResponse.json(
-        { error: "Invalid video URL" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid video URL" }, { status: 400 });
     }
 
     const segments = await fetchYouTubeTranscript(videoId, chapter.videoUrl);
@@ -171,7 +180,8 @@ export async function POST(request: NextRequest) {
         {
           ok: true,
           segmentsCount: 0,
-          message: "No transcript available. Ensure the video has captions/subtitles enabled on YouTube.",
+          message:
+            "No transcript available. Ensure the video has captions/subtitles enabled on YouTube.",
         },
         { status: 200 },
       );
@@ -186,7 +196,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Transcript POST error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to save transcript" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to save transcript",
+      },
       { status: 500 },
     );
   }

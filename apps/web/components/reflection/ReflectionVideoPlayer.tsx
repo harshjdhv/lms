@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { ReflectionModal } from "./ReflectionModal";
+import { BatchReflectionModal } from "./BatchReflectionModal";
 
 export type ReflectionPoint = {
   time: number; // seconds
@@ -25,8 +26,8 @@ export function ReflectionVideoPlayer({
   const [currentReflection, setCurrentReflection] =
     useState<ReflectionPoint | null>(null);
   const [videoPaused, setVideoPaused] = useState(false);
+  const [isBatchMode, setIsBatchMode] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
-
   const containerId = useId().replace(/:/g, "-") || "youtube-player";
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,6 +49,7 @@ export function ReflectionVideoPlayer({
     }
     setVideoPaused(true);
     setCurrentReflection(reflection);
+    setIsBatchMode(false);
     setShowReflection(true);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -176,7 +178,7 @@ export function ReflectionVideoPlayer({
       if (playerRef.current?.destroy) {
         try {
           playerRef.current.destroy();
-        } catch (_) {}
+        } catch (_) { }
         playerRef.current = null;
       }
       onReadyFiredRef.current = false;
@@ -196,6 +198,7 @@ export function ReflectionVideoPlayer({
         time: playerRef.current.getCurrentTime?.() ?? 0,
         topic: "Manual Dev Pause - Testing",
       });
+      setIsBatchMode(true);
       setShowReflection(true);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -273,7 +276,7 @@ export function ReflectionVideoPlayer({
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   return (
@@ -320,13 +323,23 @@ export function ReflectionVideoPlayer({
         />
       </div>
 
-      {showReflection && currentReflection && (
-        <ReflectionModal
-          reflection={currentReflection}
-          studentId={studentId}
-          onComplete={handleReflectionComplete}
-          chapterId={chapterId}
-        />
+      {showReflection && (
+        isBatchMode ? (
+          <BatchReflectionModal
+            chapterId={chapterId!}
+            currentTime={currentReflection?.time ?? 0}
+            onComplete={handleReflectionComplete}
+          />
+        ) : (
+          currentReflection && (
+            <ReflectionModal
+              reflection={currentReflection}
+              studentId={studentId}
+              onComplete={handleReflectionComplete}
+              chapterId={chapterId}
+            />
+          )
+        )
       )}
     </div>
   );
