@@ -21,6 +21,7 @@ interface CourseCardProps {
     chapterCount?: number;
     progress?: number;
     isTeacher?: boolean;
+    imageUrl?: string | null;
 }
 
 export function CourseCard({
@@ -31,6 +32,7 @@ export function CourseCard({
     chapterCount = 0,
     progress,
     isTeacher = false,
+    imageUrl,
 }: CourseCardProps) {
     const [isPending, startTransition] = useTransition();
     const [isNavigating, setIsNavigating] = useState(false);
@@ -48,8 +50,18 @@ export function CourseCard({
         )}>
             {/* Course thumbnail area */}
             <div className="relative aspect-video w-full bg-gradient-to-br from-primary/10 via-muted to-primary/5 flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <BookOpen className="w-10 h-10 text-primary/30 group-hover:scale-110 transition-transform duration-300" />
+                {imageUrl ? (
+                    <img
+                        src={imageUrl}
+                        alt={title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                ) : (
+                    <>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <BookOpen className="w-10 h-10 text-primary/30 group-hover:scale-110 transition-transform duration-300" />
+                    </>
+                )}
 
                 {/* Chapter count badge */}
                 <div className="absolute bottom-2 right-2">

@@ -90,6 +90,7 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                             chapterCount={course._count?.chapters || 0}
                             progress={undefined}
                             isTeacher={isTeacher}
+                            imageUrl={course.imageUrl}
                         />
                     ))}
                 </div>

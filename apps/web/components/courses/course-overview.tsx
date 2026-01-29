@@ -3,7 +3,7 @@
 import { Chapter, Course } from "@workspace/database";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { PlayCircle, Lock, BookOpen, Clock, CheckCircle2 } from "lucide-react";
+import { PlayCircle, Lock, BookOpen, Clock, CheckCircle2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@workspace/ui/lib/utils";
 import { useState, useTransition } from "react";
@@ -45,6 +45,13 @@ export function CourseOverview({ course: initialCourse, isEnrolled }: CourseOver
             <div className="space-y-4">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="space-y-2">
+                        <Link
+                            href="/dashboard/courses/catalog"
+                            className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors w-fit"
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Catalog
+                        </Link>
                         <h1 className="text-3xl font-bold tracking-tight">{course.title}</h1>
                         <p className="text-muted-foreground text-lg max-w-2xl">
                             {course.description || "Start learning today"}

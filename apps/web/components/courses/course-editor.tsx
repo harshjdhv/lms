@@ -41,6 +41,9 @@ import {
     useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ChapterInlineEditor } from "./chapter-inline-editor";
+import { ArrowLeft, Image as ImageIcon } from "lucide-react";
+import Link from "next/link";
 
 interface CourseEditorProps {
     course: Course & {
@@ -55,18 +58,21 @@ export function CourseEditor({ course }: CourseEditorProps) {
     // Course details state
     const [title, setTitle] = useState(course.title);
     const [description, setDescription] = useState(course.description || "");
+    const [imageUrl, setImageUrl] = useState(course.imageUrl || "");
     const [isPublished, setIsPublished] = useState(course.isPublished);
     const [savingDetails, setSavingDetails] = useState(false);
     const [detailsSaved, setDetailsSaved] = useState(false);
 
     // Chapter state
     const [chapters, setChapters] = useState(course.chapters);
+    const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
     const [newChapterTitle, setNewChapterTitle] = useState("");
     const [creatingChapter, setCreatingChapter] = useState(false);
     const [showNewChapterInput, setShowNewChapterInput] = useState(false);
 
     const hasChanges = title !== course.title ||
         description !== (course.description || "") ||
+        imageUrl !== (course.imageUrl || "") ||
         isPublished !== course.isPublished;
 
     const sensors = useSensors(
@@ -80,7 +86,7 @@ export function CourseEditor({ course }: CourseEditorProps) {
             const res = await fetch(`/api/courses/${course.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, description, isPublished }),
+                body: JSON.stringify({ title, description, isPublished, imageUrl }),
             });
 
             if (!res.ok) throw new Error("Failed to update");
@@ -155,6 +161,13 @@ export function CourseEditor({ course }: CourseEditorProps) {
             {/* Header */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
+                    <Link
+                        href="/dashboard/courses"
+                        className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Courses
+                    </Link>
                     <h1 className="text-2xl font-bold tracking-tight">{course.title}</h1>
                     <p className="text-muted-foreground mt-1">
                         Manage your course content and settings
@@ -192,63 +205,90 @@ export function CourseEditor({ course }: CourseEditorProps) {
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Description</label>
-                            <Textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Describe what students will learn..."
-                                rows={3}
-                                className="bg-background resize-none"
-                            />
-                        </div>
+                    </div>
 
-                        <div className="flex items-center justify-between py-2 px-4 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-3">
-                                {isPublished ? (
-                                    <Eye className="h-4 w-4 text-emerald-500" />
-                                ) : (
-                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                )}
-                                <div>
-                                    <p className="text-sm font-medium">Published</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {isPublished ? "Students can see this course" : "Only you can see this course"}
-                                    </p>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Description</label>
+                        <Textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Describe what students will learn..."
+                            rows={3}
+                            className="bg-background resize-none"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Course Image</label>
+                        <div className="flex items-start gap-4">
+                            {imageUrl && (
+                                <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-md border bg-muted">
+                                    <img
+                                        src={imageUrl}
+                                        alt="Course"
+                                        className="h-full w-full object-cover"
+                                    />
                                 </div>
+                            )}
+                            <div className="flex-1 space-y-2">
+                                <Input
+                                    value={imageUrl}
+                                    onChange={(e) => setImageUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    className="bg-background"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Enter an image URL for your course cover.
+                                </p>
                             </div>
-                            <Switch
-                                checked={isPublished}
-                                onCheckedChange={setIsPublished}
-                            />
                         </div>
                     </div>
 
-                    {hasChanges && (
-                        <div className="border-t px-5 py-3 bg-muted/30 rounded-b-xl flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground">You have unsaved changes</p>
-                            <Button
-                                onClick={handleSaveDetails}
-                                disabled={savingDetails}
-                                size="sm"
-                            >
-                                {savingDetails ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : detailsSaved ? (
-                                    <>
-                                        <Check className="h-4 w-4 mr-2" />
-                                        Saved
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="h-4 w-4 mr-2" />
-                                        Save Changes
-                                    </>
-                                )}
-                            </Button>
+                    <div className="flex items-center justify-between py-2 px-4 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-3">
+                            {isPublished ? (
+                                <Eye className="h-4 w-4 text-emerald-500" />
+                            ) : (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <div>
+                                <p className="text-sm font-medium">Published</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {isPublished ? "Students can see this course" : "Only you can see this course"}
+                                </p>
+                            </div>
                         </div>
-                    )}
+                        <Switch
+                            checked={isPublished}
+                            onCheckedChange={setIsPublished}
+                        />
+                    </div>
                 </div>
+
+                {hasChanges && (
+                    <div className="border-t px-5 py-3 bg-muted/30 rounded-b-xl flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">You have unsaved changes</p>
+                        <Button
+                            onClick={handleSaveDetails}
+                            disabled={savingDetails}
+                            size="sm"
+                        >
+                            {savingDetails ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : detailsSaved ? (
+                                <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Saved
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Save Changes
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                )}
             </section>
 
             {/* Chapters Section */}
@@ -335,6 +375,10 @@ export function CourseEditor({ course }: CourseEditorProps) {
                                             chapter={chapter}
                                             index={index}
                                             courseId={course.id}
+                                            isExpanded={expandedChapterId === chapter.id}
+                                            onToggleExpand={() => setExpandedChapterId(
+                                                expandedChapterId === chapter.id ? null : chapter.id
+                                            )}
                                         />
                                     ))}
                                 </div>
@@ -342,8 +386,8 @@ export function CourseEditor({ course }: CourseEditorProps) {
                         </DndContext>
                     )}
                 </div>
-            </section>
-        </div>
+            </section >
+        </div >
     );
 }
 
@@ -351,10 +395,12 @@ interface ChapterRowProps {
     chapter: Chapter;
     index: number;
     courseId: string;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
 }
 
-function ChapterRow({ chapter, index, courseId }: ChapterRowProps) {
-    const router = useRouter();
+function ChapterRow({ chapter, index, courseId, isExpanded, onToggleExpand }: ChapterRowProps) {
+    // const router = useRouter(); // Removed unused router
     const {
         attributes,
         listeners,
@@ -374,59 +420,82 @@ function ChapterRow({ chapter, index, courseId }: ChapterRowProps) {
             ref={setNodeRef}
             style={style}
             className={cn(
-                "group flex items-center gap-3 px-4 py-3 bg-card transition-colors hover:bg-muted/30",
+                "group bg-card transition-colors hover:bg-muted/30",
+                isExpanded ? "flex flex-col" : "flex items-center gap-3 px-4 py-3",
                 isDragging && "opacity-50 bg-muted shadow-lg z-50"
             )}
         >
-            <button
-                {...attributes}
-                {...listeners}
-                className="p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing text-muted-foreground"
-            >
-                <GripVertical className="h-4 w-4" />
-            </button>
+            <div className={cn("flex items-center gap-3 w-full", isExpanded && "px-4 py-3")}>
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing text-muted-foreground shrink-0"
+                >
+                    <GripVertical className="h-4 w-4" />
+                </button>
 
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium shrink-0">
-                {index + 1}
-            </span>
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium shrink-0">
+                    {index + 1}
+                </span>
 
-            <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{chapter.title}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                    {chapter.isFree && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            Free
-                        </Badge>
-                    )}
-                    {chapter.videoUrl && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Video className="h-3 w-3" />
-                            Video
-                        </span>
-                    )}
+                <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{chapter.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        {chapter.isFree && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                Free
+                            </Badge>
+                        )}
+                        {chapter.videoUrl && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Video className="h-3 w-3" />
+                                Video
+                            </span>
+                        )}
+                    </div>
                 </div>
+
+                <Badge
+                    variant={chapter.isPublished ? "default" : "secondary"}
+                    className={cn(
+                        "text-xs shrink-0",
+                        chapter.isPublished && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                    )}
+                >
+                    {chapter.isPublished ? "Published" : "Draft"}
+                </Badge>
+
+                <Button
+                    variant={isExpanded ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={onToggleExpand}
+                    className={cn(
+                        "transition-all",
+                        !isExpanded && "opacity-0 group-hover:opacity-100"
+                    )}
+                >
+                    {isExpanded ? (
+                        "Close"
+                    ) : (
+                        <>
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
+                        </>
+                    )}
+                </Button>
             </div>
 
-            <Badge
-                variant={chapter.isPublished ? "default" : "secondary"}
-                className={cn(
-                    "text-xs shrink-0",
-                    chapter.isPublished && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                )}
-            >
-                {chapter.isPublished ? "Published" : "Draft"}
-            </Badge>
-
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(`/dashboard/courses/${courseId}/chapters/${chapter.id}`)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-                <Pencil className="h-4 w-4 mr-1" />
-                Edit
-                <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+            {isExpanded && (
+                <div className="w-full">
+                    <ChapterInlineEditor
+                        initialData={chapter}
+                        courseId={courseId}
+                        chapterId={chapter.id}
+                        onCancel={onToggleExpand}
+                        onSaveSuccess={onToggleExpand}
+                    />
+                </div>
+            )}
         </div>
     );
 }

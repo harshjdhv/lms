@@ -43,7 +43,7 @@ export async function PATCH(
 
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
-  const { title, description, isPublished, price } = await req.json();
+  const { title, description, isPublished, price, imageUrl } = await req.json();
 
   const dbUser = await prisma.user.findUnique({
     where: { email: user.email! },
@@ -73,6 +73,7 @@ export async function PATCH(
       description,
       isPublished,
       price,
+      imageUrl,
     },
   });
 
