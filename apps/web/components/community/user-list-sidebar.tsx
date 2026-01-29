@@ -51,8 +51,8 @@ export function UserListSidebar({
     }
 
     return (
-        <div className="flex flex-col w-80 border-r bg-muted/30">
-            <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex flex-col w-80 border-r bg-muted/30 min-h-0 shrink-0">
+            <div className="flex items-center justify-between p-4 border-b shrink-0">
                 <div className="flex items-center gap-2">
                     <UsersIcon className="h-5 w-5 text-muted-foreground" />
                     <h2 className="text-lg font-semibold">Community</h2>
@@ -67,7 +67,7 @@ export function UserListSidebar({
                     <Plus className="h-4 w-4" />
                 </Button>
             </div>
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
                 <div className="p-2 space-y-1">
                     {users.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-8 text-center px-4">

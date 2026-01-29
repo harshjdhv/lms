@@ -97,9 +97,9 @@ export function ChatInterface({ user, messages, onSendMessage }: ChatInterfacePr
     }
 
     return (
-        <div className="flex flex-col flex-1 bg-background">
+        <div className="flex flex-col flex-1 min-h-0 bg-background">
             {/* Header */}
-            <div className="flex items-center gap-3 p-4 border-b">
+            <div className="flex items-center gap-3 p-4 border-b shrink-0">
                 <Avatar size="default">
                     {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                     <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
@@ -122,7 +122,7 @@ export function ChatInterface({ user, messages, onSendMessage }: ChatInterfacePr
             </div>
 
             {/* Messages */}
-            <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+            <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0 p-4">
                 <div className="space-y-4">
                     {messages.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -182,7 +182,7 @@ export function ChatInterface({ user, messages, onSendMessage }: ChatInterfacePr
             </ScrollArea>
 
             {/* Input */}
-            <div className="border-t p-4">
+            <div className="border-t p-4 shrink-0 bg-background">
                 <form onSubmit={handleSubmit} className="flex gap-2">
                     <Textarea
                         value={input}
