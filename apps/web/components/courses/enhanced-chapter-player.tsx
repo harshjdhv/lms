@@ -1,9 +1,13 @@
+"use client";
+
+import { useState, useTransition } from "react";
 import { Chapter, ReflectionPoint } from "@workspace/database";
 import { Badge } from "@workspace/ui/components/badge";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { Lock, ArrowLeft, PlayCircle, CheckCircle2 } from "lucide-react";
+import { Lock, ArrowLeft, PlayCircle, CheckCircle2, Video, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@workspace/ui/lib/utils";
 import { getEmbedUrl } from "@/lib/video";
 import { ReflectionVideoPlayer } from "@/components/reflection/ReflectionVideoPlayer";
@@ -29,21 +33,39 @@ export function EnhancedChapterPlayer({
   isLocked,
   isEnrolled = false,
 }: ChapterPlayerProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+  const handleChapterClick = (chapterId: string, isLockedChapter: boolean) => {
+    if (isLockedChapter || chapterId === chapter.id) return;
+
+    setNavigatingTo(chapterId);
+    startTransition(() => {
+      router.push(`/dashboard/courses/${courseId}/chapters/${chapterId}`);
+    });
+  };
+
   if (isLocked) {
     return (
-      <div className="flex flex-col items-center justify-center p-10 bg-muted/50 rounded-md space-y-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-10 space-y-6 text-center">
         <Link
           href={`/dashboard/courses/${courseId}`}
-          className="self-start mb-4 text-sm hover:underline flex items-center text-foreground"
+          className="self-start mb-4 text-sm text-muted-foreground hover:text-foreground flex items-center transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
         </Link>
-        <Lock className="h-10 w-10 text-muted-foreground" />
-        <h2 className="text-xl font-bold">This chapter is locked</h2>
-        <p className="text-muted-foreground">
-          Please enroll in the course to access this content.
-        </p>
+
+        <div className="p-6 rounded-full bg-muted">
+          <Lock className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold">This chapter is locked</h2>
+          <p className="text-muted-foreground max-w-sm">
+            Please enroll in the course to access this content.
+          </p>
+        </div>
       </div>
     );
   }
@@ -73,11 +95,11 @@ export function EnhancedChapterPlayer({
 
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-0 gap-0">
-      {/* Main content: video + title (Udemy-style left side) */}
+      {/* Main content: video + title */}
       <div className="flex-1 min-w-0 flex flex-col p-4 lg:p-6">
         <Link
           href={`/dashboard/courses/${courseId}`}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition mb-4"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to {courseTitle}
@@ -89,7 +111,11 @@ export function EnhancedChapterPlayer({
             <p className="text-sm text-muted-foreground">{chapter.description}</p>
           )}
           <div className="flex items-center gap-2 flex-wrap">
-            {chapter.isFree && <Badge variant="secondary">Free Preview</Badge>}
+            {chapter.isFree && (
+              <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                Free Preview
+              </Badge>
+            )}
             {hasReflectionPoints && (
               <Badge variant="outline">
                 {reflectionPoints.length} Reflection Point
@@ -99,8 +125,8 @@ export function EnhancedChapterPlayer({
           </div>
         </div>
 
-        {/* Video area - constrained width so it doesn't stretch too much */}
-        <div className="w-full max-w-3xl">
+        {/* Video area */}
+        <div className="w-full max-w-4xl">
           {videoId ? (
             <ReflectionVideoPlayer
               videoId={videoId}
@@ -119,7 +145,10 @@ export function EnhancedChapterPlayer({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   />
                 ) : (
-                  <div className="text-white">No Video Available</div>
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Video className="h-10 w-10 opacity-50" />
+                    <span>No Video Available</span>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -127,18 +156,18 @@ export function EnhancedChapterPlayer({
         </div>
 
         {hasReflectionPoints && (
-          <div className="mt-6 p-4 rounded-lg border bg-muted/30 border-border max-w-3xl">
+          <div className="mt-6 p-4 rounded-xl border bg-muted/30 max-w-4xl">
             <h3 className="font-medium mb-2">Interactive Learning</h3>
             <p className="text-sm text-muted-foreground mb-3">
               This video includes reflection points that will pause to test your understanding.
             </p>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {reflectionPoints.map((point, index) => (
                 <div
                   key={point.id || index}
                   className="flex items-center gap-2 text-sm"
                 >
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full shrink-0" />
                   <span>
                     {Math.floor(point.time / 60)}:
                     {(point.time % 60).toString().padStart(2, "0")} - {point.topic}
@@ -150,8 +179,8 @@ export function EnhancedChapterPlayer({
         )}
       </div>
 
-      {/* Right sidebar: lessons list (Udemy-style) */}
-      <aside className="w-full lg:w-80 xl:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/20">
+      {/* Right sidebar: lessons list */}
+      <aside className="w-full lg:w-80 xl:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/10">
         <div className="p-3 border-b border-border">
           <h2 className="font-semibold text-sm">Course content</h2>
           <p className="text-xs text-muted-foreground">{chapters.length} lessons</p>
@@ -161,22 +190,30 @@ export function EnhancedChapterPlayer({
             {chapters.map((ch, index) => {
               const isCurrent = ch.id === chapter.id;
               const isLockedChapter = !ch.isFree && !isEnrolled;
+              const isNavigatingToThis = navigatingTo === ch.id;
+
               return (
-                <Link
+                <button
                   key={ch.id}
-                  href={isLockedChapter && !isCurrent ? "#" : `/dashboard/courses/${courseId}/chapters/${ch.id}`}
+                  onClick={() => handleChapterClick(ch.id, isLockedChapter)}
+                  disabled={isLockedChapter || isCurrent || isPending}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
+                    "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-left transition-all duration-200",
                     isCurrent
                       ? "bg-primary/10 text-primary font-medium"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    isLockedChapter && !isCurrent && "opacity-60 pointer-events-none"
+                    isLockedChapter && "opacity-50 cursor-not-allowed",
+                    isNavigatingToThis && "bg-primary/5 scale-[0.98]"
                   )}
-                  onClick={isLockedChapter && !isCurrent ? (e) => e.preventDefault() : undefined}
                 >
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full shrink-0 text-xs font-medium bg-muted">
-                    {isCurrent ? (
-                      <PlayCircle className="w-3.5 h-3.5 text-primary" />
+                  <span className={cn(
+                    "flex items-center justify-center w-7 h-7 rounded-full shrink-0 text-xs font-medium transition-colors",
+                    isCurrent ? "bg-primary text-primary-foreground" : "bg-muted"
+                  )}>
+                    {isNavigatingToThis ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : isCurrent ? (
+                      <PlayCircle className="w-3.5 h-3.5" />
                     ) : isLockedChapter ? (
                       <Lock className="w-3.5 h-3.5" />
                     ) : (
@@ -185,7 +222,7 @@ export function EnhancedChapterPlayer({
                   </span>
                   <span className="line-clamp-2 flex-1 min-w-0">{ch.title}</span>
                   {isCurrent && <CheckCircle2 className="w-4 h-4 shrink-0 text-primary" />}
-                </Link>
+                </button>
               );
             })}
           </nav>

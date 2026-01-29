@@ -1,24 +1,25 @@
+"use client";
+
 import {
     Card,
     CardContent,
-    CardDescription,
     CardFooter,
-    CardHeader,
-    CardTitle,
 } from "@workspace/ui/components/card";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Progress } from "@workspace/ui/components/progress";
-import { Layers, PlayCircle, Edit } from "lucide-react";
+import { BookOpen, PlayCircle, Edit, User, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useState, useTransition } from "react";
+import { cn } from "@workspace/ui/lib/utils";
 
 interface CourseCardProps {
     id: string;
     title: string;
     description: string | null;
     teacherName?: string | null;
-    chapterCount?: number; // Total chapters
-    progress?: number; // 0-100
+    chapterCount?: number;
+    progress?: number;
     isTeacher?: boolean;
 }
 
@@ -31,54 +32,90 @@ export function CourseCard({
     progress,
     isTeacher = false,
 }: CourseCardProps) {
+    const [isPending, startTransition] = useTransition();
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    const handleClick = () => {
+        setIsNavigating(true);
+        startTransition(() => { });
+    };
+
     return (
-        <Card className="flex flex-col h-full overflow-hidden transition-all hover:shadow-md">
-            <div className="aspect-video w-full bg-muted/50 flex items-center justify-center">
-                {/* Placeholder for course image */}
-                <Layers className="w-12 h-12 text-muted-foreground/50" />
-            </div>
-            <CardHeader>
-                <div className="flex justify-between items-start gap-2">
-                    <CardTitle className="line-clamp-1 text-lg">{title}</CardTitle>
-                    {teacherName && (
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                            {teacherName}
-                        </Badge>
-                    )}
+        <Card className={cn(
+            "group flex flex-col h-full overflow-hidden transition-all duration-300",
+            "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20",
+            isNavigating && "scale-[0.98] opacity-70"
+        )}>
+            {/* Course thumbnail area */}
+            <div className="relative aspect-video w-full bg-gradient-to-br from-primary/10 via-muted to-primary/5 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <BookOpen className="w-10 h-10 text-primary/30 group-hover:scale-110 transition-transform duration-300" />
+
+                {/* Chapter count badge */}
+                <div className="absolute bottom-2 right-2">
+                    <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm text-xs">
+                        {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}
+                    </Badge>
                 </div>
-                <CardDescription className="line-clamp-2 min-h-[2.5rem]">
-                    {description || "No description provided."}
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                        <Layers className="w-4 h-4" />
-                        <span>{chapterCount} Chapters</span>
+
+                {/* Loading overlay */}
+                {isNavigating && (
+                    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
+                        <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
-                    {typeof progress === "number" && (
-                        <div className="space-y-1 mt-2">
-                            <div className="flex justify-between text-xs">
-                                <span>Progress</span>
-                                <span>{Math.round(progress)}%</span>
-                            </div>
-                            <Progress value={progress} className="h-2" />
+                )}
+            </div>
+
+            <CardContent className="flex-1 p-4 space-y-2">
+                <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+                    {title}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+                    {description || "No description provided."}
+                </p>
+
+                {/* Teacher info */}
+                {teacherName && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                        <User className="w-3 h-3" />
+                        <span>{teacherName}</span>
+                    </div>
+                )}
+
+                {/* Progress bar for students */}
+                {typeof progress === "number" && (
+                    <div className="space-y-1.5 pt-2">
+                        <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Progress</span>
+                            <span className="font-medium text-primary">{Math.round(progress)}%</span>
                         </div>
-                    )}
-                </div>
+                        <Progress
+                            value={progress}
+                            className="h-1.5"
+                        />
+                    </div>
+                )}
             </CardContent>
-            <CardFooter className="pt-0">
-                <Button asChild className="w-full" variant={isTeacher ? "outline" : "default"}>
+
+            <CardFooter className="p-4 pt-0">
+                <Button
+                    asChild
+                    className="w-full group/btn"
+                    variant={isTeacher ? "outline" : "default"}
+                    onClick={handleClick}
+                >
                     <Link href={`/dashboard/courses/${id}`}>
                         {isTeacher ? (
                             <>
                                 <Edit className="mr-2 w-4 h-4" />
-                                Manage Course
+                                Manage
+                                <ChevronRight className="ml-auto w-4 h-4 opacity-50 group-hover/btn:translate-x-0.5 transition-transform" />
                             </>
                         ) : (
                             <>
                                 <PlayCircle className="mr-2 w-4 h-4" />
                                 {progress && progress > 0 ? "Continue" : "Start Learning"}
+                                <ChevronRight className="ml-auto w-4 h-4 opacity-50 group-hover/btn:translate-x-0.5 transition-transform" />
                             </>
                         )}
                     </Link>
