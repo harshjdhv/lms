@@ -19,7 +19,7 @@ import { useAvailableCourses, useEnrollCourseViaBody } from "@/hooks/queries/use
 
 export function StudentCourseCatalog() {
     const [open, setOpen] = useState(false)
-    const { data: courses = [], isLoading, refetch } = useAvailableCourses()
+    const { data: courses = [], isLoading, refetch } = useAvailableCourses({ enabled: open })
     const enrollMutation = useEnrollCourseViaBody()
     const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null)
 

@@ -54,12 +54,13 @@ async function fetchCourse(
   return res.json();
 }
 
-export function useAvailableCourses() {
+export function useAvailableCourses(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: courseKeys.available(),
     queryFn: fetchAvailableCourses,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    ...options,
   });
 }
 
