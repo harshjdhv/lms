@@ -1,18 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Badge } from "@workspace/ui/components/badge";
-import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
-import { Label } from "@workspace/ui/components/label";
-import { Loader2, CheckCircle, XCircle, Lightbulb } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Lightbulb, Send, MessageSquare, RotateCcw, ImageIcon, VideoIcon, ExternalLink } from "lucide-react";
 
 type ReflectionPoint = {
   time: number;
@@ -47,7 +39,28 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
   const [attempts, setAttempts] = useState(0);
   const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(true);
 
+  // Chat Mode State
+  const [mode, setMode] = useState<'quiz' | 'chat'>('quiz');
+  type ChatMessage = {
+    role: 'user' | 'assistant';
+    content: string;
+    resources?: {
+      type: 'images' | 'videos';
+      data: any[];
+    };
+  };
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
   const isMultipleChoice = options !== null && options.length > 0;
+
+  useEffect(() => {
+    if (mode === 'chat') {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, mode]);
 
   // Generate quiz question when modal opens — use transcript up to reflection.time when chapterId is set
   useEffect(() => {
@@ -59,6 +72,8 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
       setSelectedOptionIndex(null);
       setEvaluation(null);
       setShowHint(false);
+      setMode('quiz'); // Reset to quiz mode
+      setChatMessages([]);
       try {
         let transcriptText: string | undefined;
 
@@ -197,6 +212,55 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
     }
   };
 
+  const handleChatSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || isChatLoading) return;
+
+    const userMessage = chatInput.trim();
+    setChatInput("");
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsChatLoading(true);
+
+    try {
+      const response = await fetch("/api/reflection/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...chatMessages, { role: 'user', content: userMessage }],
+          context: {
+            topic: reflection.topic,
+            question: question,
+            wrongAnswer: isMultipleChoice && options && selectedOptionIndex !== null
+              ? options[selectedOptionIndex]
+              : answer,
+            transcriptContext: "", // Ideally pass the transcript text if we had it stored, simpler for now
+          }
+        }),
+      });
+
+      const data = await response.json();
+
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.message,
+        resources: data.resources // Store resources if present
+      }]);
+
+      if (data.status === 'READY') {
+        // AI detected user is ready to retry
+        setTimeout(() => {
+          handleRetry();
+        }, 2000); // Give them a moment to read the confirmation
+      }
+
+    } catch (error) {
+      console.error("Chat failed:", error);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting right now. You can try asking again or click 'Return to Quiz' to retry." }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   const updateMemory = async (isCorrect: boolean) => {
     try {
       await fetch("/api/reflection/memory-update", {
@@ -218,6 +282,23 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
     setAnswer("");
     setEvaluation(null);
     setShowHint(false);
+    setMode('quiz');
+    // Note: We deliberately don't clear chatMessages immediately so they could potentially review,
+    // but for now let's clear them to reset context for the next attempt if they fail again.
+    setChatMessages([]);
+  };
+
+  const switchToChat = () => {
+    if (evaluation && !evaluation.correct) {
+      setMode('chat');
+      // Initialize chat with feedback if empty
+      if (chatMessages.length === 0) {
+        setChatMessages([{
+          role: 'assistant',
+          content: `${evaluation.feedback} What part of this topic is confusing for you?`
+        }]);
+      }
+    }
   };
 
 
@@ -226,148 +307,263 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
     isMultipleChoice ? selectedOptionIndex !== null : answer.trim().length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-        <CardHeader>
-          <div>
-            <CardTitle className="text-xl">Quiz Checkpoint</CardTitle>
-            <p className="text-muted-foreground mt-1">
-              Answer correctly to continue. Topic:{" "}
-              <Badge variant="secondary">{reflection.topic}</Badge>
-            </p>
-          </div>
-        </CardHeader>
+    <div className="fixed top-0 bottom-0 right-0 left-0 md:left-64 z-50 flex font-sans transition-all duration-300">
+      {/* Backdrop - now fills the offset container */}
+      <div className="absolute inset-0 bg-background/95 backdrop-blur-sm transition-all duration-300" />
 
-        <CardContent className="space-y-6">
-          {/* Question Section */}
-          <div className="space-y-3">
-            <h3 className="font-medium">Question:</h3>
-            {isGeneratingQuestion ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                <span className="text-muted-foreground">
-                  Generating quiz question...
-                </span>
+      {/* Main Content Area */}
+      <div className="relative flex-1 flex flex-col h-full lg:mr-80 xl:mr-96 w-full transition-all duration-300">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-8 py-6 border-b border-border/40 bg-background/50 backdrop-blur-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="h-7 px-3 text-sm">
+              Reflection Point
+            </Badge>
+            <span className="text-muted-foreground hidden sm:inline">|</span>
+            <h2 className="font-semibold text-lg truncate max-w-[300px] sm:max-w-md">{reflection.topic}</h2>
+          </div>
+        </div>
+
+        {/* Scrollable Content Container */}
+        <div className="flex-1 overflow-y-auto w-full">
+          <div className="max-w-3xl mx-auto w-full px-6 py-12 flex flex-col justify-center min-h-[50vh]">
+
+            {mode === 'quiz' ? (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Question Section */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="text-sm uppercase tracking-wider text-muted-foreground font-semibold">Question</h3>
+                    {isGeneratingQuestion ? (
+                      <div className="flex items-center py-4 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin mr-3" />
+                        Generating quiz question...
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-medium leading-relaxed text-foreground">
+                        {question}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Answer Section */}
+                {!isGeneratingQuestion && (
+                  <div className="space-y-6">
+                    {isMultipleChoice && options ? (
+                      <div className="grid gap-3">
+                        {options.map((opt, i) => (
+                          <button
+                            key={i}
+                            onClick={() => !evaluation && setSelectedOptionIndex(i)}
+                            disabled={!!evaluation}
+                            className={`
+                                    flex items-center p-4 rounded-xl border-2 text-left transition-all duration-200
+                                    ${selectedOptionIndex === i
+                                ? 'border-primary bg-primary/5 shadow-sm'
+                                : 'border-border/50 hover:border-border hover:bg-muted/30'
+                              }
+                                    ${!!evaluation ? 'cursor-default opacity-90' : 'cursor-pointer'}
+                                  `}
+                          >
+                            <div className={`
+                                    w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 shrink-0 transition-colors
+                                    ${selectedOptionIndex === i ? 'border-primary' : 'border-muted-foreground/30'}
+                                  `}>
+                              {selectedOptionIndex === i && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                            </div>
+                            <span className="text-lg">{opt}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        placeholder="Type your answer here..."
+                        className="min-h-[150px] text-lg p-4 resize-none bg-background border-border/50 focus:border-primary"
+                        disabled={!!evaluation}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Feedback & Actions */}
+                {evaluation && (
+                  <div className={`p-6 rounded-xl border ${evaluation.correct
+                    ? "bg-green-500/10 border-green-500/20"
+                    : "bg-amber-500/10 border-amber-500/20"
+                    } animate-in zoom-in-95 duration-300`}>
+                    <div className="flex items-start gap-4">
+                      {evaluation.correct ? (
+                        <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mt-1" />
+                      ) : (
+                        <XCircle className="h-6 w-6 text-amber-600 dark:text-amber-400 mt-1" />
+                      )}
+                      <div className="space-y-2">
+                        <p className={`font-semibold text-lg ${evaluation.correct ? "text-green-800 dark:text-green-200" : "text-amber-800 dark:text-amber-200"
+                          }`}>
+                          {evaluation.correct ? "Correct!" : "Incorrect"}
+                        </p>
+                        <p className="text-foreground/80 leading-relaxed">
+                          {evaluation.feedback}
+                        </p>
+                        {!evaluation.correct && evaluation.hint && (
+                          <div className="pt-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowHint(!showHint)}
+                              className="text-amber-700 dark:text-amber-300 hover:bg-amber-100/50 -ml-2"
+                            >
+                              <Lightbulb className="h-4 w-4 mr-2" />
+                              {showHint ? "Hide Hint" : "Show Hint"}
+                            </Button>
+                            {showHint && (
+                              <p className="mt-2 text-sm text-foreground/70 p-3 bg-background/50 rounded-lg">
+                                {evaluation.hint}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                <p className="text-sm leading-relaxed">{question}</p>
-              </div>
-            )}
-          </div>
+              /* Chat Mode UI */
+              <div className="flex flex-col h-[calc(100vh-14rem)] max-h-[800px] animate-in fade-in slide-in-from-bottom-4 duration-500 w-full max-w-4xl mx-auto">
+                <div className="flex-1 overflow-y-auto space-y-6 px-4 pb-4">
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-base shadow-sm ${msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground rounded-br-none'
+                        : 'bg-muted border border-border/50 rounded-bl-none'
+                        }`}>
+                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
 
-          {/* Answer: Multiple choice or text */}
-          {!isGeneratingQuestion && (
-            <div className="space-y-3">
-              <h3 className="font-medium">Your Answer:</h3>
-              {isMultipleChoice && options ? (
-                <RadioGroup
-                  value={selectedOptionIndex !== null ? String(selectedOptionIndex) : ""}
-                  onValueChange={(v) => setSelectedOptionIndex(parseInt(v, 10))}
-                  disabled={!!evaluation}
-                  className="space-y-2"
-                >
-                  {options.map((opt, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center space-x-2 rounded-lg border border-border p-3 hover:bg-muted/30 has-checked:border-primary has-checked:bg-primary/5"
-                    >
-                      <RadioGroupItem value={String(i)} id={`opt-${i}`} />
-                      <Label htmlFor={`opt-${i}`} className="flex-1 cursor-pointer text-sm">
-                        {opt}
-                      </Label>
+                        {msg.resources && msg.resources.data && msg.resources.data.length > 0 && (
+                          <div className="mt-4 space-y-3">
+                            <div className="h-px bg-current/20 w-full" />
+                            <p className="text-xs font-semibold uppercase tracking-wide opacity-80 flex items-center gap-1.5">
+                              {msg.resources.type === 'images' ? <ImageIcon className="w-3.5 h-3.5" /> : <VideoIcon className="w-3.5 h-3.5" />}
+                              {msg.resources.type === 'images' ? 'Helpful Visuals' : 'Related Videos'}
+                            </p>
+                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                              {msg.resources.data.map((item: any, i: number) => (
+                                <a
+                                  key={i}
+                                  href={item.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="shrink-0 group relative block w-48 aspect-video rounded-lg overflow-hidden border border-white/20 hover:border-white/50 bg-black/40 transition-all hover:scale-[1.02]"
+                                >
+                                  {item.imageUrl ? (
+                                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-muted/80">
+                                      <ExternalLink className="w-6 h-6 opacity-50" />
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6">
+                                    <p className="text-[11px] text-white line-clamp-1 font-medium">{item.title}</p>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
-                </RadioGroup>
-              ) : (
-                <Textarea
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Type your answer here..."
-                  className="min-h-[100px]"
-                  disabled={!!evaluation}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Evaluation Result */}
-          {evaluation && (
-            <div
-              className={`p-4 rounded-lg border ${evaluation.correct
-                ? "bg-green-500/10 border-green-500/30 dark:bg-green-500/10 dark:border-green-500/30"
-                : "bg-amber-500/10 border-amber-500/30 dark:bg-amber-500/10 dark:border-amber-500/30"
-                }`}
-            >
-              <div className="flex items-start gap-3">
-                {evaluation.correct ? (
-                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`font-medium ${evaluation.correct ? "text-green-800 dark:text-green-200" : "text-amber-800 dark:text-amber-200"
-                      }`}
-                  >
-                    {evaluation.correct ? "Correct!" : "Incorrect"}
-                  </p>
-                  <p className="text-sm mt-1 text-foreground/90">
-                    {evaluation.feedback}
-                  </p>
-
-                  {!evaluation.correct && evaluation.hint && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowHint(!showHint)}
-                        className="mt-3"
-                      >
-                        <Lightbulb className="h-4 w-4 mr-2" />
-                        {showHint ? "Hide Hint" : "Show Hint"}
-                      </Button>
-                      {showHint && (
-                        <div className="mt-3 p-3 rounded border bg-muted/50 border-border">
-                          <p className="text-sm">
-                            <strong>Hint:</strong> {evaluation.hint}
-                          </p>
+                  {isChatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-muted border border-border rounded-2xl rounded-bl-none px-5 py-3">
+                        <div className="flex gap-1.5">
+                          <div className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                          <div className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                          <div className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce" />
                         </div>
-                      )}
-                    </>
+                      </div>
+                    </div>
                   )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-border/40 w-full px-4">
+                  <form onSubmit={handleChatSubmit} className="relative max-w-4xl mx-auto w-full">
+                    <Textarea
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Ask for clarification or type 'Ready' to retry..."
+                      className="min-h-[60px] max-h-[120px] resize-none pr-14 py-3 bg-muted/30 border-border/60 focus:bg-background text-base rounded-xl"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleChatSubmit();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={!chatInput.trim() || isChatLoading}
+                      className="absolute right-2 bottom-2 h-8 w-8 rounded-lg"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                  <div className="mt-3 flex justify-center">
+                    <Button variant="link" size="sm" onClick={handleRetry} className="text-muted-foreground hover:text-foreground">
+                      <RotateCcw className="h-3 w-3 mr-2" />
+                      Return to Quiz manually
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Action Buttons – no skip / continue anyway */}
-          {!isGeneratingQuestion && (
-            <div className="flex gap-3 pt-4">
+          </div>
+        </div>
+
+        {/* Footer Actions (Quiz Mode only) */}
+        {mode === 'quiz' && !isGeneratingQuestion && (
+          <div className="p-6 border-t border-border/40 bg-background/50 backdrop-blur-sm shrink-0">
+            <div className="max-w-3xl mx-auto w-full flex gap-4">
               {!evaluation ? (
                 <Button
                   onClick={handleSubmit}
                   disabled={!canSubmit || isSubmitting}
-                  className="flex-1"
+                  size="lg"
+                  className="w-full text-base font-medium h-12"
                 >
                   {isSubmitting && (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                   )}
-                  Submit Answer
+                  Check Answer
                 </Button>
               ) : !evaluation.correct ? (
-                <Button onClick={handleRetry} className="flex-1">
-                  Try Again
-                </Button>
+                <div className="flex gap-4 w-full">
+                  <Button onClick={handleRetry} variant="outline" size="lg" className="flex-1 h-12 border-2 hover:bg-muted/50">
+                    Try Again
+                  </Button>
+                  <Button onClick={switchToChat} size="lg" className="flex-1 h-12 bg-primary/90 hover:bg-primary shadow-lg shadow-primary/20">
+                    <MessageSquare className="w-5 h-5 mr-2" />
+                    Explain with AI
+                  </Button>
+                </div>
               ) : (
-                <Button onClick={onComplete} className="flex-1">
-                  Continue
+                <Button onClick={onComplete} size="lg" className="w-full h-12 text-base shadow-lg shadow-green-500/20 bg-green-600 hover:bg-green-700 text-white">
+                  Continue Video
                 </Button>
               )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

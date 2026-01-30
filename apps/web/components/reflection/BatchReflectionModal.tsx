@@ -226,7 +226,7 @@ export function BatchReflectionModal({ chapterId, currentTime, onComplete }: Pro
     // Renders
     if (state === "initializing") {
         return (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="fixed top-0 bottom-0 right-0 left-0 md:left-64 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
                 <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
                     <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -247,7 +247,7 @@ export function BatchReflectionModal({ chapterId, currentTime, onComplete }: Pro
                         </div>
                         <div>
                             <h3 className="text-2xl font-bold text-white mb-2">Knowledge Locked In!</h3>
-                            <p className="text-zinc-400">You've mastered this section. Returning to video...</p>
+                            <p className="text-zinc-400">You&apos;ve mastered this section. Returning to video...</p>
                         </div>
                         <Button onClick={onComplete} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
                             Continue Watching <ArrowRight className="ml-2 h-4 w-4" />

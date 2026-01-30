@@ -5,7 +5,7 @@ import { Chapter, ReflectionPoint } from "@workspace/database";
 import { Badge } from "@workspace/ui/components/badge";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { Lock, ArrowLeft, PlayCircle, CheckCircle2, Video, Loader2 } from "lucide-react";
+import { Lock, ArrowLeft, PlayCircle, CheckCircle2, Video, Loader2, Bug } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@workspace/ui/lib/utils";
@@ -36,6 +36,7 @@ export function EnhancedChapterPlayer({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const handleChapterClick = (chapterId: string, isLockedChapter: boolean) => {
     if (isLockedChapter || chapterId === chapter.id) return;
@@ -91,7 +92,6 @@ export function EnhancedChapterPlayer({
 
   const videoId = getYouTubeId(chapter.videoUrl || "");
   const hasReflectionPoints = reflectionPoints.length > 0;
-  const currentIndex = chapters.findIndex((c) => c.id === chapter.id);
 
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-0 gap-0">
@@ -133,6 +133,7 @@ export function EnhancedChapterPlayer({
               reflectionPoints={reflectionPoints}
               studentId={studentId}
               chapterId={chapter.id}
+              showDebugPanel={showDebug}
             />
           ) : (
             <Card>
@@ -153,9 +154,19 @@ export function EnhancedChapterPlayer({
               </CardContent>
             </Card>
           )}
+
+          <div className="flex justify-end mt-2">
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors px-2 py-1 rounded-md hover:bg-muted"
+            >
+              <Bug className="w-3.5 h-3.5" />
+              {showDebug ? "Hide Debug & Interactive" : "Show Debug & Interactive"}
+            </button>
+          </div>
         </div>
 
-        {hasReflectionPoints && (
+        {showDebug && hasReflectionPoints && (
           <div className="mt-6 p-4 rounded-xl border bg-muted/30 max-w-4xl">
             <h3 className="font-medium mb-2">Interactive Learning</h3>
             <p className="text-sm text-muted-foreground mb-3">

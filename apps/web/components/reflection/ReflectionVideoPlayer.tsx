@@ -14,6 +14,7 @@ type Props = {
   reflectionPoints: ReflectionPoint[];
   studentId: string;
   chapterId?: string | null;
+  showDebugPanel?: boolean;
 };
 
 export function ReflectionVideoPlayer({
@@ -21,6 +22,7 @@ export function ReflectionVideoPlayer({
   reflectionPoints,
   studentId,
   chapterId,
+  showDebugPanel = false,
 }: Props) {
   const [showReflection, setShowReflection] = useState(false);
   const [currentReflection, setCurrentReflection] =
@@ -83,14 +85,14 @@ export function ReflectionVideoPlayer({
 
       const previousTime = lastPolledTimeRef.current;
 
-
       const nextReflection = reflectionPoints.find((point) => {
         if (lastTriggeredRef.current.includes(point.time)) return false;
 
         // Check if we crossed the point time in this interval
         // Normal playback: previousTime (4.8) < point (5.0) <= currentTime (5.3)
         // Seeking: previousTime (5.0) < point (20.0) <= currentTime (50.0)
-        const crossedPoint = previousTime < point.time && currentTime >= point.time;
+        const crossedPoint =
+          previousTime < point.time && currentTime >= point.time;
 
         if (crossedPoint) {
           lastTriggeredRef.current = [...lastTriggeredRef.current, point.time];
@@ -101,7 +103,9 @@ export function ReflectionVideoPlayer({
       lastPolledTimeRef.current = currentTime;
 
       if (nextReflection) {
-        addDebugLog(`🎯 Reflection at ${nextReflection.time}s - "${nextReflection.topic}"`);
+        addDebugLog(
+          `🎯 Reflection at ${nextReflection.time}s - "${nextReflection.topic}"`,
+        );
         handleReflectionPoint(nextReflection);
       }
     }, 500); // Polling slightly faster for better responsiveness
@@ -231,7 +235,9 @@ export function ReflectionVideoPlayer({
 
     if (typeof window === "undefined" || !window.YT?.Player) {
       addDebugLog("Loading YouTube API...");
-      const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+      const existingScript = document.querySelector(
+        'script[src="https://www.youtube.com/iframe_api"]',
+      );
       if (existingScript) {
         const checkInterval = setInterval(() => {
           if (mounted && window.YT?.Player) {
@@ -245,7 +251,10 @@ export function ReflectionVideoPlayer({
           clearTimeout(t);
           clearInterval(checkInterval);
           cleanupPlayer();
-          window.removeEventListener("devPauseRequest", handleDevPause as EventListener);
+          window.removeEventListener(
+            "devPauseRequest",
+            handleDevPause as EventListener,
+          );
         };
       }
       const tag = document.createElement("script");
@@ -265,10 +274,12 @@ export function ReflectionVideoPlayer({
     return () => {
       mounted = false;
       cleanupPlayer();
-      window.removeEventListener("devPauseRequest", handleDevPause as EventListener);
+      window.removeEventListener(
+        "devPauseRequest",
+        handleDevPause as EventListener,
+      );
     };
   }, [videoId, reflectionPoints.length, initializePlayer, addDebugLog]);
-
 
   const handleReflectionComplete = useCallback(() => {
     setShowReflection(false);
@@ -302,50 +313,12 @@ export function ReflectionVideoPlayer({
 
   return (
     <div className="space-y-4 w-full max-w-full p-0">
-      {/* Debug Panel - theme-aware for dark mode */}
-      <div className="mb-3 p-3 rounded-lg border bg-muted/50 border-border">
-        <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
-          <h3 className="font-mono text-sm font-bold">🐛 Debug Panel</h3>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={triggerDevPause}
-              className="text-xs px-3 py-1.5 bg-amber-500 text-amber-950 rounded hover:bg-amber-400 font-medium dark:bg-amber-500 dark:text-amber-950"
-              title="Pause video now and open reflection modal (for testing)"
-            >
-              Dev: Trigger pause
-            </button>
-            <button
-              type="button"
-              onClick={() => setDebugLogs([])}
-              className="text-xs px-2 py-1 rounded border bg-background hover:bg-muted border-border"
-            >
-              Clear Logs
-            </button>
-          </div>
-        </div>
-        <div className="text-xs font-mono p-2 rounded border bg-background border-border h-28 overflow-y-auto">
-          {debugLogs.length === 0 ? (
-            <div className="text-muted-foreground">No logs yet...</div>
-          ) : (
-            debugLogs.map((log, index) => (
-              <div key={index} className="border-b border-border/50 pb-1 last:border-0">
-                {log}
-              </div>
-            ))
-          )}
-        </div>
+      <div className="relative aspect-video max-w-full bg-black rounded-lg overflow-hidden group">
+        <div id={containerId} className="w-full h-full min-h-[200px]" />
       </div>
 
-      <div className="relative aspect-video max-w-full bg-black rounded-lg overflow-hidden">
-        <div
-          id={containerId}
-          className="w-full h-full min-h-[200px]"
-        />
-      </div>
-
-      {showReflection && (
-        isBatchMode ? (
+      {showReflection &&
+        (isBatchMode ? (
           <BatchReflectionModal
             chapterId={chapterId!}
             currentTime={currentReflection?.time ?? 0}
@@ -359,17 +332,59 @@ export function ReflectionVideoPlayer({
               onComplete={handleReflectionComplete}
               chapterId={chapterId}
               previousTime={(() => {
-                // Find index of current point in sorted array
-                const sorted = [...reflectionPoints].sort((a, b) => a.time - b.time);
-                const idx = sorted.findIndex(p => Math.abs(p.time - currentReflection!.time) < 0.1);
-                if (idx > 0 && sorted[idx - 1]) {
-                  return sorted[idx - 1].time;
+                const sorted = [...reflectionPoints].sort(
+                  (a, b) => a.time - b.time,
+                );
+                const idx = sorted.findIndex(
+                  (p) =>
+                    Math.abs(p.time - (currentReflection?.time ?? 0)) < 0.1,
+                );
+                if (idx > 0) {
+                  return sorted[idx - 1]?.time ?? 0;
                 }
                 return 0;
               })()}
             />
           )
-        )
+        ))}
+
+      {showDebugPanel && (
+        <div className="mt-3 p-3 rounded-lg border bg-muted/50 border-border">
+          <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
+            <h3 className="font-mono text-sm font-bold">🐛 Debug Panel</h3>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={triggerDevPause}
+                className="text-xs px-3 py-1.5 bg-amber-500 text-amber-950 rounded hover:bg-amber-400 font-medium dark:bg-amber-500 dark:text-amber-950"
+                title="Pause video now and open reflection modal (for testing)"
+              >
+                Dev: Trigger pause
+              </button>
+              <button
+                type="button"
+                onClick={() => setDebugLogs([])}
+                className="text-xs px-2 py-1 rounded border bg-background hover:bg-muted border-border"
+              >
+                Clear Logs
+              </button>
+            </div>
+          </div>
+          <div className="text-xs font-mono p-2 rounded border bg-background border-border h-28 overflow-y-auto">
+            {debugLogs.length === 0 ? (
+              <div className="text-muted-foreground">No logs yet...</div>
+            ) : (
+              debugLogs.map((log, index) => (
+                <div
+                  key={index}
+                  className="border-b border-border/50 pb-1 last:border-0"
+                >
+                  {log}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
