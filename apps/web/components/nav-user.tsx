@@ -131,9 +131,11 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
+              <DropdownMenuItem asChild>
+                <a href="/dashboard/account">
+                  <BadgeCheck />
+                  Account
+                </a>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCard />

@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   Send,
+  UserCog,
   Users,
 } from "lucide-react";
 
@@ -96,6 +97,12 @@ export function AppSidebar({
       url: "/dashboard/community",
       icon: Users,
       isActive: pathname.startsWith("/dashboard/community"),
+    },
+    {
+      title: "Account",
+      url: "/dashboard/account",
+      icon: UserCog,
+      isActive: pathname.startsWith("/dashboard/account"),
     },
   ];
 
