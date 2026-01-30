@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Chapter, Course } from "@workspace/database";
+import { useState, useTransition, useEffect } from "react";
+import { Chapter, Course, ReflectionPoint } from "@workspace/database";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
@@ -12,8 +12,6 @@ import {
     Loader2,
     GripVertical,
     Pencil,
-    Trash2,
-    ChevronRight,
     Eye,
     EyeOff,
     Video,
@@ -42,12 +40,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChapterInlineEditor } from "./chapter-inline-editor";
-import { ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 interface CourseEditorProps {
     course: Course & {
-        chapters: Chapter[];
+        chapters: (Chapter & {
+            reflectionPoints: ReflectionPoint[]
+        })[];
     };
 }
 
@@ -66,6 +66,11 @@ export function CourseEditor({ course }: CourseEditorProps) {
     // Chapter state
     const [chapters, setChapters] = useState(course.chapters);
     const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setChapters(course.chapters);
+    }, [course.chapters]);
+
     const [newChapterTitle, setNewChapterTitle] = useState("");
     const [creatingChapter, setCreatingChapter] = useState(false);
     const [showNewChapterInput, setShowNewChapterInput] = useState(false);
@@ -115,7 +120,7 @@ export function CourseEditor({ course }: CourseEditorProps) {
             if (!res.ok) throw new Error("Failed to create");
 
             const newChapter = await res.json();
-            setChapters((prev) => [...prev, newChapter]);
+            setChapters((prev) => [...prev, { ...newChapter, reflectionPoints: [] }]);
             setNewChapterTitle("");
             setShowNewChapterInput(false);
             toast.success("Chapter created");
@@ -127,7 +132,7 @@ export function CourseEditor({ course }: CourseEditorProps) {
         }
     };
 
-    const handleReorder = async (newChapters: Chapter[]) => {
+    const handleReorder = async (newChapters: (Chapter & { reflectionPoints: ReflectionPoint[] })[]) => {
         setChapters(newChapters);
         const bulkUpdateData = newChapters.map((chapter, index) => ({
             id: chapter.id,
@@ -392,7 +397,9 @@ export function CourseEditor({ course }: CourseEditorProps) {
 }
 
 interface ChapterRowProps {
-    chapter: Chapter;
+    chapter: Chapter & {
+        reflectionPoints: ReflectionPoint[];
+    };
     index: number;
     courseId: string;
     isExpanded: boolean;

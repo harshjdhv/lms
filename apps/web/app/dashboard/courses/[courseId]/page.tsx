@@ -32,6 +32,11 @@ export default async function CoursePage({
         include: {
             chapters: {
                 orderBy: { position: "asc" },
+                include: {
+                    reflectionPoints: {
+                        orderBy: { time: "asc" },
+                    }
+                }
             },
         },
     });

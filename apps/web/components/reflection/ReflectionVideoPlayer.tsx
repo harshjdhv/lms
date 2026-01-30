@@ -57,21 +57,48 @@ export function ReflectionVideoPlayer({
     }
   }, []);
 
+  const lastPolledTimeRef = useRef<number>(0);
+
   const startPolling = useCallback(() => {
     addDebugLog("Starting time polling");
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+
+    // Initialize lastPolledTime with current player time to avoid false positives on initial load
+    if (playerRef.current?.getCurrentTime) {
+      lastPolledTimeRef.current = playerRef.current.getCurrentTime();
+    }
+
     intervalRef.current = setInterval(() => {
       if (!playerRef.current?.getCurrentTime) return;
       const currentTime = playerRef.current.getCurrentTime();
+
       // Use ref to avoid re-renders and stale closure; don't trigger when modal is open or paused
-      if (videoPausedRef.current) return;
+      if (videoPausedRef.current) {
+        // Keep updating lastPolledTime even while paused to avoid jumps when resuming
+        lastPolledTimeRef.current = currentTime;
+        return;
+      }
+
+      const previousTime = lastPolledTimeRef.current;
 
       const nextReflection = reflectionPoints.find((point) => {
-        const timeDiff = Math.abs(currentTime - point.time);
-        const shouldTrigger =
-          timeDiff < 0.5 && !lastTriggeredRef.current.includes(point.time);
+        if (lastTriggeredRef.current.includes(point.time)) return false;
+
+        // Case 1: Point is extremely close to current time (normal playback trigger)
+        // using a slightly wider window (1s) for safety
+        const isClose = Math.abs(currentTime - point.time) < 1.0;
+
+        // Case 2: User skipped over the point (Seek forward detection)
+        // We were at 'previousTime', now at 'currentTime', and 'point.time' is in between.
+        // Also ensure we are actually moving forward (previousTime < currentTime)
+        const isSkippedOver =
+          previousTime < currentTime && // Moving forward
+          point.time > previousTime &&  // Was ahead of us
+          point.time <= currentTime;    // Is now behind us (or equal)
+
+        const shouldTrigger = isClose || isSkippedOver;
 
         if (shouldTrigger) {
           lastTriggeredRef.current = [...lastTriggeredRef.current, point.time];
@@ -79,11 +106,13 @@ export function ReflectionVideoPlayer({
         return shouldTrigger;
       });
 
+      lastPolledTimeRef.current = currentTime;
+
       if (nextReflection) {
         addDebugLog(`🎯 Reflection at ${nextReflection.time}s - "${nextReflection.topic}"`);
         handleReflectionPoint(nextReflection);
       }
-    }, 800);
+    }, 500); // Polling slightly faster for better responsiveness
   }, [reflectionPoints, handleReflectionPoint, addDebugLog]);
 
   const tryStartPlaybackAndPolling = useCallback(() => {
@@ -337,6 +366,18 @@ export function ReflectionVideoPlayer({
               studentId={studentId}
               onComplete={handleReflectionComplete}
               chapterId={chapterId}
+              previousTime={(() => {
+                // Find index of current point in sorted array
+                // reflectionPoints are typically passed sorted, but let's be safe or just use findIndex
+                // If points are not sorted, this might be tricky. Let's assume sorted or sort them once?
+                // The prompt says "previous timestamp", so chronologically previous.
+                const sorted = [...reflectionPoints].sort((a, b) => a.time - b.time);
+                const idx = sorted.findIndex(p => Math.abs(p.time - currentReflection.time) < 0.1);
+                if (idx > 0 && sorted[idx - 1]) {
+                  return sorted[idx - 1].time;
+                }
+                return 0;
+              })()}
             />
           )
         )

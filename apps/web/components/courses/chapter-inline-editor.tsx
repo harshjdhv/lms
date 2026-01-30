@@ -3,11 +3,11 @@
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Loader2, Trash2, Eye, EyeOff, Video, Settings2, Gift, Save, AlertCircle } from "lucide-react";
+import { Loader2, Trash2, Eye, EyeOff, Gift, AlertCircle } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Chapter } from "@workspace/database";
+import { Chapter, ReflectionPoint } from "@workspace/database";
 
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
@@ -37,7 +37,9 @@ const formSchema = z.object({
 type ChapterFormValues = z.infer<typeof formSchema>;
 
 interface ChapterInlineEditorProps {
-    initialData: Chapter;
+    initialData: Chapter & {
+        reflectionPoints?: ReflectionPoint[];
+    };
     courseId: string;
     chapterId: string;
     onCancel: () => void;
@@ -83,15 +85,6 @@ export function ChapterInlineEditor({
             if (!response.ok) throw new Error("Something went wrong");
 
             toast.success("Chapter updated");
-
-            // Generate and cache transcript
-            if (values.videoUrl?.trim() && values.videoUrl !== initialData.videoUrl) {
-                fetch("/api/reflection/transcript", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ chapterId }),
-                }).catch(() => { });
-            }
 
             form.reset(values);
             startTransition(() => {
@@ -164,6 +157,183 @@ export function ChapterInlineEditor({
                                 placeholder="https://youtube.com/..."
                                 className="bg-background"
                             />
+                        </div>
+
+                        {/* AI / Reflection Resources */}
+                        <div className="space-y-4 pt-4 border-t">
+                            {/* Transcript Section */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="text-xs font-medium uppercase text-muted-foreground">Transcript</div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        disabled={loading || !watchedValues.videoUrl}
+                                        onClick={() => {
+                                            const url = form.getValues("videoUrl");
+                                            if (!url) return;
+                                            toast.promise(
+                                                fetch("/api/reflection/transcript", {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ chapterId }),
+                                                }).then(async (r) => {
+                                                    const data = await r.json();
+                                                    if (!r.ok) throw new Error(data.message || "Failed");
+                                                    if (data.status === "processing") return "Processing transcript...";
+                                                    startTransition(() => {
+                                                        router.refresh();
+                                                    });
+                                                    return `Success! ${data.segmentsCount} segments.`;
+                                                }),
+                                                {
+                                                    loading: "Fetching transcript...",
+                                                    success: (msg) => msg,
+                                                    error: (err) => `Error: ${err.message}`,
+                                                }
+                                            );
+                                        }}
+                                    >
+                                        {initialData.transcriptJson ? "Refresh" : "Generate"}
+                                    </Button>
+                                </div>
+                                {initialData.transcriptJson && (
+                                    <div className="text-xs font-mono bg-background p-2 rounded border h-20 overflow-y-auto text-muted-foreground">
+                                        {(initialData.transcriptJson as any[]).slice(0, 3).map((s: any, i) => (
+                                            <div key={i}>[{Math.floor(s.start)}s] {s.text}</div>
+                                        ))}
+                                        <div className="mt-1 text-center italic opacity-50">
+                                            {(initialData.transcriptJson as any[]).length} segments total
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Reflection Points Section */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="text-xs font-medium uppercase text-muted-foreground">Reflection Points</div>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        disabled={loading || !initialData.transcriptJson}
+                                        onClick={() => {
+                                            toast.promise(
+                                                fetch("/api/reflection/points/generate", {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ chapterId }),
+                                                }).then(async (r) => {
+                                                    const data = await r.json();
+                                                    if (!r.ok) throw new Error(data.error || "Failed");
+                                                    startTransition(() => {
+                                                        router.refresh();
+                                                    });
+                                                    return `Generated ${data.count} points.`;
+                                                }),
+                                                {
+                                                    loading: "Generating points...",
+                                                    success: (msg) => msg,
+                                                    error: (err) => `Error: ${err.message}`,
+                                                }
+                                            );
+                                        }}
+                                    >
+                                        Auto-Generate
+                                    </Button>
+                                </div>
+
+                                {/* Points List */}
+                                {initialData.reflectionPoints && initialData.reflectionPoints.length > 0 ? (
+                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                        {initialData.reflectionPoints.map((p) => (
+                                            <div key={p.id} className="text-xs flex items-center justify-between p-1.5 bg-background rounded border">
+                                                <span className="font-mono bg-muted px-1 rounded mr-2">
+                                                    {Math.floor(p.time / 60)}:{(Math.floor(p.time % 60)).toString().padStart(2, '0')}
+                                                </span>
+                                                <span className="truncate flex-1 opacity-80">{p.topic}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    initialData.transcriptJson && (
+                                        <div className="text-xs text-muted-foreground italic text-center py-2">
+                                            No points yet. Auto-generate or add valid times.
+                                        </div>
+                                    )
+                                )}
+
+                                {/* Manual Add Input */}
+                                <div className="flex gap-2 pt-1">
+                                    <Input
+                                        placeholder="mm:ss"
+                                        className="w-16 h-7 text-xs px-2"
+                                        id={`manual-time-${chapterId}`}
+                                    />
+                                    <Input
+                                        placeholder="Topic"
+                                        className="flex-1 h-7 text-xs px-2"
+                                        id={`manual-topic-${chapterId}`}
+                                    />
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        className="h-7 text-xs px-2"
+                                        onClick={() => {
+                                            const timeInput = document.getElementById(`manual-time-${chapterId}`) as HTMLInputElement;
+                                            const topicInput = document.getElementById(`manual-topic-${chapterId}`) as HTMLInputElement;
+                                            const timeStr = timeInput.value;
+                                            const topic = topicInput.value;
+
+                                            if (!timeStr.includes(":") || !topic) {
+                                                toast.error("Format: mm:ss and topic required");
+                                                return;
+                                            }
+                                            const parts = timeStr.split(":").map(Number);
+                                            if (parts.length !== 2) {
+                                                toast.error("Format: mm:ss");
+                                                return;
+                                            }
+                                            const m = parts[0];
+                                            const s = parts[1];
+                                            if (m === undefined || s === undefined) return;
+                                            const time = m * 60 + s;
+
+                                            if (isNaN(time)) {
+                                                toast.error("Invalid time");
+                                                return;
+                                            }
+
+                                            toast.promise(
+                                                fetch("/api/courses/" + courseId + "/chapters/" + chapterId + "/reflection-points", {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ time, topic }),
+                                                }).then(async (r) => {
+                                                    if (!r.ok) throw new Error("Failed");
+                                                    startTransition(() => {
+                                                        router.refresh();
+                                                    });
+                                                }),
+                                                {
+                                                    loading: "Adding...",
+                                                    success: "Added",
+                                                    error: "Failed"
+                                                }
+                                            );
+
+                                            timeInput.value = "";
+                                            topicInput.value = "";
+                                        }}
+                                    >
+                                        Add
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="bg-background rounded-lg border p-3 space-y-3">
@@ -239,4 +409,3 @@ export function ChapterInlineEditor({
         </div>
     );
 }
-

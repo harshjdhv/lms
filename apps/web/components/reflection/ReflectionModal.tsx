@@ -25,6 +25,8 @@ type Props = {
   onComplete: () => void;
   /** When set, transcript up to reflection.time is fetched and used to generate the quiz question. */
   chapterId?: string | null;
+  /** Start time of the segment to generate questions for (e.g. previous reflection point). Defaults to 0. */
+  previousTime?: number;
 };
 
 interface EvaluationResult {
@@ -33,7 +35,7 @@ interface EvaluationResult {
   hint?: string;
 }
 
-export function ReflectionModal({ reflection, studentId, onComplete, chapterId }: Props) {
+export function ReflectionModal({ reflection, studentId, onComplete, chapterId, previousTime = 0 }: Props) {
   const [question, setQuestion] = useState<string>("");
   const [options, setOptions] = useState<string[] | null>(null);
   const [correctIndex, setCorrectIndex] = useState<number | null>(null);
@@ -49,78 +51,99 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId }
 
   // Generate quiz question when modal opens — use transcript up to reflection.time when chapterId is set
   useEffect(() => {
-    generateQuestion();
-  }, [reflection.topic, reflection.time, chapterId]);
+    let active = true;
 
-  const generateQuestion = async () => {
-    setIsGeneratingQuestion(true);
-    setAnswer("");
-    setSelectedOptionIndex(null);
-    setEvaluation(null);
-    setShowHint(false);
-    try {
-      let transcriptText: string | undefined;
+    const generateQuestion = async () => {
+      setIsGeneratingQuestion(true);
+      setAnswer("");
+      setSelectedOptionIndex(null);
+      setEvaluation(null);
+      setShowHint(false);
+      try {
+        let transcriptText: string | undefined;
 
-      if (chapterId) {
-        let transcriptRes = await fetch(
-          `/api/reflection/transcript?chapterId=${encodeURIComponent(chapterId)}`,
-        );
-        let data = await transcriptRes.json();
-
-        // Poll when transcription is in progress (captionless / STT)
-        const maxPollAttempts = 30;
-        let attempts = 0;
-        while (
-          transcriptRes.ok &&
-          data.status === "processing" &&
-          data.jobId &&
-          attempts < maxPollAttempts
-        ) {
-          await new Promise((r) => setTimeout(r, 2000));
-          transcriptRes = await fetch(
+        if (chapterId) {
+          let transcriptRes = await fetch(
             `/api/reflection/transcript?chapterId=${encodeURIComponent(chapterId)}`,
           );
-          data = await transcriptRes.json();
-          attempts++;
+          let data = await transcriptRes.json();
+
+          // Poll when transcription is in progress (captionless / STT)
+          const maxPollAttempts = 30;
+          let attempts = 0;
+          while (
+            active &&
+            transcriptRes.ok &&
+            data.status === "processing" &&
+            data.jobId &&
+            attempts < maxPollAttempts
+          ) {
+            await new Promise((r) => setTimeout(r, 2000));
+            transcriptRes = await fetch(
+              `/api/reflection/transcript?chapterId=${encodeURIComponent(chapterId)}`,
+            );
+            data = await transcriptRes.json();
+            attempts++;
+          }
+
+          if (active && transcriptRes.ok && Array.isArray(data.segments) && data.segments.length > 0) {
+            const segments = data.segments as { start?: number; text?: string }[];
+            const upToTime = reflection.time;
+            const fromTime = previousTime;
+            // Filter segments that overlap with [fromTime, upToTime]
+            // A segment is relevant if its start time is <= upToTime AND >= fromTime
+            // Or we can just take everything between previous point and current point.
+            // Let's be generous: include segments that start slightly before previousTime if they are close?
+            // Simplest: start >= fromTime && start <= upToTime
+            const filtered = segments.filter(
+              (s: { start?: number }) => {
+                const start = s.start ?? 0;
+                return start >= fromTime && start <= upToTime + 2; // +2s buffer
+              }
+            );
+            transcriptText = filtered
+              .map((s: { start?: number; text?: string }) => `[${Math.round((s.start ?? 0))}s] ${(s.text ?? "").trim()}`)
+              .filter(Boolean)
+              .join("\n");
+          }
         }
 
-        if (transcriptRes.ok && Array.isArray(data.segments) && data.segments.length > 0) {
-          const segments = data.segments as { start?: number; text?: string }[];
-          const upToTime = reflection.time;
-          const filtered = segments.filter(
-            (s: { start?: number }) => (s.start ?? 0) <= upToTime + 1,
-          );
-          transcriptText = filtered
-            .map((s: { start?: number; text?: string }) => `[${Math.round((s.start ?? 0))}s] ${(s.text ?? "").trim()}`)
-            .filter(Boolean)
-            .join("\n");
+        if (!active) return;
+
+        const body: { topic: string; transcriptText?: string } = { topic: reflection.topic };
+        if (transcriptText?.trim()) {
+          body.transcriptText = transcriptText;
         }
+
+        const response = await fetch("/api/reflection/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!active) return;
+
+        const data = await response.json();
+        setQuestion(data.question ?? "");
+        setOptions(data.options ?? null);
+        setCorrectIndex(typeof data.correctIndex === "number" ? data.correctIndex : null);
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to generate question:", error);
+        setQuestion(`What key concepts did you learn about ${reflection.topic}?`);
+        setOptions(null);
+        setCorrectIndex(null);
+      } finally {
+        if (active) setIsGeneratingQuestion(false);
       }
+    };
 
-      const body: { topic: string; transcriptText?: string } = { topic: reflection.topic };
-      if (transcriptText?.trim()) {
-        body.transcriptText = transcriptText;
-      }
+    generateQuestion();
 
-      const response = await fetch("/api/reflection/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-      setQuestion(data.question ?? "");
-      setOptions(data.options ?? null);
-      setCorrectIndex(typeof data.correctIndex === "number" ? data.correctIndex : null);
-    } catch (error) {
-      console.error("Failed to generate question:", error);
-      setQuestion(`What key concepts did you learn about ${reflection.topic}?`);
-      setOptions(null);
-      setCorrectIndex(null);
-    } finally {
-      setIsGeneratingQuestion(false);
-    }
-  };
+    return () => {
+      active = false;
+    };
+  }, [reflection.topic, reflection.time, chapterId, previousTime]);
 
   const handleSubmit = async () => {
     const hasAnswer = isMultipleChoice
@@ -197,10 +220,7 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId }
     setShowHint(false);
   };
 
-  const getModalVariant = () => {
-    if (!evaluation) return "default";
-    return evaluation.correct ? "success" : "warning";
-  };
+
 
   const canSubmit =
     isMultipleChoice ? selectedOptionIndex !== null : answer.trim().length > 0;
@@ -274,11 +294,10 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId }
           {/* Evaluation Result */}
           {evaluation && (
             <div
-              className={`p-4 rounded-lg border ${
-                evaluation.correct
-                  ? "bg-green-500/10 border-green-500/30 dark:bg-green-500/10 dark:border-green-500/30"
-                  : "bg-amber-500/10 border-amber-500/30 dark:bg-amber-500/10 dark:border-amber-500/30"
-              }`}
+              className={`p-4 rounded-lg border ${evaluation.correct
+                ? "bg-green-500/10 border-green-500/30 dark:bg-green-500/10 dark:border-green-500/30"
+                : "bg-amber-500/10 border-amber-500/30 dark:bg-amber-500/10 dark:border-amber-500/30"
+                }`}
             >
               <div className="flex items-start gap-3">
                 {evaluation.correct ? (
@@ -288,9 +307,8 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId }
                 )}
                 <div className="flex-1 min-w-0">
                   <p
-                    className={`font-medium ${
-                      evaluation.correct ? "text-green-800 dark:text-green-200" : "text-amber-800 dark:text-amber-200"
-                    }`}
+                    className={`font-medium ${evaluation.correct ? "text-green-800 dark:text-green-200" : "text-amber-800 dark:text-amber-200"
+                      }`}
                   >
                     {evaluation.correct ? "Correct!" : "Incorrect"}
                   </p>

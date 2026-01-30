@@ -1,83 +1,102 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@workspace/database";
-import {
-  extractVideoId,
-  isYouTubeUrl,
-  isDirectMediaUrl,
-  submitSttJob,
-  isSttConfigured,
-  type TranscriptSegment,
-} from "@/lib/transcript";
 
 export const maxDuration = 60;
 
-export type { TranscriptSegment };
+/**
+ * Transcript Segment types for API response parsing.
+ * The external API returns start/duration/text.
+ */
+export type TranscriptSegment = {
+  start: number;
+  text: string;
+  duration?: number;
+};
 
-/** youtube-transcript returns { text, offset (seconds), duration } */
-function normalizeSegment(raw: Record<string, unknown>): { start: number; text: string } | null {
-  const text = typeof raw.text === "string" ? raw.text.trim() : "";
-  if (!text) return null;
-
-  let start = 0;
-  if (typeof raw.offset === "number") {
-    start = raw.offset >= 1000 ? raw.offset / 1000 : raw.offset;
-  } else if (typeof raw.start === "number") {
-    start = raw.start >= 1000 ? raw.start / 1000 : raw.start;
-  } else if (typeof raw.startMs === "number") {
-    start = raw.startMs / 1000;
-  }
-  return { start, text };
-}
-
-async function fetchYouTubeTranscript(
-  videoId: string,
-  videoUrl?: string | null,
+/**
+ * Calls the Transcript API (v2) to fetch YouTube transcript.
+ * Docs: https://transcriptapi.com
+ */
+async function fetchTranscriptFromApi(
+  videoUrl: string,
 ): Promise<TranscriptSegment[]> {
-  const { YoutubeTranscript } = await import("youtube-transcript");
-  const input = videoUrl?.trim() && videoUrl.includes(videoId) ? videoUrl : videoId;
-  let list: unknown;
-  try {
-    list = await YoutubeTranscript.fetchTranscript(input);
-  } catch (err) {
-    console.warn("[transcript] fetchTranscript threw for", videoId, err);
-    throw err;
-  }
-  if (!Array.isArray(list)) {
-    console.warn("[transcript] fetchTranscript did not return an array:", typeof list);
-    return [];
-  }
-  if (list.length === 0) {
-    console.warn("[transcript] fetchTranscript returned empty array for videoId:", videoId);
-    return [];
+  const apiKey = process.env.TRANSCRIPT_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing TRANSCRIPT_API_KEY environment variable");
   }
 
-  const segments: TranscriptSegment[] = [];
-  for (const item of list) {
-    const raw = item as Record<string, unknown>;
-    const seg = normalizeSegment(raw);
-    if (seg) segments.push(seg);
+  const apiUrl = new URL("https://transcriptapi.com/api/v2/youtube/transcript");
+  apiUrl.searchParams.set("video_url", videoUrl);
+  apiUrl.searchParams.set("include_timestamp", "true");
+  apiUrl.searchParams.set("format", "json");
+
+  console.log("[transcript-api] Fetching transcript for:", videoUrl);
+
+  const res = await fetch(apiUrl.toString(), {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    let errorDetail = "";
+    try {
+      const errJson = await res.json();
+      errorDetail =
+        errJson.detail?.message || errJson.detail || "Unknown error";
+    } catch {
+      errorDetail = await res.text();
+    }
+
+    // Log rate limit headers if present
+    if (res.status === 429) {
+      console.warn(
+        "[transcript-api] Rate limited. Retry-After:",
+        res.headers.get("Retry-After"),
+      );
+    }
+
+    throw new Error(`Transcript API error (${res.status}): ${errorDetail}`);
   }
-  return segments;
+
+  const data = await res.json();
+  const segments = data.transcript;
+
+  if (!Array.isArray(segments)) {
+    throw new Error("Invalid transcript format received from API");
+  }
+
+  // Normalize to our schema { start, text }
+  // API v2 returns: { text: "...", start: 0.0, duration: 4.12 }
+  return segments
+    .map((s: any) => ({
+      start: typeof s.start === "number" ? s.start : 0,
+      text: (s.text || "").trim(),
+    }))
+    .filter((s) => s.text.length > 0);
 }
 
 /**
- * GET ?chapterId=... — Return transcript for chapter (from DB, YouTube captions, or trigger STT for direct media).
- * Response: { segments, fromCache } | { status: "processing", jobId }
+ * GET ?chapterId=...
+ * Fetches transcript using the new external Transcript API.
  */
 export async function GET(request: NextRequest) {
   try {
     const chapterId = request.nextUrl.searchParams.get("chapterId");
     if (!chapterId) {
-      return NextResponse.json({ error: "chapterId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "chapterId required" },
+        { status: 400 },
+      );
     }
 
+    // 1. Get Chapter & Check Cache
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
       select: {
         videoUrl: true,
         transcriptJson: true,
-        transcriptJobId: true,
-        transcriptJobProvider: true,
       },
     });
 
@@ -88,83 +107,45 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const cached = chapter.transcriptJson as TranscriptSegment[] | null;
-    if (Array.isArray(cached) && cached.length > 0) {
-      return NextResponse.json({ segments: cached, fromCache: true });
-    }
-
-    if (chapter.transcriptJobId && !cached?.length) {
+    // Return cached if valid
+    if (
+      Array.isArray(chapter.transcriptJson) &&
+      chapter.transcriptJson.length > 0
+    ) {
       return NextResponse.json({
-        status: "processing",
-        jobId: chapter.transcriptJobId,
+        segments: chapter.transcriptJson,
+        fromCache: true,
       });
     }
 
-    const videoUrl = chapter.videoUrl.trim();
+    // 2. Fetch from External API
+    const segments = await fetchTranscriptFromApi(chapter.videoUrl);
 
-    if (isYouTubeUrl(videoUrl)) {
-      const videoId = extractVideoId(videoUrl)!;
-      const segments = await fetchYouTubeTranscript(videoId, videoUrl);
-      if (segments.length === 0) {
-        return NextResponse.json(
-          {
-            error: "No transcript available",
-            segments: [],
-            fromCache: false,
-            hint: "Ensure the video has captions/subtitles enabled on YouTube.",
-          },
-          { status: 200 },
-        );
-      }
-      await prisma.chapter.update({
-        where: { id: chapterId },
-        data: { transcriptJson: segments },
-      });
-      return NextResponse.json({ segments, fromCache: false });
+    if (segments.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No transcript found for this video.",
+          fromCache: false,
+        },
+        { status: 404 },
+      );
     }
 
-    if (isDirectMediaUrl(videoUrl)) {
-      if (!isSttConfigured()) {
-        return NextResponse.json(
-          {
-            error: "Captionless transcription not configured",
-            hint: "Set DEEPGRAM_API_KEY or ASSEMBLYAI_API_KEY for direct media URLs.",
-          },
-          { status: 503 },
-        );
-      }
-      try {
-        const { provider, jobId } = await submitSttJob(videoUrl, chapterId);
-        await prisma.chapter.update({
-          where: { id: chapterId },
-          data: {
-            transcriptJobId: jobId,
-            transcriptJobProvider: provider,
-          },
-        });
-        return NextResponse.json({ status: "processing", jobId });
-      } catch (err) {
-        console.error("[transcript] STT submit error:", err);
-        return NextResponse.json(
-          { error: err instanceof Error ? err.message : "Failed to start transcription" },
-          { status: 502 },
-        );
-      }
-    }
+    // 3. Save to DB
+    await prisma.chapter.update({
+      where: { id: chapterId },
+      data: { transcriptJson: segments },
+    });
 
-    return NextResponse.json(
-      {
-        error: "Invalid video URL",
-        hint: "Use a YouTube link or a direct media URL (e.g. .mp4, .mp3).",
-      },
-      { status: 400 },
-    );
+    return NextResponse.json({ segments, fromCache: false });
   } catch (error) {
-    console.error("Transcript GET error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get transcript" },
-      { status: 500 },
-    );
+    console.error("[transcript-api] GET Handler Error:", error);
+
+    const message =
+      error instanceof Error ? error.message : "Internal Server Error";
+
+    // Pass through specific API status codes if we can detect them, generally map to 500 or 502
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -172,12 +153,18 @@ export async function GET(request: NextRequest) {
  * POST { chapterId } — Fetch transcript and save to chapter (YouTube captions or trigger STT for direct media).
  * Response: { ok: true, segmentsCount } | { status: "processing", jobId }
  */
+/**
+ * POST { chapterId } — Fetch transcript and save to chapter using the Transcript API.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const { chapterId } = body as { chapterId?: string };
     if (!chapterId) {
-      return NextResponse.json({ error: "chapterId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "chapterId required" },
+        { status: 400 },
+      );
     }
 
     const chapter = await prisma.chapter.findUnique({
@@ -185,8 +172,6 @@ export async function POST(request: NextRequest) {
       select: {
         videoUrl: true,
         transcriptJson: true,
-        transcriptJobId: true,
-        transcriptJobProvider: true,
       },
     });
 
@@ -197,83 +182,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check cache
     const cached = chapter.transcriptJson as TranscriptSegment[] | null;
     if (Array.isArray(cached) && cached.length > 0) {
-      return NextResponse.json({ ok: true, segmentsCount: cached.length });
-    }
-
-    if (chapter.transcriptJobId && !cached?.length) {
       return NextResponse.json({
-        status: "processing",
-        jobId: chapter.transcriptJobId,
+        ok: true,
+        segmentsCount: cached.length,
+        fromCache: true,
       });
     }
 
-    const videoUrl = chapter.videoUrl.trim();
+    // Fetch from External API
+    const segments = await fetchTranscriptFromApi(chapter.videoUrl);
 
-    if (isYouTubeUrl(videoUrl)) {
-      const videoId = extractVideoId(videoUrl)!;
-      const segments = await fetchYouTubeTranscript(videoId, videoUrl);
-      if (segments.length === 0) {
-        return NextResponse.json(
-          {
-            ok: true,
-            segmentsCount: 0,
-            message: "No transcript available. Ensure the video has captions/subtitles enabled on YouTube.",
-          },
-          { status: 200 },
-        );
-      }
-      await prisma.chapter.update({
-        where: { id: chapterId },
-        data: { transcriptJson: segments },
-      });
-      return NextResponse.json({ ok: true, segmentsCount: segments.length });
+    if (segments.length === 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "No transcript found for this video.",
+          fromCache: false,
+        },
+        { status: 404 },
+      );
     }
 
-    if (isDirectMediaUrl(videoUrl)) {
-      if (!isSttConfigured()) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "Captionless transcription not configured",
-            message: "Set DEEPGRAM_API_KEY or ASSEMBLYAI_API_KEY for direct media URLs.",
-          },
-          { status: 503 },
-        );
-      }
-      try {
-        const { provider, jobId } = await submitSttJob(videoUrl, chapterId);
-        await prisma.chapter.update({
-          where: { id: chapterId },
-          data: {
-            transcriptJobId: jobId,
-            transcriptJobProvider: provider,
-          },
-        });
-        return NextResponse.json({ status: "processing", jobId });
-      } catch (err) {
-        console.error("[transcript] STT submit error:", err);
-        return NextResponse.json(
-          { error: err instanceof Error ? err.message : "Failed to start transcription" },
-          { status: 502 },
-        );
-      }
-    }
+    // Save to DB
+    await prisma.chapter.update({
+      where: { id: chapterId },
+      data: { transcriptJson: segments },
+    });
 
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Invalid video URL",
-        message: "Use a YouTube link or a direct media URL (e.g. .mp4, .mp3).",
-      },
-      { status: 400 },
-    );
+    return NextResponse.json({
+      ok: true,
+      segmentsCount: segments.length,
+      fromCache: false,
+    });
   } catch (error) {
-    console.error("Transcript POST error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to save transcript" },
-      { status: 500 },
-    );
+    console.error("[transcript-api] POST Handler Error:", error);
+    const message =
+      error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

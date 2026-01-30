@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2, Trash } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Chapter } from "@workspace/database";
+import { Chapter, ReflectionPoint } from "@workspace/database";
 
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -36,7 +36,9 @@ const formSchema = z.object({
 type ChapterFormValues = z.infer<typeof formSchema>;
 
 interface ChapterEditorProps {
-    initialData: Chapter;
+    initialData: Chapter & {
+        reflectionPoints?: ReflectionPoint[];
+    };
     courseId: string;
     chapterId: string;
 }
@@ -80,21 +82,6 @@ export function ChapterEditor({
             toast.success("Chapter updated");
             router.refresh();
 
-            // Generate and cache transcript for quiz questions (fire-and-forget)
-            if (values.videoUrl?.trim()) {
-                fetch("/api/reflection/transcript", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ chapterId }),
-                }).then(async (r) => {
-                    const data = await r.json().catch(() => ({}));
-                    if (data.status === "processing" && data.jobId) {
-                        toast.info("Transcription in progress. It will be ready in a minute.");
-                    } else if (r.ok && data.segmentsCount != null) {
-                        toast.success("Transcript cached for quizzes");
-                    }
-                }).catch(() => {});
-            }
         } catch {
             toast.error("Something went wrong");
         } finally {
@@ -224,6 +211,180 @@ export function ChapterEditor({
                                             </FormItem>
                                         )}
                                     />
+                                    <div className="space-y-4 mt-6">
+                                        {/* Transcript Section */}
+                                        <div className="rounded-lg border bg-muted/20 p-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div>
+                                                    <h3 className="font-medium">Transcript</h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {initialData.transcriptJson
+                                                            ? `${(initialData.transcriptJson as any[]).length} segments available`
+                                                            : "No transcript generated"}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={loading || !form.getValues("videoUrl")}
+                                                    onClick={() => {
+                                                        const url = form.getValues("videoUrl");
+                                                        if (!url) return;
+                                                        toast.promise(
+                                                            fetch("/api/reflection/transcript", {
+                                                                method: "POST",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                body: JSON.stringify({ chapterId }),
+                                                            }).then(async (r) => {
+                                                                const data = await r.json();
+                                                                if (!r.ok) throw new Error(data.message || "Failed");
+                                                                if (data.status === "processing") return "Processing transcript...";
+                                                                router.refresh();
+                                                                return `Success! ${data.segmentsCount} transcript segments found.`;
+                                                            }),
+                                                            {
+                                                                loading: "Fetching transcript...",
+                                                                success: (msg) => msg,
+                                                                error: (err) => `Error: ${err.message}`,
+                                                            }
+                                                        );
+                                                    }}
+                                                >
+                                                    {initialData.transcriptJson ? "Refresh Transcript" : "Generate Transcript"}
+                                                </Button>
+                                            </div>
+                                            {initialData.transcriptJson && (
+                                                <div className="text-xs font-mono bg-background p-2 rounded border h-24 overflow-y-auto text-muted-foreground">
+                                                    {(initialData.transcriptJson as any[]).slice(0, 5).map((s: any, i) => (
+                                                        <div key={i}>[{Math.floor(s.start)}s] {s.text}</div>
+                                                    ))}
+                                                    {(initialData.transcriptJson as any[]).length > 5 && (
+                                                        <div className="mt-1 text-center italic">...and {(initialData.transcriptJson as any[]).length - 5} more</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Reflection Points Section */}
+                                        <div className="rounded-lg border bg-muted/20 p-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div>
+                                                    <h3 className="font-medium">Reflection Points</h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {initialData.reflectionPoints && initialData.reflectionPoints.length > 0
+                                                            ? `${initialData.reflectionPoints.length} points generated`
+                                                            : "No reflection points"}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    disabled={loading || !initialData.transcriptJson}
+                                                    onClick={() => {
+                                                        toast.promise(
+                                                            fetch("/api/reflection/points/generate", {
+                                                                method: "POST",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                body: JSON.stringify({ chapterId }),
+                                                            }).then(async (r) => {
+                                                                const data = await r.json();
+                                                                if (!r.ok) throw new Error(data.error || "Failed");
+                                                                router.refresh();
+                                                                return `Success! Generated ${data.count} reflection points.`;
+                                                            }),
+                                                            {
+                                                                loading: "Analyzing transcript and generating points...",
+                                                                success: (msg) => msg,
+                                                                error: (err) => `Error: ${err.message}`,
+                                                            }
+                                                        );
+                                                    }}
+                                                >
+                                                    Generate Points
+                                                </Button>
+                                            </div>
+                                            {initialData.reflectionPoints && initialData.reflectionPoints.length > 0 ? (
+                                                <div className="space-y-1">
+                                                    {initialData.reflectionPoints.map((p) => (
+                                                        <div key={p.id} className="text-sm flex items-center justify-between p-2 bg-background rounded border">
+                                                            <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                                                                {Math.floor(p.time / 60)}:{(Math.floor(p.time % 60)).toString().padStart(2, '0')}
+                                                            </span>
+                                                            <span className="text-muted-foreground truncate ml-2 flex-1">{p.topic}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                initialData.transcriptJson && (
+                                                    <div className="text-sm text-yellow-600 bg-yellow-50 dark:bg-yellow-900/10 dark:text-yellow-400 p-2 rounded flex items-center gap-2">
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+                                                        Ready to generate points from transcript
+                                                    </div>
+                                                )
+                                            )}
+
+                                            {/* Manual Add Point */}
+                                            <div className="mt-4 pt-4 border-t">
+                                                <div className="text-xs font-medium mb-2 uppercase text-muted-foreground">Or Add Manually</div>
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        placeholder="mm:ss"
+                                                        className="w-20"
+                                                        id="manual-time"
+                                                    />
+                                                    <Input
+                                                        placeholder="Topic (e.g. Introduction)"
+                                                        className="flex-1"
+                                                        id="manual-topic"
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            const timeStr = (document.getElementById("manual-time") as HTMLInputElement).value;
+                                                            const topic = (document.getElementById("manual-topic") as HTMLInputElement).value;
+
+                                                            if (!timeStr.includes(":") || !topic) {
+                                                                toast.error("Format: mm:ss and topic required");
+                                                                return;
+                                                            }
+
+                                                            const [m, s] = timeStr.split(":").map(Number);
+                                                            const time = m * 60 + s;
+
+                                                            if (isNaN(time)) {
+                                                                toast.error("Invalid time format");
+                                                                return;
+                                                            }
+
+                                                            toast.promise(
+                                                                fetch("/api/courses/" + courseId + "/chapters/" + chapterId + "/reflection-points", {
+                                                                    method: "POST",
+                                                                    headers: { "Content-Type": "application/json" },
+                                                                    body: JSON.stringify({ time, topic }),
+                                                                }).then(async (r) => {
+                                                                    if (!r.ok) throw new Error("Failed");
+                                                                    router.refresh();
+                                                                }),
+                                                                {
+                                                                    loading: "Adding point...",
+                                                                    success: "Point added",
+                                                                    error: "Failed to add point"
+                                                                }
+                                                            );
+
+                                                            (document.getElementById("manual-time") as HTMLInputElement).value = "";
+                                                            (document.getElementById("manual-topic") as HTMLInputElement).value = "";
+                                                        }}
+                                                    >
+                                                        Add
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>
