@@ -6,8 +6,8 @@
     
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "prisma/schema.prisma"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "src/generated/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
