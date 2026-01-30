@@ -15,6 +15,7 @@ import {
   Command,
   FileText,
   GraduationCap,
+  Heart,
   LayoutDashboard,
   LifeBuoy,
   Send,
@@ -97,6 +98,12 @@ export function AppSidebar({
       url: "/dashboard/community",
       icon: Users,
       isActive: pathname.startsWith("/dashboard/community"),
+    },
+    {
+      title: user.role === "TEACHER" ? "Mentees" : "My Mentor",
+      url: "/dashboard/mentorship",
+      icon: Heart,
+      isActive: pathname.startsWith("/dashboard/mentorship"),
     },
     {
       title: "Account",

@@ -37,14 +37,20 @@ model User {
   semester  String? // "SEM-7" | "SEM-8"
 
   // Relations
-  enrollments    Enrollment[]
-  teacherCourses Course[]               @relation("TeacherCourses")
-  submissions    AssignmentSubmission[] @relation("StudentSubmissions")
-  chatsAsUser1   Chat[]                 @relation("ChatUser1")
-  chatsAsUser2   Chat[]                 @relation("ChatUser2")
-  sentMessages   Message[]
-  presence       UserPresence?
+  enrollments      Enrollment[]
+  teacherCourses   Course[]                 @relation("TeacherCourses")
+  submissions      AssignmentSubmission[]   @relation("StudentSubmissions")
+  chatsAsUser1     Chat[]                   @relation("ChatUser1")
+  chatsAsUser2     Chat[]                   @relation("ChatUser2")
+  sentMessages     Message[]
+  presence         UserPresence?
   reflectionMemory StudentReflectionMemory?
+
+  // Mentorship relations
+  mentees              Mentorship[]          @relation("MentorRelation")
+  mentors              Mentorship[]          @relation("MenteeRelation")
+  documentRequirements DocumentRequirement[] @relation("MentorDocuments")
+  documentSubmissions  DocumentSubmission[]  @relation("StudentDocuments")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -114,16 +120,16 @@ model Chapter {
   isFree      Boolean @default(false)
 
   /// Cached transcript segments: [{ start: number (seconds), text: string }]. Fetched after video upload for quiz generation.
-  transcriptJson Json?
+  transcriptJson        Json?
   /// Pending STT job id (Deepgram/AssemblyAI); cleared when webhook writes transcriptJson.
-  transcriptJobId String?
+  transcriptJobId       String?
   /// "deepgram" | "assemblyai" — used by webhook to parse callback.
   transcriptJobProvider String?
 
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  userProgress UserProgress[]
+  userProgress     UserProgress[]
   reflectionPoints ReflectionPoint[]
 
   createdAt DateTime @default(now())
@@ -212,11 +218,11 @@ enum SubmissionStatus {
 }
 
 model Chat {
-  id      String   @id @default(uuid())
-  user1Id String
-  user1   User     @relation("ChatUser1", fields: [user1Id], references: [id], onDelete: Cascade)
-  user2Id String
-  user2   User     @relation("ChatUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  id       String    @id @default(uuid())
+  user1Id  String
+  user1    User      @relation("ChatUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id  String
+  user2    User      @relation("ChatUser2", fields: [user2Id], references: [id], onDelete: Cascade)
   messages Message[]
 
   createdAt DateTime @default(now())
@@ -228,11 +234,11 @@ model Chat {
 }
 
 model Message {
-  id       String   @id @default(uuid())
+  id       String @id @default(uuid())
   chatId   String
-  chat     Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat     Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
   senderId String
-  sender   User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
   content  String
 
   createdAt DateTime @default(now())
@@ -253,10 +259,10 @@ model UserPresence {
 }
 
 model ReflectionPoint {
-  id     String @id @default(uuid())
-  time   Float  // seconds in video
-  topic  String
-  
+  id    String @id @default(uuid())
+  time  Float // seconds in video
+  topic String
+
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
@@ -267,17 +273,93 @@ model ReflectionPoint {
 }
 
 model StudentReflectionMemory {
-  id           String @id @default(uuid())
-  userId       String
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  weakTopics   String[] // JSON array of topics student struggles with
-  accuracyRate Float   @default(0.0) // overall accuracy percentage
-  totalAttempts Int    @default(0)
-  correctAttempts Int  @default(0)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weakTopics      String[] // JSON array of topics student struggles with
+  accuracyRate    Float    @default(0.0) // overall accuracy percentage
+  totalAttempts   Int      @default(0)
+  correctAttempts Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId])
+}
+
+// ==========================================
+// MENTORSHIP SYSTEM
+// ==========================================
+
+enum MentorshipStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+model Mentorship {
+  id       String           @id @default(uuid())
+  mentorId String // Teacher
+  menteeId String // Student
+  status   MentorshipStatus @default(ACTIVE)
+  notes    String? // Mentor's private notes about mentee
+
+  mentor User @relation("MentorRelation", fields: [mentorId], references: [id], onDelete: Cascade)
+  mentee User @relation("MenteeRelation", fields: [menteeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([mentorId, menteeId])
+  @@index([mentorId])
+  @@index([menteeId])
+}
+
+model DocumentRequirement {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  isRequired  Boolean   @default(true)
+  category    String? // e.g., "Academic", "Administrative", "Project"
+  mentorId    String // Created by this teacher
+
+  mentor      User                 @relation("MentorDocuments", fields: [mentorId], references: [id], onDelete: Cascade)
+  submissions DocumentSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([mentorId])
+  @@index([dueDate])
+}
+
+model DocumentSubmission {
+  id            String         @id @default(uuid())
+  requirementId String
+  studentId     String
+  fileUrl       String
+  fileName      String
+  fileSize      Int?
+  status        DocumentStatus @default(PENDING)
+  feedback      String? // Teacher feedback
+
+  requirement DocumentRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  student     User                @relation("StudentDocuments", fields: [studentId], references: [id], onDelete: Cascade)
+
+  submittedAt DateTime  @default(now())
+  reviewedAt  DateTime?
+
+  @@unique([requirementId, studentId])
+  @@index([requirementId])
+  @@index([studentId])
+  @@index([status])
 }
