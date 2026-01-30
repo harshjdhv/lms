@@ -6,6 +6,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 enum UserRole {
@@ -114,6 +115,10 @@ model Chapter {
 
   /// Cached transcript segments: [{ start: number (seconds), text: string }]. Fetched after video upload for quiz generation.
   transcriptJson Json?
+  /// Pending STT job id (Deepgram/AssemblyAI); cleared when webhook writes transcriptJson.
+  transcriptJobId String?
+  /// "deepgram" | "assemblyai" — used by webhook to parse callback.
+  transcriptJobProvider String?
 
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -125,6 +130,7 @@ model Chapter {
   updatedAt DateTime @updatedAt
 
   @@index([courseId])
+  @@index([transcriptJobId])
 }
 
 model UserProgress {

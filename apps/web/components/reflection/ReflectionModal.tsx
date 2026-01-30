@@ -62,21 +62,38 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId }
       let transcriptText: string | undefined;
 
       if (chapterId) {
-        const transcriptRes = await fetch(
+        let transcriptRes = await fetch(
           `/api/reflection/transcript?chapterId=${encodeURIComponent(chapterId)}`,
         );
-        if (transcriptRes.ok) {
-          const { segments } = await transcriptRes.json();
-          if (Array.isArray(segments) && segments.length > 0) {
-            const upToTime = reflection.time;
-            const filtered = segments.filter(
-              (s: { start?: number }) => (s.start ?? 0) <= upToTime + 1,
-            );
-            transcriptText = filtered
-              .map((s: { start?: number; text?: string }) => `[${Math.round((s.start ?? 0))}s] ${(s.text ?? "").trim()}`)
-              .filter(Boolean)
-              .join("\n");
-          }
+        let data = await transcriptRes.json();
+
+        // Poll when transcription is in progress (captionless / STT)
+        const maxPollAttempts = 30;
+        let attempts = 0;
+        while (
+          transcriptRes.ok &&
+          data.status === "processing" &&
+          data.jobId &&
+          attempts < maxPollAttempts
+        ) {
+          await new Promise((r) => setTimeout(r, 2000));
+          transcriptRes = await fetch(
+            `/api/reflection/transcript?chapterId=${encodeURIComponent(chapterId)}`,
+          );
+          data = await transcriptRes.json();
+          attempts++;
+        }
+
+        if (transcriptRes.ok && Array.isArray(data.segments) && data.segments.length > 0) {
+          const segments = data.segments as { start?: number; text?: string }[];
+          const upToTime = reflection.time;
+          const filtered = segments.filter(
+            (s: { start?: number }) => (s.start ?? 0) <= upToTime + 1,
+          );
+          transcriptText = filtered
+            .map((s: { start?: number; text?: string }) => `[${Math.round((s.start ?? 0))}s] ${(s.text ?? "").trim()}`)
+            .filter(Boolean)
+            .join("\n");
         }
       }
 

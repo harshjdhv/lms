@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/client";
 
 const prismaClientSingleton = () => {
   return new PrismaClient();
@@ -12,7 +12,7 @@ export const prisma = globalThis.prisma ?? prismaClientSingleton();
 
 if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma;
 
-export * from "@prisma/client";
+export * from "./generated/client";
 
 // Re-export types for easier importing
-export type { ReflectionPoint, StudentReflectionMemory } from "@prisma/client";
+export type { ReflectionPoint, StudentReflectionMemory } from "./generated/client";
