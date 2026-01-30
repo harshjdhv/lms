@@ -14,6 +14,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { createClient } from "@/lib/supabase/client"
+import { getURL } from "@/lib/utils"
 
 const userAuthSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
@@ -172,7 +173,7 @@ export function AuthForm() {
                     email: data.email,
                     password: data.password,
                     options: {
-                        emailRedirectTo: `${window.location.origin}/auth/callback`,
+                        emailRedirectTo: `${getURL()}/auth/callback`,
                     },
                 })
 
@@ -437,7 +438,7 @@ export function AuthForm() {
                                         const { error } = await supabase.auth.signInWithOAuth({
                                             provider: 'google',
                                             options: {
-                                                redirectTo: `${window.location.origin}/auth/callback`,
+                                                redirectTo: `${getURL()}/auth/callback`,
                                             },
                                         });
                                         if (error) {

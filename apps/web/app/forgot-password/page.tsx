@@ -21,6 +21,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { createClient } from "@/lib/supabase/client"
 import { AuroraBackground } from "@/components/ui/aurora-background"
+import { getURL } from "@/lib/utils"
 
 // Schema
 const forgotPasswordSchema = z.object({
@@ -48,7 +49,7 @@ export default function ForgotPasswordPage() {
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-                redirectTo: `${window.location.origin}/auth/update-password`,
+                redirectTo: `${getURL()}/auth/update-password`,
             })
 
             if (error) {
