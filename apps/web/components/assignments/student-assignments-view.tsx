@@ -82,20 +82,35 @@ export function StudentAssignmentsView() {
     })
 
     return (
-        <div className="flex flex-col gap-6 p-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Assignments</h1>
-                    <p className="text-muted-foreground">
-                        Keep track of your due dates and feedback.
+        <div className="flex flex-col gap-8 p-6 animate-in fade-in-50 duration-500">
+            {/* Enhanced Header */}
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-6 border-b"
+            >
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
+                        My Assignments
+                    </h1>
+                    <p className="text-muted-foreground text-lg">
+                        Track your progress, submit work, and review feedback.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} title="Refresh Assignments">
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => refetch()}
+                        disabled={isFetching}
+                        title="Refresh Assignments"
+                        className="transition-transform hover:scale-105"
+                    >
                         <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                     </Button>
-                    <div className="relative w-full md:w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <div className="relative w-full md:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
                             placeholder="Search..."
@@ -105,7 +120,7 @@ export function StudentAssignmentsView() {
                         />
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Stats Overview - Clean Styling */}
             <div className="grid gap-4 md:grid-cols-3">
@@ -193,7 +208,7 @@ export function StudentAssignmentsView() {
                     )}
                 </TabsContent>
             </Tabs>
-        </div>
+        </div >
     )
 }
 
