@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   motion,
   useScroll,
   useTransform,
   useSpring,
   useMotionValue,
-  useAnimationFrame
-} from "framer-motion"
+  useAnimationFrame,
+} from "framer-motion";
 import {
   ChevronRight,
   Play,
@@ -20,22 +20,22 @@ import {
   Code,
   Shield,
   Lock,
-  Sparkles
-} from "lucide-react"
-import { Button } from "@workspace/ui/components/button"
-import Link from "next/link"
-import { cn } from "@workspace/ui/lib/utils"
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@workspace/ui/components/button";
+import Link from "next/link";
+import { cn } from "@workspace/ui/lib/utils";
 
 // --- Sections ---
 
 function Navbar() {
-  const [scrolled, setScrolled] = React.useState(false)
+  const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <motion.header
@@ -49,7 +49,7 @@ function Navbar() {
           "flex items-center justify-between w-full max-w-7xl px-4 py-3 rounded-full transition-all duration-500 ease-in-out",
           scrolled
             ? "bg-white/80 backdrop-blur-md border border-neutral-200/50 shadow-sm"
-            : "bg-transparent border border-transparent"
+            : "bg-transparent border border-transparent",
         )}
       >
         <div className="flex items-center gap-2">
@@ -74,22 +74,25 @@ function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link href="/auth" className="text-sm font-medium hover:opacity-70 transition-opacity hidden sm:block">
+          <Link
+            href="/auth"
+            className="text-sm font-medium hover:opacity-70 transition-opacity hidden sm:block"
+          >
             Log in
           </Link>
         </div>
       </div>
     </motion.header>
-  )
+  );
 }
 
 function Hero() {
-  const { scrollY } = useScroll()
+  const { scrollY } = useScroll();
   // Relaxed the range so it doesn't disappear too quickly
-  const y = useTransform(scrollY, [0, 1000], [0, 200])
-  const opacity = useTransform(scrollY, [0, 800], [1, 0.5])
-  const rotateX = useTransform(scrollY, [0, 1000], [20, 0])
-  const scale = useTransform(scrollY, [0, 1000], [0.95, 1.05])
+  const y = useTransform(scrollY, [0, 1000], [0, 200]);
+  const opacity = useTransform(scrollY, [0, 800], [1, 0.5]);
+  const rotateX = useTransform(scrollY, [0, 1000], [20, 0]);
+  const scale = useTransform(scrollY, [0, 1000], [0.95, 1.05]);
 
   return (
     <section className="relative min-h-[140vh] flex flex-col items-center pt-40 overflow-hidden bg-[#F5F5F7]">
@@ -106,31 +109,33 @@ function Hero() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
           </span>
-          <span className="text-xs font-semibold text-neutral-600 tracking-wide uppercase">Powered by ConnectX</span>
+          <span className="text-xs font-semibold text-neutral-600 tracking-wide uppercase">
+            Powered by ConnectX
+          </span>
         </div>
 
         <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-black mb-6 leading-[0.9]">
-          Knowledge,<br />
+          Knowledge,
+          <br />
           <span className="bg-clip-text text-transparent bg-linear-to-b from-neutral-800 to-neutral-400">
             Beautifully Organized.
           </span>
         </h1>
 
         <p className="max-w-xl mx-auto text-lg text-neutral-500 font-medium leading-relaxed mb-10">
-          The learning management system that feels less like a tool
-          and more like a superpower.
+          The learning management system that feels less like a tool and more
+          like a superpower.
         </p>
 
         <div className="flex items-center justify-center gap-4">
-          <Button size="lg" className="h-14 px-8 rounded-full text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105">
-            Start Free Trial
-          </Button>
-          <div className="flex items-center gap-2 text-sm font-semibold text-neutral-900 cursor-pointer hover:opacity-70 transition-opacity">
-            <div className="size-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
-              <Play className="size-4 ml-0.5 fill-black" />
-            </div>
-            Watch the film
-          </div>
+          <Link href="/dashboard">
+            <Button
+              size="lg"
+              className="h-14 px-8 rounded-full text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105"
+            >
+              Start Free Trial
+            </Button>
+          </Link>
         </div>
       </motion.div>
 
@@ -163,8 +168,11 @@ function Hero() {
               {/* Sidebar */}
               <div className="w-64 border-r border-neutral-100 bg-white p-4 hidden md:block">
                 <div className="space-y-2">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-10 w-full rounded-lg bg-neutral-50 hover:bg-neutral-100 transition-colors flex items-center px-3 gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-10 w-full rounded-lg bg-neutral-50 hover:bg-neutral-100 transition-colors flex items-center px-3 gap-3"
+                    >
                       <div className="size-4 bg-neutral-200 rounded-sm" />
                       <div className="h-2 w-20 bg-neutral-200 rounded-full" />
                     </div>
@@ -182,22 +190,35 @@ function Hero() {
                 <div className="max-w-4xl mx-auto">
                   <div className="flex justify-between items-end mb-8">
                     <div>
-                      <div className="text-3xl font-bold tracking-tight text-neutral-900 mb-2">My Progress</div>
-                      <div className="text-neutral-500">Keep up the momentum, Harsh!</div>
+                      <div className="text-3xl font-bold tracking-tight text-neutral-900 mb-2">
+                        My Progress
+                      </div>
+                      <div className="text-neutral-500">
+                        Keep up the momentum, Harsh!
+                      </div>
                     </div>
                     <div className="flex gap-2">
-                      <span className="px-3 py-1 bg-neutral-100 rounded-full text-xs font-bold text-neutral-600">This Week</span>
+                      <span className="px-3 py-1 bg-neutral-100 rounded-full text-xs font-bold text-neutral-600">
+                        This Week
+                      </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-6 mb-8">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow"
+                      >
                         <div className="size-10 bg-neutral-100 rounded-full mb-4 flex items-center justify-center">
                           <Activity className="size-5 text-neutral-400" />
                         </div>
-                        <div className="text-2xl font-bold text-neutral-900 mb-1">94%</div>
-                        <div className="text-sm text-neutral-500">Course Completion</div>
+                        <div className="text-2xl font-bold text-neutral-900 mb-1">
+                          94%
+                        </div>
+                        <div className="text-sm text-neutral-500">
+                          Course Completion
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -207,16 +228,22 @@ function Hero() {
                       <Command className="size-32" />
                     </div>
                     <div className="flex items-end h-full gap-4 pt-10">
-                      {[30, 45, 60, 40, 70, 85, 95, 80, 60, 50, 65, 75].map((h, i) => (
-                        <motion.div
-                          key={i}
-                          className="flex-1 bg-neutral-900 rounded-t-md opacity-20 hover:opacity-100 hover:bg-blue-600 transition-all cursor-pointer"
-                          initial={{ height: "0%" }}
-                          whileInView={{ height: `${h}%` }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 1, delay: i * 0.05, ease: "backOut" }}
-                        />
-                      ))}
+                      {[30, 45, 60, 40, 70, 85, 95, 80, 60, 50, 65, 75].map(
+                        (h, i) => (
+                          <motion.div
+                            key={i}
+                            className="flex-1 bg-neutral-900 rounded-t-md opacity-20 hover:opacity-100 hover:bg-blue-600 transition-all cursor-pointer"
+                            initial={{ height: "0%" }}
+                            whileInView={{ height: `${h}%` }}
+                            viewport={{ once: true }}
+                            transition={{
+                              duration: 1,
+                              delay: i * 0.05,
+                              ease: "backOut",
+                            }}
+                          />
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
@@ -232,7 +259,7 @@ function Hero() {
       {/* Floor reflection (simulated) */}
       <div className="absolute bottom-0 w-full h-40 bg-linear-to-t from-[#F5F5F7] to-transparent z-30" />
     </section>
-  )
+  );
 }
 
 // --- Velocity Scroll Component ---
@@ -241,10 +268,10 @@ function VelocityText() {
   const baseVelocity = -15;
   const smoothVelocity = useSpring(scrollY, {
     damping: 50,
-    stiffness: 400
+    stiffness: 400,
   });
   const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 5], {
-    clamp: false
+    clamp: false,
   });
 
   const x = useMotionValue(0);
@@ -281,10 +308,7 @@ function VelocityText() {
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
 
       <div className="relative flex whitespace-nowrap">
-        <motion.div
-          style={{ x }}
-          className="flex gap-24 items-center"
-        >
+        <motion.div style={{ x }} className="flex gap-24 items-center">
           {[...Array(4)].map((_, i) => (
             <React.Fragment key={i}>
               <span className="text-5xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter select-none">
@@ -323,13 +347,13 @@ function ModernFeatures() {
             Built for the future.
           </h2>
           <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
-            Everything you need to create, manage, and scale your learning platform.
+            Everything you need to create, manage, and scale your learning
+            platform.
           </p>
         </motion.div>
 
         {/* Bento Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
           {/* Feature 1 - Large Card */}
           <motion.div
             className="md:col-span-2 bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 md:p-12 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
@@ -346,7 +370,9 @@ function ModernFeatures() {
                 Drag & Drop Course Builder
               </h3>
               <p className="text-lg text-neutral-600 mb-8 max-w-xl">
-                Create complex learning paths with our intuitive visual editor. Add videos, quizzes, assignments, and live sessions with zero code.
+                Create complex learning paths with our intuitive visual editor.
+                Add videos, quizzes, assignments, and live sessions with zero
+                code.
               </p>
 
               {/* Visual Demo */}
@@ -390,7 +416,8 @@ function ModernFeatures() {
                 Real-time Analytics
               </h3>
               <p className="text-neutral-600 mb-8">
-                Track every metric that matters. Student engagement, completion rates, and more.
+                Track every metric that matters. Student engagement, completion
+                rates, and more.
               </p>
 
               {/* Chart Visual */}
@@ -402,7 +429,11 @@ function ModernFeatures() {
                     initial={{ height: 0 }}
                     whileInView={{ height: `${h}%` }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.8, delay: 0.3 + i * 0.05, type: "spring" }}
+                    transition={{
+                      duration: 0.8,
+                      delay: 0.3 + i * 0.05,
+                      type: "spring",
+                    }}
                   />
                 ))}
               </div>
@@ -426,11 +457,15 @@ function ModernFeatures() {
                   Enterprise Security
                 </h3>
                 <p className="text-lg text-neutral-600 mb-6">
-                  SOC2 Type II certified. Your data encrypted at rest and in transit. GDPR compliant.
+                  SOC2 Type II certified. Your data encrypted at rest and in
+                  transit. GDPR compliant.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {['SSO', 'RBAC', '2FA', 'Audit Logs'].map((tag) => (
-                    <span key={tag} className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium border-2 border-green-200">
+                  {["SSO", "RBAC", "2FA", "Audit Logs"].map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium border-2 border-green-200"
+                    >
                       {tag}
                     </span>
                   ))}
@@ -442,14 +477,22 @@ function ModernFeatures() {
                 <motion.div
                   className="size-32 border-4 border-green-200 rounded-full flex items-center justify-center"
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  transition={{
+                    duration: 20,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
                 >
                   <Lock className="size-16 text-green-300" />
                 </motion.div>
                 <motion.div
                   className="absolute inset-0 border-4 border-dashed border-green-300 rounded-full"
                   animate={{ rotate: -360 }}
-                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                  transition={{
+                    duration: 15,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
                 />
               </div>
             </div>
@@ -471,7 +514,8 @@ function ModernFeatures() {
                 AI-Powered
               </h3>
               <p className="text-neutral-600 mb-6">
-                Smart recommendations, automated grading, and personalized learning paths.
+                Smart recommendations, automated grading, and personalized
+                learning paths.
               </p>
 
               {/* AI Chat Bubbles */}
@@ -493,19 +537,30 @@ function ModernFeatures() {
                   transition={{ delay: 0.7 }}
                 >
                   <div className="flex gap-1 mb-2">
-                    <motion.div className="size-1.5 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }} />
-                    <motion.div className="size-1.5 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }} />
-                    <motion.div className="size-1.5 bg-white rounded-full" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} />
+                    <motion.div
+                      className="size-1.5 bg-white rounded-full"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                    <motion.div
+                      className="size-1.5 bg-white rounded-full"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                    />
+                    <motion.div
+                      className="size-1.5 bg-white rounded-full"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                    />
                   </div>
                 </motion.div>
               </div>
             </div>
           </motion.div>
-
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function Footer() {
@@ -518,7 +573,8 @@ function Footer() {
             <span className="text-neutral-500">teaching experience?</span>
           </h2>
           <p className="text-neutral-400 text-lg mb-10 max-w-2xl">
-            Join thousands of educators who are already building the future of learning with ConnectX.
+            Join thousands of educators who are already building the future of
+            learning with ConnectX.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
             <input
@@ -549,10 +605,14 @@ function Footer() {
             <h4 className="font-semibold mb-6 text-neutral-200">Navigation</h4>
             <ul className="space-y-4 text-sm text-neutral-500">
               <li className="hover:text-white transition-colors">
-                <Link href="/dashboard" className="cursor-pointer">Dashboard</Link>
+                <Link href="/dashboard" className="cursor-pointer">
+                  Dashboard
+                </Link>
               </li>
               <li className="hover:text-white transition-colors">
-                <Link href="/auth" className="cursor-pointer">Authentication</Link>
+                <Link href="/auth" className="cursor-pointer">
+                  Authentication
+                </Link>
               </li>
             </ul>
           </div>
@@ -560,8 +620,12 @@ function Footer() {
           <div>
             <h4 className="font-semibold mb-6 text-neutral-200">Legal</h4>
             <ul className="space-y-4 text-sm text-neutral-500">
-              <li className="hover:text-white transition-colors cursor-pointer">Terms</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Privacy</li>
+              <li className="hover:text-white transition-colors cursor-pointer">
+                Terms
+              </li>
+              <li className="hover:text-white transition-colors cursor-pointer">
+                Privacy
+              </li>
             </ul>
           </div>
         </div>
@@ -570,13 +634,22 @@ function Footer() {
           <div className="flex flex-col md:flex-row items-center gap-4 text-neutral-600 text-sm">
             <span>© 2024 ConnectX Inc. All rights reserved.</span>
             <span className="text-neutral-700">•</span>
-            <a href="https://componentry.fun" target="_blank" rel="noopener noreferrer" className="text-neutral-500 hover:text-neutral-300 transition-colors">
-              UI components from <span className="font-semibold">componentry.fun</span>
+            <a
+              href="https://componentry.fun"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-500 hover:text-neutral-300 transition-colors"
+            >
+              UI components from{" "}
+              <span className="font-semibold">componentry.fun</span>
             </a>
           </div>
           <div className="flex gap-6">
             {[Globe, Server, Code].map((Icon, i) => (
-              <div key={i} className="size-10 rounded-full bg-neutral-900 flex items-center justify-center border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group">
+              <div
+                key={i}
+                className="size-10 rounded-full bg-neutral-900 flex items-center justify-center border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group"
+              >
                 <Icon className="size-4 text-neutral-400 group-hover:text-white transition-colors" />
               </div>
             ))}
@@ -591,7 +664,7 @@ function Footer() {
         </div>
       </div>
     </footer>
-  )
+  );
 }
 
 export default function Page() {
@@ -603,5 +676,5 @@ export default function Page() {
       <ModernFeatures />
       <Footer />
     </main>
-  )
+  );
 }

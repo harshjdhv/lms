@@ -22,7 +22,7 @@ export function FileUpload({ onUploadComplete }: { onUploadComplete: (url: strin
 
         try {
             const { error } = await supabase.storage
-                .from('ConnectX Bucket')
+                .from('LMS')
                 .upload(filePath, file)
 
             if (error) {
@@ -35,7 +35,7 @@ export function FileUpload({ onUploadComplete }: { onUploadComplete: (url: strin
             }
 
             const { data: { publicUrl } } = supabase.storage
-                .from('ConnectX Bucket')
+                .from('LMS')
                 .getPublicUrl(filePath)
 
             setFileUrl(publicUrl)
