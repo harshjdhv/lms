@@ -18,7 +18,16 @@ import { StudentCourseCatalog } from "@/components/courses/student-course-catalo
 import { StudentAnnouncementFeed } from "@/components/announcements/student-announcement-feed"
 
 export default async function Page() {
-  const dbUser = await getCurrentUser()
+  const authUser = await getCurrentUser()
+
+  if (!authUser) {
+    redirect("/auth")
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: authUser.id },
+    include: { enrollments: true },
+  })
 
   if (!dbUser) {
     redirect("/auth")

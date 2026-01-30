@@ -17,7 +17,7 @@ export interface Chapter {
   id: string;
   title: string;
   description: string | null;
-  videoId: string | null;
+  videoUrl: string | null;
   position: number;
   isPublished: boolean;
   isFree: boolean;

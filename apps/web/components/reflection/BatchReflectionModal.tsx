@@ -140,7 +140,9 @@ export function BatchReflectionModal({ chapterId, currentTime, onComplete }: Pro
         } else {
             // Start Remediation Loop
             setFailedQuestionsQueue(failed);
-            startRemediationFor(failed[0]);
+            if (failed[0]) {
+                startRemediationFor(failed[0]);
+            }
         }
     };
 
@@ -173,7 +175,7 @@ export function BatchReflectionModal({ chapterId, currentTime, onComplete }: Pro
             // Skip this one? Or just retry?
             // For now, let's just skip to next or success if empty
             const remaining = failedQuestionsQueue.slice(1);
-            if (remaining.length > 0) {
+            if (remaining.length > 0 && remaining[0]) {
                 setFailedQuestionsQueue(remaining);
                 startRemediationFor(remaining[0]);
             } else {
@@ -207,7 +209,7 @@ export function BatchReflectionModal({ chapterId, currentTime, onComplete }: Pro
             const remaining = failedQuestionsQueue.slice(1);
             setFailedQuestionsQueue(remaining);
 
-            if (remaining.length > 0) {
+            if (remaining.length > 0 && remaining[0]) {
                 startRemediationFor(remaining[0]);
             } else {
                 setState("success");
