@@ -83,27 +83,19 @@ export function ReflectionVideoPlayer({
 
       const previousTime = lastPolledTimeRef.current;
 
+
       const nextReflection = reflectionPoints.find((point) => {
         if (lastTriggeredRef.current.includes(point.time)) return false;
 
-        // Case 1: Point is extremely close to current time (normal playback trigger)
-        // using a slightly wider window (1s) for safety
-        const isClose = Math.abs(currentTime - point.time) < 1.0;
+        // Check if we crossed the point time in this interval
+        // Normal playback: previousTime (4.8) < point (5.0) <= currentTime (5.3)
+        // Seeking: previousTime (5.0) < point (20.0) <= currentTime (50.0)
+        const crossedPoint = previousTime < point.time && currentTime >= point.time;
 
-        // Case 2: User skipped over the point (Seek forward detection)
-        // We were at 'previousTime', now at 'currentTime', and 'point.time' is in between.
-        // Also ensure we are actually moving forward (previousTime < currentTime)
-        const isSkippedOver =
-          previousTime < currentTime && // Moving forward
-          point.time > previousTime &&  // Was ahead of us
-          point.time <= currentTime;    // Is now behind us (or equal)
-
-        const shouldTrigger = isClose || isSkippedOver;
-
-        if (shouldTrigger) {
+        if (crossedPoint) {
           lastTriggeredRef.current = [...lastTriggeredRef.current, point.time];
         }
-        return shouldTrigger;
+        return crossedPoint;
       });
 
       lastPolledTimeRef.current = currentTime;
@@ -368,11 +360,8 @@ export function ReflectionVideoPlayer({
               chapterId={chapterId}
               previousTime={(() => {
                 // Find index of current point in sorted array
-                // reflectionPoints are typically passed sorted, but let's be safe or just use findIndex
-                // If points are not sorted, this might be tricky. Let's assume sorted or sort them once?
-                // The prompt says "previous timestamp", so chronologically previous.
                 const sorted = [...reflectionPoints].sort((a, b) => a.time - b.time);
-                const idx = sorted.findIndex(p => Math.abs(p.time - currentReflection.time) < 0.1);
+                const idx = sorted.findIndex(p => Math.abs(p.time - currentReflection!.time) < 0.1);
                 if (idx > 0 && sorted[idx - 1]) {
                   return sorted[idx - 1].time;
                 }

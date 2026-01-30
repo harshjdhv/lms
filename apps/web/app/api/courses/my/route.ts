@@ -33,11 +33,23 @@ export async function GET(req: Request) {
     // Fetch enrolled courses for students
     courses = await prisma.course.findMany({
       where: {
-        enrollments: {
-          some: {
-            userId: dbUser.id,
+        OR: [
+          {
+            enrollments: {
+              some: {
+                userId: dbUser.id,
+              },
+            },
           },
-        },
+          ...(dbUser.semester
+            ? [
+                {
+                  semester: dbUser.semester,
+                  isPublished: true,
+                },
+              ]
+            : []),
+        ],
       },
       include: {
         teacher: { select: { name: true } },
