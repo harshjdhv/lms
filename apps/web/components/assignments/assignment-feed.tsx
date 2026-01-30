@@ -1,46 +1,42 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import { ScrollArea } from "@workspace/ui/components/scroll-area"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import { FileIcon, ExternalLink, Clock, Calendar } from "lucide-react"
-
-interface Assignment {
-    id: string
-    title: string
-    content: string
-    attachmentUrl?: string | null
-    createdAt: string
-    course: {
-        title: string
-    }
-}
+import { useState } from "react"
+import { useAssignments, type Assignment } from "@/hooks/queries/use-assignments"
 
 export function AssignmentFeed() {
-    const [assignments, setAssignments] = useState<Assignment[]>([])
+    const { data: assignments = [], isLoading } = useAssignments()
     const [filter, setFilter] = useState<'ALL' | string>('ALL')
-
-    useEffect(() => {
-        const fetchAssignments = async () => {
-            try {
-                const res = await fetch("/api/assignments")
-                if (res.ok) {
-                    const data = await res.json()
-                    setAssignments(data)
-                }
-            } catch (error) {
-                console.error("Failed to fetch assignments", error)
-            }
-        }
-
-        fetchAssignments()
-        const interval = setInterval(fetchAssignments, 5000)
-        return () => clearInterval(interval)
-    }, [])
 
     const filtered = filter === 'ALL' ? assignments : assignments.filter(a => a.course.title === filter)
     const courses = Array.from(new Set(assignments.map(a => a.course.title)))
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col h-full bg-sidebar/50 backdrop-blur-sm border rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between p-4 border-b bg-background/50">
+                    <Skeleton className="h-6 w-32" />
+                    <div className="flex gap-2">
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                </div>
+                <div className="flex-1 p-4 space-y-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="rounded-xl border bg-card p-5 space-y-3">
+                            <Skeleton className="h-5 w-24 rounded-full" />
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-16 w-full" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-col h-full bg-sidebar/50 backdrop-blur-sm border rounded-2xl overflow-hidden shadow-sm">

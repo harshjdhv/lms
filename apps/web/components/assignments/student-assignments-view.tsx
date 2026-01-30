@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
     FileText,
@@ -53,49 +53,12 @@ import {
 import { Separator } from "@workspace/ui/components/separator"
 import { toast } from "sonner"
 import { FileUpload } from "./file-upload"
-
-interface Assignment {
-    id: string
-    title: string
-    content: string
-    attachmentUrl?: string | null
-    status: 'ACTIVE' | 'REVIEW' | 'STOPPED'
-    dueDate?: string | null
-    createdAt: string
-    course: {
-        title: string
-    }
-    submissions: {
-        id: string
-        status: 'PENDING' | 'APPROVED' | 'REJECTED'
-        attachmentUrl: string
-        feedback?: string | null
-    }[]
-}
+import { useAssignments, useSubmitAssignment, type Assignment } from "@/hooks/queries/use-assignments"
 
 export function StudentAssignmentsView() {
-    const [assignments, setAssignments] = useState<Assignment[]>([])
+    const { data: assignments = [], isLoading, refetch, isFetching } = useAssignments()
     const [searchQuery, setSearchQuery] = useState("")
     const [filterCourse, setFilterCourse] = useState("all")
-    const [isLoading, setIsLoading] = useState(true)
-
-    const fetchAssignments = async () => {
-        try {
-            const res = await fetch("/api/assignments")
-            if (res.ok) {
-                const data = await res.json()
-                setAssignments(data)
-            }
-        } catch (error) {
-            console.error("Failed to fetch assignments", error)
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        fetchAssignments()
-    }, [])
 
     const courses = Array.from(new Set(assignments.map(a => a.course.title)))
 
@@ -128,8 +91,8 @@ export function StudentAssignmentsView() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => fetchAssignments()} disabled={isLoading} title="Refresh Assignments">
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} title="Refresh Assignments">
+                        <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                     </Button>
                     <div className="relative w-full md:w-64">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -203,7 +166,7 @@ export function StudentAssignmentsView() {
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             <AnimatePresence>
                                 {todoAssignments.map((assignment, index) => (
-                                    <AssignmentCard key={assignment.id} assignment={assignment} index={index} onUpdate={fetchAssignments} />
+                                    <AssignmentCard key={assignment.id} assignment={assignment} index={index} />
                                 ))}
                             </AnimatePresence>
                         </div>
@@ -223,7 +186,7 @@ export function StudentAssignmentsView() {
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             <AnimatePresence>
                                 {doneAssignments.map((assignment, index) => (
-                                    <AssignmentCard key={assignment.id} assignment={assignment} index={index} isHistory onUpdate={fetchAssignments} />
+                                    <AssignmentCard key={assignment.id} assignment={assignment} index={index} isHistory />
                                 ))}
                             </AnimatePresence>
                         </div>
@@ -234,7 +197,7 @@ export function StudentAssignmentsView() {
     )
 }
 
-function StatsCard({ label, value, icon: Icon, color }: { label: string, value: number, icon: any, color: string }) {
+function StatsCard({ label, value, icon: Icon, color }: { label: string, value: number, icon: React.ElementType, color: string }) {
     const colors: Record<string, string> = {
         blue: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50",
         emerald: "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50",
@@ -261,7 +224,7 @@ function StatsCard({ label, value, icon: Icon, color }: { label: string, value: 
     )
 }
 
-function AssignmentCard({ assignment, index, isHistory = false, onUpdate }: { assignment: Assignment, index: number, isHistory?: boolean, onUpdate: () => void }) {
+function AssignmentCard({ assignment, index, isHistory = false }: { assignment: Assignment, index: number, isHistory?: boolean }) {
     const submission = assignment.submissions?.[0]
     const status = submission?.status || 'PENDING_SUBMISSION'
     const isLate = assignment.dueDate ? new Date(assignment.dueDate) < new Date() && status === 'PENDING_SUBMISSION' : false
@@ -350,7 +313,7 @@ function AssignmentCard({ assignment, index, isHistory = false, onUpdate }: { as
                     )}
 
                     {!isHistory && (
-                        <SubmissionDialog assignment={assignment} onSubmitted={onUpdate} submission={submission} />
+                        <SubmissionDialog assignment={assignment} submission={submission} />
                     )}
                     {isHistory && submission?.status === 'APPROVED' && (
                         <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-medium px-3 py-1.5 bg-emerald-50 rounded-full">
@@ -384,31 +347,21 @@ function StatusBadge({ status, assignmentStatus, isLate }: { status: string, ass
 }
 
 
-function SubmissionDialog({ assignment, onSubmitted, submission }: { assignment: Assignment, onSubmitted: () => void, submission?: any }) {
+function SubmissionDialog({ assignment, submission }: { assignment: Assignment, submission?: Assignment['submissions'] extends (infer U)[] | undefined ? U : never }) {
     const [fileUrl, setFileUrl] = useState("")
     const [isOpen, setIsOpen] = useState(false)
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const submitMutation = useSubmitAssignment()
 
     const handleSubmit = async () => {
         if (!fileUrl) return toast.error("Please upload a file")
 
-        setIsSubmitting(true)
         try {
-            const res = await fetch("/api/assignments/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ assignmentId: assignment.id, attachmentUrl: fileUrl })
-            })
-
-            if (!res.ok) throw new Error("Failed")
-
+            await submitMutation.mutateAsync({ assignmentId: assignment.id, attachmentUrl: fileUrl })
             toast.success("Assignment submitted successfully!")
             setIsOpen(false)
-            onSubmitted()
+            setFileUrl("")
         } catch {
             toast.error("Failed to submit assignment")
-        } finally {
-            setIsSubmitting(false)
         }
     }
 
@@ -454,8 +407,8 @@ function SubmissionDialog({ assignment, onSubmitted, submission }: { assignment:
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={!fileUrl || isSubmitting}>
-                        {isSubmitting ? "Submitting..." : "Confirm Submission"}
+                    <Button onClick={handleSubmit} disabled={!fileUrl || submitMutation.isPending}>
+                        {submitMutation.isPending ? "Submitting..." : "Confirm Submission"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

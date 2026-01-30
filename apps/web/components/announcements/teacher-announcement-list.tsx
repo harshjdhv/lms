@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -12,39 +12,17 @@ import {
     TableRow
 } from "@workspace/ui/components/table"
 import { Megaphone, Calendar } from "lucide-react"
-
-interface Announcement {
-    id: string
-    title: string
-    content: string
-    imageUrl: string
-    createdAt: string
-    course: {
-        title: string
-    }
-}
+import { useAnnouncements } from "@/hooks/queries/use-announcements"
 
 export function TeacherAnnouncementList({ refreshTrigger }: { refreshTrigger: number }) {
-    const [announcements, setAnnouncements] = useState<Announcement[]>([])
-    const [loading, setLoading] = useState(true)
+    const { data: announcements = [], isLoading, refetch } = useAnnouncements()
 
-    const fetchAnnouncements = async () => {
-        try {
-            const res = await fetch("/api/announcements")
-            if (res.ok) {
-                const data = await res.json()
-                setAnnouncements(data)
-            }
-        } catch (error) {
-            console.error("Failed to fetch announcements", error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
+    // Refetch when refreshTrigger changes (after creating a new announcement)
     useEffect(() => {
-        fetchAnnouncements()
-    }, [refreshTrigger])
+        if (refreshTrigger > 0) {
+            refetch()
+        }
+    }, [refreshTrigger, refetch])
 
     return (
         <Card className="shadow-none border-none bg-transparent">
@@ -62,7 +40,7 @@ export function TeacherAnnouncementList({ refreshTrigger }: { refreshTrigger: nu
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {loading ? (
+                            {isLoading ? (
                                 <TableRow>
                                     <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
                                         Loading announcements...

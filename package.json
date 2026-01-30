@@ -32,6 +32,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "@vercel/analytics": "^1.6.1"
+    "@vercel/analytics": "^1.6.1",
+    "youtube-transcript": "^1.2.1"
   }
 }

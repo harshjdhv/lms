@@ -1,33 +1,18 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Course } from "@workspace/database";
 import { CourseCard } from "./course-card";
 import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { CoursesLoading } from "./courses-loading";
-
-type CourseWithMeta = Course & {
-    teacher?: { name: string | null };
-    _count?: { chapters: number };
-};
+import { useMyCourses } from "@/hooks/queries/use-courses";
 
 interface MyCoursesViewProps {
     isTeacher: boolean;
 }
 
 export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
-    const { data: courses, isLoading } = useQuery({
-        queryKey: ["courses", "my"],
-        queryFn: async () => {
-            const res = await fetch("/api/courses/my");
-            if (!res.ok) throw new Error("Failed to fetch courses");
-            return res.json() as Promise<CourseWithMeta[]>;
-        },
-        // initialData: initialCourses, // Removed because we want to force client-side fetch when no data is passed
-        staleTime: 5 * 60 * 1000,
-    });
+    const { data: courses, isLoading } = useMyCourses();
 
     if (isLoading) {
         return <CoursesLoading />;

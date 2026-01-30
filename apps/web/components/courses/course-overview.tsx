@@ -1,6 +1,5 @@
 "use client";
 
-import { Chapter, Course } from "@workspace/database";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { PlayCircle, Lock, BookOpen, Clock, CheckCircle2, ArrowLeft } from "lucide-react";
@@ -9,35 +8,27 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useState, useTransition } from "react";
 
 import { EnrollButton } from "./enroll-button";
+import { useCourse, type CourseWithMeta, type Chapter } from "@/hooks/queries/use-courses";
 
 interface CourseOverviewProps {
-    course: Course & {
+    course: CourseWithMeta & {
         chapters: Chapter[];
     };
     isEnrolled: boolean;
 }
 
-import { useQuery } from "@tanstack/react-query";
-
 export function CourseOverview({ course: initialCourse, isEnrolled }: CourseOverviewProps) {
     const [isPending, startTransition] = useTransition();
     const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
-    const { data: course } = useQuery({
-        queryKey: ["course", initialCourse.id],
-        queryFn: async () => {
-            const res = await fetch(`/api/courses/${initialCourse.id}`);
-            if (!res.ok) throw new Error("Failed to fetch course");
-            const data = await res.json();
-            // Ensure we filter published chapters for students as the API returns all
-            return {
-                ...data,
-                chapters: data.chapters.filter((c: Chapter) => c.isPublished),
-            } as typeof initialCourse;
-        },
-        initialData: initialCourse,
-        staleTime: 5 * 60 * 1000,
-    });
+    const { data: courseData } = useCourse(initialCourse.id, initialCourse);
+
+    // Filter published chapters for students
+    const course = courseData ? {
+        ...courseData,
+        chapters: courseData.chapters.filter((c: Chapter) => c.isPublished),
+    } : initialCourse;
+
 
     return (
         <div className="w-full max-w-5xl 2xl:max-w-6xl mx-auto p-6 space-y-8">

@@ -1,45 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Megaphone, Calendar } from "lucide-react"
-
-interface Announcement {
-    id: string
-    title: string
-    content: string
-    imageUrl: string
-    createdAt: string
-    course: {
-        title: string
-    }
-}
+import { useAnnouncements } from "@/hooks/queries/use-announcements"
 
 export function StudentAnnouncementFeed() {
-    const [announcements, setAnnouncements] = useState<Announcement[]>([])
-    const [loading, setLoading] = useState(true)
+    const { data: announcements = [], isLoading } = useAnnouncements()
 
-    const fetchAnnouncements = async () => {
-        try {
-            const res = await fetch("/api/announcements")
-            if (res.ok) {
-                const data = await res.json()
-                setAnnouncements(data)
-            }
-        } catch (error) {
-            console.error("Failed to fetch announcements", error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        fetchAnnouncements()
-    }, [])
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex flex-col gap-4">
                 {[1, 2, 3].map((i) => (

@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -22,54 +21,24 @@ import { MoreHorizontal, FileText, PauseCircle, PlayCircle, Eye } from "lucide-r
 import { toast } from "sonner"
 
 import { ReviewSubmissionsDialog } from "@/components/assignments/review-submissions-dialog"
-
-interface Assignment {
-    id: string
-    title: string
-    content: string
-    status: 'ACTIVE' | 'REVIEW' | 'STOPPED'
-    createdAt: string
-    course: {
-        title: string
-    }
-    _count?: {
-        submissions: number
-    }
-}
+import { useAssignments, useUpdateAssignmentStatus } from "@/hooks/queries/use-assignments"
+import { useEffect } from "react"
 
 export function TeacherAssignmentList({ refreshTrigger }: { refreshTrigger: number }) {
-    const [assignments, setAssignments] = useState<Assignment[]>([])
-    const [loading, setLoading] = useState(true)
+    const { data: assignments = [], isLoading, refetch } = useAssignments()
+    const updateStatusMutation = useUpdateAssignmentStatus()
 
-    const fetchAssignments = async () => {
-        try {
-            const res = await fetch("/api/assignments")
-            if (res.ok) {
-                const data = await res.json()
-                setAssignments(data)
-            }
-        } catch (error) {
-            console.error("Failed to fetch assignments", error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
+    // Refetch when refreshTrigger changes (after creating a new assignment)
     useEffect(() => {
-        fetchAssignments()
-    }, [refreshTrigger])
+        if (refreshTrigger > 0) {
+            refetch()
+        }
+    }, [refreshTrigger, refetch])
 
     const updateStatus = async (id: string, status: string) => {
         try {
-            const res = await fetch("/api/assignments/update", {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status })
-            })
-            if (res.ok) {
-                toast.success(`Assignment marked as ${status.toLowerCase()}`)
-                fetchAssignments()
-            }
+            await updateStatusMutation.mutateAsync({ id, status })
+            toast.success(`Assignment marked as ${status.toLowerCase()}`)
         } catch {
             toast.error("Failed to update status")
         }
@@ -94,7 +63,7 @@ export function TeacherAssignmentList({ refreshTrigger }: { refreshTrigger: numb
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {loading ? (
+                            {isLoading ? (
                                 <TableRow>
                                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                         Loading assignments...

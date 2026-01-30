@@ -12,62 +12,34 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { ScrollArea } from "@workspace/ui/components/scroll-area"
 import { Badge } from "@workspace/ui/components/badge"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import { toast } from "sonner"
 import { Search, BookOpen } from "lucide-react"
-
-interface Course {
-    id: string
-    title: string
-    description: string
-    teacher: { name: string | null }
-}
+import { useAvailableCourses, useEnrollCourseViaBody } from "@/hooks/queries/use-courses"
 
 export function StudentCourseCatalog() {
     const [open, setOpen] = useState(false)
-    const [courses, setCourses] = useState<Course[]>([])
-    const [loading, setLoading] = useState(false)
-    const [enrolling, setEnrolling] = useState<string | null>(null)
-
-    const fetchCourses = async () => {
-        setLoading(true)
-        try {
-            const res = await fetch("/api/courses/available")
-            if (res.ok) {
-                setCourses(await res.json())
-            }
-        } catch (e) {
-            toast.error("Failed to load courses")
-        } finally {
-            setLoading(false)
-        }
-    }
+    const { data: courses = [], isLoading, refetch } = useAvailableCourses()
+    const enrollMutation = useEnrollCourseViaBody()
+    const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null)
 
     const handleEnroll = async (courseId: string) => {
-        setEnrolling(courseId)
+        setEnrollingCourseId(courseId)
         try {
-            const res = await fetch("/api/courses/enroll", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ courseId })
-            })
-
-            if (!res.ok) throw new Error("Failed")
-
+            await enrollMutation.mutateAsync(courseId)
             toast.success("Enrolled successfully!")
-            setCourses(prev => prev.filter(c => c.id !== courseId))
-            // The dashboard feed polls, so it will pick up new assignments automatically
-            // But we might want to refresh the page to update stats if we had them
-        } catch (e) {
+        } catch {
             toast.error("Failed to enroll")
         } finally {
-            setEnrolling(null)
+            setEnrollingCourseId(null)
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={(val) => {
             setOpen(val)
-            if (val) fetchCourses()
+            // Refetch when opening to ensure fresh data
+            if (val) refetch()
         }}>
             <DialogTrigger asChild>
                 <Button className="w-full relative overflow-hidden group">
@@ -85,9 +57,18 @@ export function StudentCourseCatalog() {
                 </DialogHeader>
 
                 <ScrollArea className="h-[400px] mt-4 pr-4">
-                    {loading ? (
-                        <div className="flex items-center justify-center h-40 text-muted-foreground">
-                            Loading courses...
+                    {isLoading ? (
+                        <div className="space-y-4">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border bg-card">
+                                    <div className="space-y-2 flex-1">
+                                        <Skeleton className="h-6 w-3/4" />
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-5 w-24 rounded-full" />
+                                    </div>
+                                    <Skeleton className="h-10 w-24" />
+                                </div>
+                            ))}
                         </div>
                     ) : courses.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-40 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
@@ -104,16 +85,16 @@ export function StudentCourseCatalog() {
                                         <p className="text-sm text-muted-foreground line-clamp-2">{course.description || "No description provided."}</p>
                                         <div className="flex items-center gap-2 pt-1">
                                             <Badge variant="secondary" className="text-xs font-normal">
-                                                By {course.teacher.name || "Instructor"}
+                                                By {course.teacher?.name || "Instructor"}
                                             </Badge>
                                         </div>
                                     </div>
                                     <Button
                                         onClick={() => handleEnroll(course.id)}
-                                        disabled={enrolling === course.id}
+                                        disabled={enrollingCourseId === course.id}
                                         className="shrink-0"
                                     >
-                                        {enrolling === course.id ? "Joining..." : "Join Course"}
+                                        {enrollingCourseId === course.id ? "Joining..." : "Join Course"}
                                     </Button>
                                 </div>
                             ))}
