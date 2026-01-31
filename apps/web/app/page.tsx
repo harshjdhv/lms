@@ -110,7 +110,7 @@ function Hero() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
           </span>
           <span className="text-xs font-semibold text-neutral-600 tracking-wide uppercase">
-            Powered by ConnectX
+            Powered by Componentry UI
           </span>
         </div>
 
