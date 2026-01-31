@@ -82,18 +82,6 @@ export function AppSidebar({
       isActive: pathname.startsWith("/dashboard/assignments"),
     },
     {
-      title: "Schedule",
-      url: "/dashboard/schedule",
-      icon: Calendar,
-      isActive: pathname.startsWith("/dashboard/schedule"),
-    },
-    {
-      title: "Grades",
-      url: "/dashboard/grades",
-      icon: GraduationCap,
-      isActive: pathname.startsWith("/dashboard/grades"),
-    },
-    {
       title: "Community",
       url: "/dashboard/community",
       icon: Users,
