@@ -7,7 +7,8 @@ const MODELS = {
   upgrade: "llama-3.3-70b-versatile", // Used when student fails twice
 };
 
-// Heuristic threshold tuned for short-answer grading; adjust with real-world scoring data.
+// Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers;
+// tune with real-world scoring data as needed.
 const SIMILARITY_THRESHOLD = 0.62;
 const STOP_WORDS = new Set([
   "a",
@@ -93,6 +94,8 @@ const calculateSimilarity = (answer: string, referenceAnswer: string) => {
   );
 };
 
+const clampScore = (value: number) => Math.min(Math.max(value, 0), 1);
+
 async function evaluateWithGroq(
   question: string,
   answer: string,
@@ -123,6 +126,7 @@ async function evaluateWithGroq(
   }
 
   Be encouraging but accurate. For partially correct answers, focus on what they got right and what needs improvement. Provide specific, actionable hints.
+  The semantic score should reflect conceptual correctness even if wording differs; treat the token similarity as a loose baseline.
   If the answer is correct, keep the hint empty and score >= ${SIMILARITY_THRESHOLD}.
   `;
 
@@ -260,11 +264,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure evaluation has required fields
-    const aiScore =
-      typeof evaluation.score === "number" ? evaluation.score : 0;
-    const normalizedAiScore = Math.min(Math.max(aiScore, 0), 1);
-    // Prefer the higher of lexical similarity or semantic score to avoid penalizing
-    // paraphrases when one signal is strong and the other is noisy.
+    const normalizedAiScore = clampScore(
+      typeof evaluation.score === "number" ? evaluation.score : 0,
+    );
+    // Prefer the higher of lexical similarity or semantic score so either signal
+    // can validate paraphrases; tune this combination if analytics show drift.
     const combinedScore = Math.max(similarityScore, normalizedAiScore);
     const correct = combinedScore >= SIMILARITY_THRESHOLD;
     if (!evaluation.feedback) {
