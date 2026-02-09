@@ -115,8 +115,13 @@ const calculateSimilarity = (answer: string, referenceAnswer: string) => {
 };
 
 const clampScore = (value: number) => Math.min(Math.max(value, 0), 1);
-const calculateCombinedScore = (aiScore: number, similarityScore: number) =>
-  aiScore * AI_SCORE_WEIGHT + similarityScore * SIMILARITY_SCORE_WEIGHT;
+const calculateCombinedScore = (
+  aiScore: number | null,
+  similarityScore: number,
+) => {
+  if (aiScore === null) return similarityScore;
+  return aiScore * AI_SCORE_WEIGHT + similarityScore * SIMILARITY_SCORE_WEIGHT;
+};
 const roundScore = (value: number, precision = 2) =>
   parseFloat(value.toFixed(precision));
 
@@ -200,7 +205,7 @@ async function evaluateWithGroq(
     console.error("Failed to parse AI response as JSON:", content);
     // Fallback evaluation
     return {
-      score: calculateCombinedScore(similarityScore, similarityScore),
+      score: calculateCombinedScore(null, similarityScore),
       feedback:
         "Unable to evaluate your answer automatically. Please review the question and try again.",
       hint: "Think about the key concepts covered in the topic.",
@@ -222,6 +227,7 @@ async function getStudentAttempts(studentId: string, topic: string) {
 }
 
 export async function POST(request: NextRequest) {
+  // Retain similarity score for fallback responses if evaluation fails.
   let similarityScore = 0;
   try {
     const { question, answer, topic, studentId, referenceAnswer } =
@@ -279,7 +285,7 @@ export async function POST(request: NextRequest) {
 
         // Return a basic fallback evaluation
         evaluation = {
-          score: calculateCombinedScore(similarityScore, similarityScore),
+          score: calculateCombinedScore(null, similarityScore),
           feedback:
             "Unable to evaluate your answer at this time. Please continue with the lesson.",
           hint: "",
@@ -323,7 +329,7 @@ export async function POST(request: NextRequest) {
       {
         error: "Failed to evaluate answer",
         correct: false,
-        score: roundScore(similarityScore),
+        score: roundScore(calculateCombinedScore(null, similarityScore)),
         feedback:
           "An error occurred while evaluating your answer. Please try again.",
         hint: "",
