@@ -8,7 +8,8 @@ const MODELS = {
 };
 
 // Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers.
-// Default is calibrated to balance false positives/negatives for 1-3 sentence responses.
+// Default is calibrated to balance false positives/negatives for 1-3 sentence responses
+// where roughly two key terms overlap with the reference answer.
 // Override via the REFLECTION_SCORE_THRESHOLD environment variable when calibrating with real-world scoring data.
 const DEFAULT_SIMILARITY_THRESHOLD = 0.62;
 const rawSimilarityThresholdValue = process.env.REFLECTION_SCORE_THRESHOLD;
@@ -19,6 +20,7 @@ const SIMILARITY_THRESHOLD = Number.isFinite(RAW_SIMILARITY_THRESHOLD)
   ? RAW_SIMILARITY_THRESHOLD
   : DEFAULT_SIMILARITY_THRESHOLD;
 // Semantic scoring is weighted higher to recognize correct paraphrases; lexical overlap is secondary.
+// Override via REFLECTION_AI_WEIGHT if tuning indicates a different balance is needed.
 const DEFAULT_AI_SCORE_WEIGHT = 0.85;
 const rawAiScoreWeightValue = process.env.REFLECTION_AI_WEIGHT;
 const RAW_AI_SCORE_WEIGHT = rawAiScoreWeightValue
@@ -105,7 +107,7 @@ const cosineSimilarity = (a: Map<string, number>, b: Map<string, number>) => {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 };
 
-const calculateSimilarity = (answer: string, referenceAnswer: string) => {
+const calculateLexicalSimilarity = (answer: string, referenceAnswer: string) => {
   if (!answer.trim() || !referenceAnswer.trim()) return 0;
   const answerTokens = tokenize(answer);
   const referenceTokens = tokenize(referenceAnswer);
@@ -124,8 +126,10 @@ const calculateCombinedScore = (
   if (aiScore === null) return similarityScore;
   return aiScore * AI_SCORE_WEIGHT + similarityScore * SIMILARITY_SCORE_WEIGHT;
 };
-const roundScore = (value: number, precision = 2) =>
-  parseFloat(value.toFixed(precision));
+const roundScore = (value: number, precision = 2) => {
+  const factor = 10 ** precision;
+  return Math.round(value * factor) / factor;
+};
 
 async function evaluateWithGroq(
   question: string,
@@ -151,7 +155,7 @@ async function evaluateWithGroq(
 
   Provide your evaluation as a JSON object with:
   {
-    "score": number, // 0-1 semantic correctness
+    "score": number, // 0-1 semantic correctness (independent from lexical similarity)
     "feedback": "specific feedback on their answer",
     "hint": "a helpful hint if incorrect (or empty string if correct)"
   }
@@ -244,7 +248,7 @@ export async function POST(request: NextRequest) {
 
     const normalizedReferenceAnswer =
       typeof referenceAnswer === "string" ? referenceAnswer : "";
-    similarityScore = calculateSimilarity(
+    similarityScore = calculateLexicalSimilarity(
       answer,
       normalizedReferenceAnswer,
     );
