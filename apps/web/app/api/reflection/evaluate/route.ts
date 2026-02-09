@@ -8,6 +8,7 @@ const MODELS = {
 };
 
 // Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers.
+// Default is calibrated to balance false positives/negatives for 1-3 sentence responses.
 // Override via the REFLECTION_SCORE_THRESHOLD environment variable when calibrating with real-world scoring data.
 const DEFAULT_SIMILARITY_THRESHOLD = 0.62;
 const RAW_SIMILARITY_THRESHOLD = Number.parseFloat(
@@ -16,6 +17,7 @@ const RAW_SIMILARITY_THRESHOLD = Number.parseFloat(
 const SIMILARITY_THRESHOLD = Number.isFinite(RAW_SIMILARITY_THRESHOLD)
   ? RAW_SIMILARITY_THRESHOLD
   : DEFAULT_SIMILARITY_THRESHOLD;
+// Semantic scoring is weighted higher to recognize correct paraphrases; lexical overlap is secondary.
 const DEFAULT_AI_SCORE_WEIGHT = 0.85;
 const RAW_AI_SCORE_WEIGHT = Number.parseFloat(
   process.env.REFLECTION_AI_WEIGHT ?? "",
@@ -115,10 +117,8 @@ const calculateSimilarity = (answer: string, referenceAnswer: string) => {
 const clampScore = (value: number) => Math.min(Math.max(value, 0), 1);
 const calculateCombinedScore = (aiScore: number, similarityScore: number) =>
   aiScore * AI_SCORE_WEIGHT + similarityScore * SIMILARITY_SCORE_WEIGHT;
-const roundScore = (value: number, precision = 2) => {
-  const factor = 10 ** precision;
-  return Math.round(value * factor) / factor;
-};
+const roundScore = (value: number, precision = 2) =>
+  parseFloat(value.toFixed(precision));
 
 async function evaluateWithGroq(
   question: string,
@@ -140,7 +140,7 @@ async function evaluateWithGroq(
   Question: ${question}
   Reference Answer: ${referenceAnswer || "Not available"}
   Student's Answer: ${answer}
-  Token Similarity Score (0-1): ${similarityScore.toFixed(2)}
+  Lexical Similarity Score (0-1): ${similarityScore.toFixed(2)}
 
   Provide your evaluation as a JSON object with:
   {
@@ -291,8 +291,8 @@ export async function POST(request: NextRequest) {
     const normalizedAiScore = clampScore(
       typeof evaluation.score === "number" ? evaluation.score : 0,
     );
-    // Blend semantic and lexical signals to reward conceptual understanding while
-    // still benefiting from direct keyword overlap.
+    // Blend semantic and lexical signals (AI_SCORE_WEIGHT/SIMILARITY_SCORE_WEIGHT)
+    // to reward conceptual understanding while still benefiting from keyword overlap.
     const combinedScore = calculateCombinedScore(
       normalizedAiScore,
       similarityScore,
