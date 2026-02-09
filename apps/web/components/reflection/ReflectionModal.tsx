@@ -25,6 +25,7 @@ interface EvaluationResult {
   correct: boolean;
   feedback: string;
   hint?: string;
+  // Combined similarity/semantic score in the 0-1 range from the evaluator.
   score?: number;
 }
 

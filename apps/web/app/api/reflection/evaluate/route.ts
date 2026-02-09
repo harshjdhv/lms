@@ -200,7 +200,7 @@ async function evaluateWithGroq(
     console.error("Failed to parse AI response as JSON:", content);
     // Fallback evaluation
     return {
-      score: similarityScore,
+      score: calculateCombinedScore(similarityScore, similarityScore),
       feedback:
         "Unable to evaluate your answer automatically. Please review the question and try again.",
       hint: "Think about the key concepts covered in the topic.",
@@ -222,6 +222,7 @@ async function getStudentAttempts(studentId: string, topic: string) {
 }
 
 export async function POST(request: NextRequest) {
+  let similarityScore = 0;
   try {
     const { question, answer, topic, studentId, referenceAnswer } =
       await request.json();
@@ -235,7 +236,7 @@ export async function POST(request: NextRequest) {
 
     const normalizedReferenceAnswer =
       typeof referenceAnswer === "string" ? referenceAnswer : "";
-    const similarityScore = calculateSimilarity(
+    similarityScore = calculateSimilarity(
       answer,
       normalizedReferenceAnswer,
     );
@@ -278,7 +279,7 @@ export async function POST(request: NextRequest) {
 
         // Return a basic fallback evaluation
         evaluation = {
-          score: similarityScore,
+          score: calculateCombinedScore(similarityScore, similarityScore),
           feedback:
             "Unable to evaluate your answer at this time. Please continue with the lesson.",
           hint: "",
@@ -322,7 +323,7 @@ export async function POST(request: NextRequest) {
       {
         error: "Failed to evaluate answer",
         correct: false,
-        score: 0,
+        score: roundScore(similarityScore),
         feedback:
           "An error occurred while evaluating your answer. Please try again.",
         hint: "",
