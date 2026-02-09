@@ -10,7 +10,7 @@ const MODELS = {
 async function generateQuizWithGroq(
   input: { topic?: string; transcriptText?: string },
   model: string = MODELS.default,
-): Promise<{ question: string; options: string[]; correctIndex: number }> {
+): Promise<{ question: string; referenceAnswer: string }> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error("Groq API key not configured");
@@ -18,19 +18,17 @@ async function generateQuizWithGroq(
 
   const hasTranscript = Boolean(input.transcriptText?.trim());
   const systemContent = hasTranscript
-    ? `You are an expert educational assistant. You will be given a video transcript (content the student has watched up to a certain point). Generate a single quiz question (multiple choice) that tests understanding of the content in that transcript ONLY. Do not ask about anything beyond the transcript.
+    ? `You are an expert educational assistant. You will be given a video transcript (content the student has watched up to a certain point). Generate a single open-ended quiz question that tests understanding of the content in that transcript ONLY. Do not ask about anything beyond the transcript.
 Return ONLY a valid JSON object with this exact shape (no markdown, no extra text):
-{"question": "the question text", "options": ["option A", "option B", "option C", "option D"], "correctIndex": 0}
-- question: one clear multiple-choice question about the transcript content.
-- options: exactly 4 plausible options, one correct and three plausible distractors.
-- correctIndex: 0-3, the index of the correct option in the options array.
+{"question": "the question text", "referenceAnswer": "a concise model answer"}
+- question: one clear short-answer question about the transcript content.
+- referenceAnswer: a concise, correct answer (1-3 sentences max) the student should provide.
 Be concise. The question should feel like a quiz/test.`
-    : `You are an expert educational assistant. Generate a single quiz question (multiple choice) that tests understanding of the topic.
+    : `You are an expert educational assistant. Generate a single open-ended quiz question that tests understanding of the topic.
 Return ONLY a valid JSON object with this exact shape (no markdown, no extra text):
-{"question": "the question text", "options": ["option A", "option B", "option C", "option D"], "correctIndex": 0}
-- question: one clear multiple-choice question about the topic.
-- options: exactly 4 plausible options, one correct and three plausible distractors.
-- correctIndex: 0-3, the index of the correct option in the options array.
+{"question": "the question text", "referenceAnswer": "a concise model answer"}
+- question: one clear short-answer question about the topic.
+- referenceAnswer: a concise, correct answer (1-3 sentences max) the student should provide.
 Be concise. The question should feel like a quiz/test.`;
 
   const userContent = hasTranscript
@@ -67,10 +65,9 @@ Be concise. The question should feel like a quiz/test.`;
   try {
     const parsed = JSON.parse(content);
     const question = typeof parsed.question === "string" ? parsed.question : "";
-    const options = Array.isArray(parsed.options) ? parsed.options.slice(0, 4).map(String) : [];
-    let correctIndex = typeof parsed.correctIndex === "number" ? parsed.correctIndex : 0;
-    if (correctIndex < 0 || correctIndex >= options.length) correctIndex = 0;
-    return { question, options, correctIndex };
+    const referenceAnswer =
+      typeof parsed.referenceAnswer === "string" ? parsed.referenceAnswer : "";
+    return { question, referenceAnswer };
   } catch {
     throw new Error("Invalid quiz JSON from model");
   }
@@ -91,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const input = { topic: topic ?? "content so far", transcriptText };
 
-    let result: { question: string; options: string[]; correctIndex: number };
+    let result: { question: string; referenceAnswer: string };
     let modelUsed = MODELS.default;
 
     try {
@@ -108,13 +105,8 @@ export async function POST(request: NextRequest) {
           question: hasTranscript
             ? "What was a key point covered in the content you just watched?"
             : `What is a key concept or takeaway regarding ${input.topic}?`,
-          options: [
-            "I need to review the material.",
-            "I understood the main idea.",
-            "I can explain it to someone else.",
-            "I'm not sure yet.",
-          ],
-          correctIndex: 1,
+          referenceAnswer:
+            "Summarize the most important concept or takeaway in your own words.",
         };
         modelUsed = "fallback";
       }
@@ -122,8 +114,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       question: result.question,
-      options: result.options,
-      correctIndex: result.correctIndex,
+      referenceAnswer: result.referenceAnswer,
       modelUsed,
       topic: input.topic,
       fromTranscript: hasTranscript,

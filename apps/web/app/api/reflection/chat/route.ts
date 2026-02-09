@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const referenceAnswer =
+      typeof context?.referenceAnswer === "string" ? context.referenceAnswer : "";
+
     // System prompt setup
     const systemPrompt = `You are a helpful and patient AI tutor. A student has just answered a quiz question INCORRECTLY.
     
@@ -32,6 +35,7 @@ export async function POST(request: NextRequest) {
     - Topic: ${context.topic}
     - Question they missed: "${context.question}"
     - Their wrong answer: "${context.wrongAnswer}"
+    - Reference answer: "${referenceAnswer || "Not provided"}"
     - Transcript context: "${context.transcriptContext || "Not available"}"
 
     YOUR GOAL:
