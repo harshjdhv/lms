@@ -7,7 +7,7 @@ const MODELS = {
   upgrade: "llama-3.3-70b-versatile", // Used when student fails twice
 };
 
-// Threshold chosen to allow near-correct paraphrases while filtering vague answers.
+// Heuristic threshold tuned for short-answer grading; adjust with real-world scoring data.
 const SIMILARITY_THRESHOLD = 0.62;
 const STOP_WORDS = new Set([
   "a",
@@ -123,7 +123,7 @@ async function evaluateWithGroq(
   }
 
   Be encouraging but accurate. For partially correct answers, focus on what they got right and what needs improvement. Provide specific, actionable hints.
-  If the answer is correct, keep the hint empty and score >= 0.75.
+  If the answer is correct, keep the hint empty and score >= ${SIMILARITY_THRESHOLD}.
   `;
 
   const response = await fetch(
@@ -263,7 +263,8 @@ export async function POST(request: NextRequest) {
     const aiScore =
       typeof evaluation.score === "number" ? evaluation.score : 0;
     const normalizedAiScore = Math.min(Math.max(aiScore, 0), 1);
-    // Prefer the higher of lexical similarity or semantic score to avoid penalizing paraphrases.
+    // Prefer the higher of lexical similarity or semantic score to avoid penalizing
+    // paraphrases when one signal is strong and the other is noisy.
     const combinedScore = Math.max(similarityScore, normalizedAiScore);
     const correct = combinedScore >= SIMILARITY_THRESHOLD;
     if (!evaluation.feedback) {
