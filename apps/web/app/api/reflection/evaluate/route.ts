@@ -7,9 +7,17 @@ const MODELS = {
   upgrade: "llama-3.3-70b-versatile", // Used when student fails twice
 };
 
-// Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers;
-// tune with real-world scoring data as needed.
-const SIMILARITY_THRESHOLD = 0.62;
+// Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers.
+// Override via REFLECTION_SCORE_THRESHOLD when calibrating with real-world scoring data.
+const DEFAULT_SIMILARITY_THRESHOLD = 0.62;
+const SIMILARITY_THRESHOLD = (() => {
+  const rawValue = Number.parseFloat(
+    process.env.REFLECTION_SCORE_THRESHOLD ?? "",
+  );
+  return Number.isFinite(rawValue) ? rawValue : DEFAULT_SIMILARITY_THRESHOLD;
+})();
+const AI_SCORE_WEIGHT = 0.85;
+const SIMILARITY_SCORE_WEIGHT = 1 - AI_SCORE_WEIGHT;
 const STOP_WORDS = new Set([
   "a",
   "an",
@@ -47,6 +55,7 @@ const STOP_WORDS = new Set([
   "under",
 ]);
 
+// Normalize text for coarse lexical similarity by stripping punctuation and stop words.
 const tokenize = (text: string) =>
   text
     .toLowerCase()
@@ -267,9 +276,11 @@ export async function POST(request: NextRequest) {
     const normalizedAiScore = clampScore(
       typeof evaluation.score === "number" ? evaluation.score : 0,
     );
-    // Prefer the higher of lexical similarity or semantic score so either signal
-    // can validate paraphrases; tune this combination if analytics show drift.
-    const combinedScore = Math.max(similarityScore, normalizedAiScore);
+    // Blend semantic and lexical signals to reward conceptual understanding while
+    // still benefiting from direct keyword overlap.
+    const combinedScore =
+      normalizedAiScore * AI_SCORE_WEIGHT +
+      similarityScore * SIMILARITY_SCORE_WEIGHT;
     const correct = combinedScore >= SIMILARITY_THRESHOLD;
     if (!evaluation.feedback) {
       evaluation.feedback = correct
@@ -284,7 +295,7 @@ export async function POST(request: NextRequest) {
       correct,
       feedback: evaluation.feedback,
       hint: evaluation.hint,
-      score: Number(combinedScore.toFixed(2)),
+      score: Math.round(combinedScore * 100) / 100,
       modelUsed,
       question,
       topic,
