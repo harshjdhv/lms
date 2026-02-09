@@ -11,17 +11,19 @@ const MODELS = {
 // Default is calibrated to balance false positives/negatives for 1-3 sentence responses.
 // Override via the REFLECTION_SCORE_THRESHOLD environment variable when calibrating with real-world scoring data.
 const DEFAULT_SIMILARITY_THRESHOLD = 0.62;
-const RAW_SIMILARITY_THRESHOLD = Number.parseFloat(
-  process.env.REFLECTION_SCORE_THRESHOLD ?? "",
-);
+const rawSimilarityThresholdValue = process.env.REFLECTION_SCORE_THRESHOLD;
+const RAW_SIMILARITY_THRESHOLD = rawSimilarityThresholdValue
+  ? Number.parseFloat(rawSimilarityThresholdValue)
+  : Number.NaN;
 const SIMILARITY_THRESHOLD = Number.isFinite(RAW_SIMILARITY_THRESHOLD)
   ? RAW_SIMILARITY_THRESHOLD
   : DEFAULT_SIMILARITY_THRESHOLD;
 // Semantic scoring is weighted higher to recognize correct paraphrases; lexical overlap is secondary.
 const DEFAULT_AI_SCORE_WEIGHT = 0.85;
-const RAW_AI_SCORE_WEIGHT = Number.parseFloat(
-  process.env.REFLECTION_AI_WEIGHT ?? "",
-);
+const rawAiScoreWeightValue = process.env.REFLECTION_AI_WEIGHT;
+const RAW_AI_SCORE_WEIGHT = rawAiScoreWeightValue
+  ? Number.parseFloat(rawAiScoreWeightValue)
+  : Number.NaN;
 const AI_SCORE_WEIGHT =
   Number.isFinite(RAW_AI_SCORE_WEIGHT) &&
   RAW_AI_SCORE_WEIGHT > 0 &&
@@ -145,7 +147,7 @@ async function evaluateWithGroq(
   Question: ${question}
   Reference Answer: ${referenceAnswer || "Not available"}
   Student's Answer: ${answer}
-  Lexical Similarity Score (0-1): ${similarityScore.toFixed(2)}
+  Lexical Similarity Score (0-1): ${roundScore(similarityScore)}
 
   Provide your evaluation as a JSON object with:
   {
