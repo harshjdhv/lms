@@ -7,6 +7,7 @@ const MODELS = {
   upgrade: "llama-3.3-70b-versatile", // Used when student fails twice
 };
 
+// Threshold chosen to allow near-correct paraphrases while filtering vague answers.
 const SIMILARITY_THRESHOLD = 0.62;
 const STOP_WORDS = new Set([
   "a",
@@ -262,6 +263,7 @@ export async function POST(request: NextRequest) {
     const aiScore =
       typeof evaluation.score === "number" ? evaluation.score : 0;
     const normalizedAiScore = Math.min(Math.max(aiScore, 0), 1);
+    // Prefer the higher of lexical similarity or semantic score to avoid penalizing paraphrases.
     const combinedScore = Math.max(similarityScore, normalizedAiScore);
     const correct = combinedScore >= SIMILARITY_THRESHOLD;
     if (!evaluation.feedback) {
