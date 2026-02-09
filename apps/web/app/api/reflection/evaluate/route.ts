@@ -10,13 +10,22 @@ const MODELS = {
 // Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers.
 // Override via REFLECTION_SCORE_THRESHOLD when calibrating with real-world scoring data.
 const DEFAULT_SIMILARITY_THRESHOLD = 0.62;
-const SIMILARITY_THRESHOLD = (() => {
-  const rawValue = Number.parseFloat(
-    process.env.REFLECTION_SCORE_THRESHOLD ?? "",
-  );
-  return Number.isFinite(rawValue) ? rawValue : DEFAULT_SIMILARITY_THRESHOLD;
-})();
-const AI_SCORE_WEIGHT = 0.85;
+const RAW_SIMILARITY_THRESHOLD = Number.parseFloat(
+  process.env.REFLECTION_SCORE_THRESHOLD ?? "",
+);
+const SIMILARITY_THRESHOLD = Number.isFinite(RAW_SIMILARITY_THRESHOLD)
+  ? RAW_SIMILARITY_THRESHOLD
+  : DEFAULT_SIMILARITY_THRESHOLD;
+const DEFAULT_AI_SCORE_WEIGHT = 0.85;
+const RAW_AI_SCORE_WEIGHT = Number.parseFloat(
+  process.env.REFLECTION_AI_WEIGHT ?? "",
+);
+const AI_SCORE_WEIGHT =
+  Number.isFinite(RAW_AI_SCORE_WEIGHT) &&
+  RAW_AI_SCORE_WEIGHT > 0 &&
+  RAW_AI_SCORE_WEIGHT < 1
+    ? RAW_AI_SCORE_WEIGHT
+    : DEFAULT_AI_SCORE_WEIGHT;
 const SIMILARITY_SCORE_WEIGHT = 1 - AI_SCORE_WEIGHT;
 const STOP_WORDS = new Set([
   "a",
@@ -136,7 +145,7 @@ async function evaluateWithGroq(
 
   Be encouraging but accurate. For partially correct answers, focus on what they got right and what needs improvement. Provide specific, actionable hints.
   The semantic score should reflect conceptual correctness even if wording differs; treat the token similarity as a loose baseline.
-  If the answer is correct, keep the hint empty and score >= ${SIMILARITY_THRESHOLD}.
+  If the answer is correct, keep the hint empty and score high (closer to 1.0).
   `;
 
   const response = await fetch(
