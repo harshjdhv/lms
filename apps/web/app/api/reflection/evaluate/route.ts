@@ -8,7 +8,7 @@ const MODELS = {
 };
 
 // Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers.
-// Override via REFLECTION_SCORE_THRESHOLD when calibrating with real-world scoring data.
+// Override via the REFLECTION_SCORE_THRESHOLD environment variable when calibrating with real-world scoring data.
 const DEFAULT_SIMILARITY_THRESHOLD = 0.62;
 const RAW_SIMILARITY_THRESHOLD = Number.parseFloat(
   process.env.REFLECTION_SCORE_THRESHOLD ?? "",
@@ -113,6 +113,12 @@ const calculateSimilarity = (answer: string, referenceAnswer: string) => {
 };
 
 const clampScore = (value: number) => Math.min(Math.max(value, 0), 1);
+const calculateCombinedScore = (aiScore: number, similarityScore: number) =>
+  aiScore * AI_SCORE_WEIGHT + similarityScore * SIMILARITY_SCORE_WEIGHT;
+const roundScore = (value: number, precision = 2) => {
+  const factor = 10 ** precision;
+  return Math.round(value * factor) / factor;
+};
 
 async function evaluateWithGroq(
   question: string,
@@ -287,9 +293,10 @@ export async function POST(request: NextRequest) {
     );
     // Blend semantic and lexical signals to reward conceptual understanding while
     // still benefiting from direct keyword overlap.
-    const combinedScore =
-      normalizedAiScore * AI_SCORE_WEIGHT +
-      similarityScore * SIMILARITY_SCORE_WEIGHT;
+    const combinedScore = calculateCombinedScore(
+      normalizedAiScore,
+      similarityScore,
+    );
     const correct = combinedScore >= SIMILARITY_THRESHOLD;
     if (!evaluation.feedback) {
       evaluation.feedback = correct
@@ -304,7 +311,7 @@ export async function POST(request: NextRequest) {
       correct,
       feedback: evaluation.feedback,
       hint: evaluation.hint,
-      score: Math.round(combinedScore * 100) / 100,
+      score: roundScore(combinedScore),
       modelUsed,
       question,
       topic,
