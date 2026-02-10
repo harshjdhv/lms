@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@workspace/database";
+import { formatLearningMemoryForPrompt } from "@/lib/learning-memory";
 
 // Groq model selection strategy
 const MODELS = {
@@ -8,7 +10,11 @@ const MODELS = {
 };
 
 async function generateQuizWithGroq(
-  input: { topic?: string; transcriptText?: string },
+  input: {
+    topic?: string;
+    transcriptText?: string;
+    learningMemoryContext?: string;
+  },
   model: string = MODELS.default,
 ): Promise<{ question: string; referenceAnswer: string }> {
   const apiKey = process.env.GROQ_API_KEY;
@@ -17,14 +23,19 @@ async function generateQuizWithGroq(
   }
 
   const hasTranscript = Boolean(input.transcriptText?.trim());
+  const personalizationContext =
+    input.learningMemoryContext ??
+    "No learner memory available. Ask a neutral mid-level question.";
   const systemContent = hasTranscript
     ? `You are an expert educational assistant. You will be given a video transcript (content the student has watched up to a certain point). Generate a single open-ended quiz question that tests understanding of the content in that transcript ONLY. Do not ask about anything beyond the transcript.
+Use the learner memory to personalize difficulty, tone, and style. Focus on weak topics when relevant and avoid generic wording.
 Return ONLY a valid JSON object with this exact shape (no markdown, no extra text):
 {"question": "the question text", "referenceAnswer": "a concise model answer"}
 - question: one clear short-answer question about the transcript content.
 - referenceAnswer: a concise, correct answer (1-3 sentences max) the student should provide.
 Be concise. The question should feel like a quiz/test.`
     : `You are an expert educational assistant. Generate a single open-ended quiz question that tests understanding of the topic.
+Use the learner memory to personalize difficulty, tone, and style. Focus on weak topics when relevant and avoid generic wording.
 Return ONLY a valid JSON object with this exact shape (no markdown, no extra text):
 {"question": "the question text", "referenceAnswer": "a concise model answer"}
 - question: one clear short-answer question about the topic.
@@ -32,8 +43,8 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no extra tex
 Be concise. The question should feel like a quiz/test.`;
 
   const userContent = hasTranscript
-    ? `Transcript (content watched so far):\n\n${(input.transcriptText ?? "").slice(0, 8000)}\n\nGenerate a quiz question based ONLY on this transcript.`
-    : `Topic: ${input.topic ?? "general"}. Generate a quiz question.`;
+    ? `Learner memory:\n${personalizationContext}\n\nTranscript (content watched so far):\n\n${(input.transcriptText ?? "").slice(0, 8000)}\n\nGenerate a quiz question based ONLY on this transcript.`
+    : `Learner memory:\n${personalizationContext}\n\nTopic: ${input.topic ?? "general"}. Generate a quiz question.`;
 
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
@@ -76,7 +87,11 @@ Be concise. The question should feel like a quiz/test.`;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { topic, transcriptText } = body as { topic?: string; transcriptText?: string };
+    const { topic, transcriptText, studentId } = body as {
+      topic?: string;
+      transcriptText?: string;
+      studentId?: string;
+    };
 
     const hasTranscript = Boolean(transcriptText?.trim());
     if (!topic && !hasTranscript) {
@@ -86,7 +101,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const input = { topic: topic ?? "content so far", transcriptText };
+    const memory = studentId
+      ? await prisma.studentReflectionMemory.findUnique({
+          where: { userId: studentId },
+        })
+      : null;
+    const input = {
+      topic: topic ?? "content so far",
+      transcriptText,
+      learningMemoryContext: formatLearningMemoryForPrompt(memory),
+    };
 
     let result: { question: string; referenceAnswer: string };
     let modelUsed = MODELS.default;
@@ -118,6 +142,7 @@ export async function POST(request: NextRequest) {
       modelUsed,
       topic: input.topic,
       fromTranscript: hasTranscript,
+      personalized: Boolean(memory),
     });
   } catch (error) {
     console.error("Error generating question:", error);

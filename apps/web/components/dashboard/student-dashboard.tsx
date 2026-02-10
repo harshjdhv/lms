@@ -43,6 +43,12 @@ interface StudentDashboardProps {
     studentName?: string
 }
 
+const STATS_CARD_CLASS = "h-[170px] [&>div]:h-full [&>div]:rounded-xl [&>div]:border-border/60 [&>div]:shadow-sm"
+const PANEL_SHELL_CLASS = "overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+const PANEL_CARD_CLASS = `${PANEL_SHELL_CLASS} gap-0 py-0`
+const COMPACT_PANEL_HEIGHT = "min-h-[320px] xl:h-[320px]"
+const TALL_PANEL_HEIGHT = "min-h-[560px] xl:h-[560px]"
+
 export function StudentDashboard({ studentName = "Student" }: StudentDashboardProps) {
 
     const { data: assignments = [], isLoading: assignmentsLoading, refetch: refetchAssignments, isFetching } = useAssignments()
@@ -93,8 +99,6 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
             .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
             .slice(0, 5)
     }, [assignments])
-    const panelClass = "overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
-
     return (
         <div className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-6 overflow-x-hidden animate-in fade-in-50 duration-500">
             {/* Welcome Header */}
@@ -153,7 +157,11 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
             {/* Stats Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
                 {isLoading ? (
-                    [...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)
+                    [...Array(4)].map((_, i) => (
+                        <div key={i} className={STATS_CARD_CLASS}>
+                            <StatsCardSkeleton />
+                        </div>
+                    ))
                 ) : (
                     <>
                         <StatsCard
@@ -163,6 +171,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                             description="Active enrollments"
                             trend="neutral"
                             index={0}
+                            className={STATS_CARD_CLASS}
                             {...gradientPresets.blue}
                         />
                         <StatsCard
@@ -172,6 +181,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                             description={stats.dueSoon > 0 ? `${stats.dueSoon} due soon` : "Keep it up!"}
                             trend={stats.dueSoon > 0 ? "warning" : "neutral"}
                             index={1}
+                            className={STATS_CARD_CLASS}
                             {...gradientPresets.purple}
                         />
                         <StatsCard
@@ -181,6 +191,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                             description={`${stats.completionRate}% completion rate`}
                             trend="success"
                             index={2}
+                            className={STATS_CARD_CLASS}
                             {...gradientPresets.emerald}
                         />
                         <StatsCard
@@ -190,6 +201,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                             description="Recent updates"
                             trend="neutral"
                             index={3}
+                            className={STATS_CARD_CLASS}
                             {...gradientPresets.amber}
                         />
                     </>
@@ -206,8 +218,8 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.2 }}
                     >
-                        <Card className={cn(panelClass, "min-h-[300px]")}>
-                            <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b pb-4">
+                        <Card className={cn(PANEL_CARD_CLASS, COMPACT_PANEL_HEIGHT)}>
+                            <CardHeader className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-4 [.border-b]:pb-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
@@ -225,7 +237,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                                     />
                                 </div>
                             </CardHeader>
-                            <CardContent className="pt-6">
+                            <CardContent className="flex flex-1 items-center p-4">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
                                     <ProgressItem
                                         label="Pending"
@@ -259,7 +271,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.3 }}
                     >
-                        <AssignmentFeed />
+                        <AssignmentFeed className={TALL_PANEL_HEIGHT} />
                     </motion.div>
                 </div>
 
@@ -271,8 +283,8 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.4 }}
                     >
-                        <Card className={cn(panelClass, "min-h-[300px]")}>
-                            <CardHeader className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border-b pb-4">
+                        <Card className={cn(PANEL_CARD_CLASS, COMPACT_PANEL_HEIGHT)}>
+                            <CardHeader className="border-b bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent px-4 py-4 [.border-b]:pb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 flex items-center justify-center">
                                         <Calendar className="h-5 w-5 text-amber-600" />
@@ -283,9 +295,9 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="pt-4">
+                            <CardContent className="flex flex-1 flex-col p-4">
                                 {upcomingDeadlines.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                                    <div className="flex flex-1 flex-col items-center justify-center text-center">
                                         <div className="rounded-full bg-emerald-500/10 p-3 mb-3">
                                             <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                                         </div>
@@ -293,7 +305,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                                         <p className="text-sm text-muted-foreground">No pending deadlines</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <div className="flex flex-1 flex-col gap-3">
                                         {upcomingDeadlines.map((assignment, index) => (
                                             <DeadlineItem
                                                 key={assignment.id}
@@ -302,7 +314,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                                             />
                                         ))}
                                         {assignments.filter(a => a.dueDate && a.status === 'ACTIVE').length > 5 && (
-                                            <Button variant="ghost" size="sm" asChild className="w-full gap-2 mt-2">
+                                            <Button variant="ghost" size="sm" asChild className="mt-auto w-full gap-2">
                                                 <Link href="/dashboard/assignments">
                                                     View all deadlines
                                                     <ArrowRight className="h-4 w-4" />
@@ -321,8 +333,8 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.5 }}
                     >
-                        <Card className={cn(panelClass, "min-h-[520px]")}>
-                            <CardHeader className="bg-gradient-to-r from-purple-500/10 via-pink-500/5 to-transparent border-b pb-4">
+                        <Card className={cn(PANEL_CARD_CLASS, TALL_PANEL_HEIGHT)}>
+                            <CardHeader className="border-b bg-gradient-to-r from-purple-500/10 via-pink-500/5 to-transparent px-4 py-4 [.border-b]:pb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/10 flex items-center justify-center">
                                         <Megaphone className="h-5 w-5 text-purple-600" />
@@ -336,7 +348,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                                     </Badge>
                                 </div>
                             </CardHeader>
-                            <CardContent className="pt-4">
+                            <CardContent className="flex flex-1 p-4">
                                 <StudentAnnouncementFeed />
                             </CardContent>
                         </Card>
@@ -423,7 +435,7 @@ function DeadlineItem({
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
             className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm",
+                "flex items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-3 transition-all hover:shadow-sm",
                 dueInfo.urgent && "border-l-4 border-l-amber-500"
             )}
         >
@@ -461,19 +473,21 @@ export function StudentDashboardSkeleton() {
             {/* Stats Skeleton */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
                 {[...Array(4)].map((_, i) => (
-                    <StatsCardSkeleton key={i} />
+                    <div key={i} className={STATS_CARD_CLASS}>
+                        <StatsCardSkeleton />
+                    </div>
                 ))}
             </div>
 
             {/* Content Skeleton */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <div className="xl:col-span-2 space-y-6">
-                    <Skeleton className="h-48 w-full rounded-xl" />
-                    <Skeleton className="h-96 w-full rounded-xl" />
+                    <Skeleton className={cn(COMPACT_PANEL_HEIGHT, "w-full rounded-xl")} />
+                    <Skeleton className={cn(TALL_PANEL_HEIGHT, "w-full rounded-xl")} />
                 </div>
                 <div className="space-y-6">
-                    <Skeleton className="h-64 w-full rounded-xl" />
-                    <Skeleton className="h-80 w-full rounded-xl" />
+                    <Skeleton className={cn(COMPACT_PANEL_HEIGHT, "w-full rounded-xl")} />
+                    <Skeleton className={cn(TALL_PANEL_HEIGHT, "w-full rounded-xl")} />
                 </div>
             </div>
         </div>

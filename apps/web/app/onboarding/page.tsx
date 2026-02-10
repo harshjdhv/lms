@@ -15,6 +15,10 @@ import { Label } from "@workspace/ui/components/label"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { createClient } from "@/lib/supabase/client"
 import { AuroraBackground } from "@/components/ui/aurora-background"
+import {
+    LearningPreferencesFields,
+    type LearningPreferencesValue,
+} from "@/components/learning/learning-preferences-fields"
 
 const teacherSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -40,6 +44,13 @@ export default function OnboardingPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = React.useState(false)
     const [selectedRole, setSelectedRole] = React.useState<"TEACHER" | "STUDENT" | null>(null)
+    const [learningPreferences, setLearningPreferences] = React.useState<LearningPreferencesValue>({
+        learningPace: "STEADY",
+        preferredLearningStyle: "MIXED",
+        preferredExplanationStyle: "STEP_BY_STEP",
+        confidenceLevel: "BEGINNER",
+        goals: ["DEEP_UNDERSTANDING"],
+    })
     const supabase = createClient()
 
     const teacherForm = useForm<TeacherFormData>({
@@ -74,6 +85,12 @@ export default function OnboardingPage() {
                 body: JSON.stringify({
                     role: selectedRole,
                     ...data,
+                    ...(selectedRole === "STUDENT"
+                        ? {
+                            learningPreferences,
+                            onboardingAnswers: learningPreferences,
+                        }
+                        : {}),
                 }),
             })
 
@@ -336,6 +353,22 @@ export default function OnboardingPage() {
                                                             {studentForm.formState.errors.semester.message}
                                                         </p>
                                                     )}
+                                                </div>
+
+                                                <div className="rounded-xl border bg-zinc-50/80 dark:bg-zinc-900/40 p-4 space-y-4">
+                                                    <div>
+                                                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                                                            Learning setup
+                                                        </h3>
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                            These MCQ choices initialize your adaptive AI learning memory.
+                                                        </p>
+                                                    </div>
+                                                    <LearningPreferencesFields
+                                                        value={learningPreferences}
+                                                        onChange={setLearningPreferences}
+                                                        disabled={isLoading}
+                                                    />
                                                 </div>
                                             </>
                                         )}

@@ -36,6 +36,32 @@ export function ReflectionVideoPlayer({
   const lastTriggeredRef = useRef<number[]>([]);
   const onReadyFiredRef = useRef(false);
   const videoPausedRef = useRef(false);
+  const lastInteractionAtRef = useRef<Record<string, number>>({});
+  const lastPlayerStateRef = useRef<number | null>(null);
+
+  const sendInteractionEvent = useCallback(
+    async (interactionType: "SKIP" | "REWATCH" | "PAUSE" | "RESUME") => {
+      const now = Date.now();
+      const key = interactionType.toLowerCase();
+      const previous = lastInteractionAtRef.current[key] ?? 0;
+      if (now - previous < 1500) return;
+      lastInteractionAtRef.current[key] = now;
+      try {
+        await fetch("/api/reflection/memory-update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventType: "video_interaction",
+            studentId,
+            interactionType,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to send video interaction signal:", error);
+      }
+    },
+    [studentId],
+  );
 
   // Debug logging: only update React state for important events (not every state change or tick)
   const addDebugLog = useCallback((message: string) => {
@@ -84,6 +110,13 @@ export function ReflectionVideoPlayer({
       }
 
       const previousTime = lastPolledTimeRef.current;
+      const delta = currentTime - previousTime;
+
+      if (delta > 18) {
+        sendInteractionEvent("SKIP");
+      } else if (delta < -8) {
+        sendInteractionEvent("REWATCH");
+      }
 
       const nextReflection = reflectionPoints.find((point) => {
         if (lastTriggeredRef.current.includes(point.time)) return false;
@@ -109,7 +142,12 @@ export function ReflectionVideoPlayer({
         handleReflectionPoint(nextReflection);
       }
     }, 500); // Polling slightly faster for better responsiveness
-  }, [reflectionPoints, handleReflectionPoint, addDebugLog]);
+  }, [
+    reflectionPoints,
+    handleReflectionPoint,
+    addDebugLog,
+    sendInteractionEvent,
+  ]);
 
   const tryStartPlaybackAndPolling = useCallback(() => {
     if (onReadyFiredRef.current) return;
@@ -166,9 +204,16 @@ export function ReflectionVideoPlayer({
             // Ref only — no setState to avoid re-renders and flicker during playback
             if (event.data === window.YT.PlayerState.PLAYING) {
               videoPausedRef.current = false;
+              if (lastPlayerStateRef.current === window.YT.PlayerState.PAUSED) {
+                sendInteractionEvent("RESUME");
+              }
             } else if (event.data === window.YT.PlayerState.PAUSED) {
               videoPausedRef.current = true;
+              if (lastPlayerStateRef.current === window.YT.PlayerState.PLAYING) {
+                sendInteractionEvent("PAUSE");
+              }
             }
+            lastPlayerStateRef.current = event.data;
           },
           onError: (event: any) => {
             addDebugLog(`❌ Player error: ${event.data}`);
@@ -187,7 +232,13 @@ export function ReflectionVideoPlayer({
     } catch (error) {
       addDebugLog(`❌ Error creating player: ${error}`);
     }
-  }, [videoId, containerId, addDebugLog, tryStartPlaybackAndPolling]);
+  }, [
+    videoId,
+    containerId,
+    addDebugLog,
+    tryStartPlaybackAndPolling,
+    sendInteractionEvent,
+  ]);
 
   // Initialize YouTube player (run once per videoId)
   useEffect(() => {

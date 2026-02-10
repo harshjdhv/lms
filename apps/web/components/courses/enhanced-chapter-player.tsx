@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Chapter, ReflectionPoint } from "@workspace/database";
 import { Badge } from "@workspace/ui/components/badge";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -37,6 +37,34 @@ export function EnhancedChapterPlayer({
   const [isPending, startTransition] = useTransition();
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [memorySummary, setMemorySummary] = useState<{
+    preferredExplanationStyle?: string | null;
+    weakTopics?: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadMemory = async () => {
+      try {
+        const res = await fetch(
+          `/api/reflection/memory-update?studentId=${encodeURIComponent(studentId)}`,
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setMemorySummary({
+          preferredExplanationStyle: data.preferredExplanationStyle,
+          weakTopics: Array.isArray(data.weakTopics) ? data.weakTopics : [],
+        });
+      } catch {
+        // Non-blocking: player should work even if memory fetch fails.
+      }
+    };
+    loadMemory();
+    return () => {
+      mounted = false;
+    };
+  }, [studentId]);
 
   const handleChapterClick = (chapterId: string, isLockedChapter: boolean) => {
     if (isLockedChapter || chapterId === chapter.id) return;
@@ -122,7 +150,17 @@ export function EnhancedChapterPlayer({
                 {reflectionPoints.length > 1 ? "s" : ""}
               </Badge>
             )}
+            {memorySummary?.preferredExplanationStyle && (
+              <Badge variant="secondary">
+                AI Style: {memorySummary.preferredExplanationStyle}
+              </Badge>
+            )}
           </div>
+          {memorySummary?.weakTopics && memorySummary.weakTopics.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Personalized focus: {memorySummary.weakTopics.slice(0, 3).join(", ")}
+            </p>
+          )}
         </div>
 
         {/* Video area */}

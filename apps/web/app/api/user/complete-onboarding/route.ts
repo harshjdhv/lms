@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { role, name, phone, bio, ...rest } = body;
+    const { role, name, phone, bio, learningPreferences, onboardingAnswers, ...rest } = body;
 
     // Construct data object to ensure we only pass valid fields to Prisma
     // and avoid "Unknown argument" errors if extra data is sent.
@@ -80,6 +80,48 @@ export async function POST(request: Request) {
           skipDuplicates: true,
         });
       }
+
+      await prisma.studentReflectionMemory.upsert({
+        where: { userId: user.id },
+        update: {
+          learningPace: learningPreferences?.learningPace,
+          preferredLearningStyle: learningPreferences?.preferredLearningStyle,
+          preferredExplanationStyle:
+            learningPreferences?.preferredExplanationStyle,
+          confidenceLevel: learningPreferences?.confidenceLevel,
+          goals: Array.isArray(learningPreferences?.goals)
+            ? learningPreferences.goals
+            : [],
+          onboardingAnswers: onboardingAnswers ?? learningPreferences ?? null,
+          interactionPatterns: {},
+          topicStats: {},
+          habitSignals: {},
+          memorySignals: {},
+          lastActiveAt: new Date(),
+        },
+        create: {
+          userId: user.id,
+          weakTopics: [],
+          strengthTopics: [],
+          accuracyRate: 0,
+          totalAttempts: 0,
+          correctAttempts: 0,
+          learningPace: learningPreferences?.learningPace,
+          preferredLearningStyle: learningPreferences?.preferredLearningStyle,
+          preferredExplanationStyle:
+            learningPreferences?.preferredExplanationStyle,
+          confidenceLevel: learningPreferences?.confidenceLevel,
+          goals: Array.isArray(learningPreferences?.goals)
+            ? learningPreferences.goals
+            : [],
+          onboardingAnswers: onboardingAnswers ?? learningPreferences ?? null,
+          interactionPatterns: {},
+          topicStats: {},
+          habitSignals: {},
+          memorySignals: {},
+          lastActiveAt: new Date(),
+        },
+      });
     }
 
     return NextResponse.json({ success: true, user: updatedUser });

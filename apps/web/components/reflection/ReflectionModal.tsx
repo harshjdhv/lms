@@ -130,7 +130,10 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
         const response = await fetch("/api/reflection/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            ...body,
+            studentId,
+          }),
         });
 
         if (!active) return;
@@ -153,7 +156,7 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
     return () => {
       active = false;
     };
-  }, [reflection.topic, reflection.time, chapterId, previousTime]);
+  }, [reflection.topic, reflection.time, chapterId, previousTime, studentId]);
 
   const handleSubmit = async () => {
     const hasAnswer = answer.trim().length > 0;
@@ -210,6 +213,7 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
         body: JSON.stringify({
           messages: [...chatMessages, { role: 'user', content: userMessage }],
           context: {
+            studentId,
             topic: reflection.topic,
             question: question,
             wrongAnswer: answer.trim(),
@@ -248,14 +252,31 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          eventType: "reflection_answer",
           studentId,
           topic: reflection.topic,
           isCorrect,
-          attempts: attempts + 1,
+          usedHint: showHint,
         }),
       });
     } catch (error) {
       console.error("Failed to update memory:", error);
+    }
+  };
+
+  const sendInteractionEvent = async (interactionType: string) => {
+    try {
+      await fetch("/api/reflection/memory-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType: "video_interaction",
+          studentId,
+          interactionType,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to send interaction event:", error);
     }
   };
 
@@ -272,6 +293,7 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
   const switchToChat = () => {
     if (evaluation && !evaluation.correct) {
       setMode('chat');
+      sendInteractionEvent("AI_CHAT_REQUEST");
       // Initialize chat with feedback if empty
       if (chatMessages.length === 0) {
         setChatMessages([{
@@ -365,7 +387,13 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setShowHint(!showHint)}
+                              onClick={() => {
+                                const nextShowHint = !showHint;
+                                setShowHint(nextShowHint);
+                                if (nextShowHint) {
+                                  sendInteractionEvent("HINT_REQUEST");
+                                }
+                              }}
                               className="text-amber-700 dark:text-amber-300 hover:bg-amber-100/50 -ml-2"
                             >
                               <Lightbulb className="h-4 w-4 mr-2" />

@@ -55,6 +55,7 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Separator } from "@workspace/ui/components/separator";
 
 import { updateUser } from "@/actions/update-user";
+import { LearningMemorySettings } from "@/components/learning/learning-memory-settings";
 
 const formSchema = z.object({
     name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -410,6 +411,7 @@ export function AccountForm({ user }: AccountFormProps) {
                         </Card>
                     </form>
                 </Form>
+                {isStudent && <LearningMemorySettings />}
             </div>
         </div>
     );

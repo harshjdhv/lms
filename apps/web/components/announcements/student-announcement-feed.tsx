@@ -13,7 +13,7 @@ export function StudentAnnouncementFeed() {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col gap-3">
+            <div className="flex h-full flex-col gap-3">
                 {[1, 2, 3].map((i) => (
                     <div key={i} className="overflow-hidden rounded-xl border border-border/60 bg-card/70 p-4">
                         <div className="mb-3 h-24 rounded-lg bg-gradient-to-r from-muted/50 to-muted/30 animate-pulse" />
@@ -34,7 +34,7 @@ export function StudentAnnouncementFeed() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
-                className="flex min-h-[404px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-gradient-to-br from-muted/20 to-transparent p-6 text-center"
+                className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-gradient-to-br from-muted/20 to-transparent p-6 text-center"
             >
                 <div className="rounded-full bg-purple-500/10 p-4 mb-4">
                     <Megaphone className="h-8 w-8 text-purple-500" />
@@ -48,7 +48,7 @@ export function StudentAnnouncementFeed() {
     }
 
     return (
-        <ScrollArea className="h-[404px] pr-2">
+        <ScrollArea className="h-full pr-2">
             <div className="flex flex-col gap-3">
                 <AnimatePresence>
                     {announcements.map((announcement, index) => (

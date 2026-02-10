@@ -277,10 +277,27 @@ model StudentReflectionMemory {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  weakTopics      String[] // JSON array of topics student struggles with
+  // Core performance tracking
+  weakTopics      String[] @default([]) // topics student currently struggles with
+  strengthTopics  String[] @default([]) // topics the student consistently answers well
   accuracyRate    Float    @default(0.0) // overall accuracy percentage
   totalAttempts   Int      @default(0)
   correctAttempts Int      @default(0)
+  topicStats      Json? // per-topic counters, streaks, and confidence
+
+  // Learning preferences + onboarding
+  learningPace              String? // "FAST" | "STEADY" | "DEEP"
+  preferredLearningStyle    String? // "EXAMPLES_FIRST" | "THEORY_FIRST" | "MIXED"
+  preferredExplanationStyle String? // "SHORT" | "DETAILED" | "STEP_BY_STEP" | "ANALOGY"
+  confidenceLevel           String? // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+  goals                     String[] @default([]) // "EXAM_PREP" | "DEEP_UNDERSTANDING" | ...
+  onboardingAnswers         Json? // raw onboarding response snapshot
+
+  // Behavioral and interaction signals (extendable)
+  interactionPatterns Json? // skips, rewatches, hint asks, chat asks, etc.
+  habitSignals        Json? // derived habits inferred from interactions
+  memorySignals       Json? // future extensible metadata/events
+  lastActiveAt        DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

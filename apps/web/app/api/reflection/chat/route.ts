@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchSerper } from "@/lib/serper";
+import { prisma } from "@workspace/database";
+import { formatLearningMemoryForPrompt } from "@/lib/learning-memory";
 
 const MODELS = {
   default: "llama-3.1-8b-instant",
@@ -27,6 +29,14 @@ export async function POST(request: NextRequest) {
 
     const referenceAnswer =
       typeof context?.referenceAnswer === "string" ? context.referenceAnswer : "";
+    const studentId =
+      typeof context?.studentId === "string" ? context.studentId : "";
+    const memory = studentId
+      ? await prisma.studentReflectionMemory.findUnique({
+          where: { userId: studentId },
+        })
+      : null;
+    const learningMemoryContext = formatLearningMemoryForPrompt(memory);
 
     // System prompt setup
     const systemPrompt = `You are a helpful and patient AI tutor. A student has just answered a quiz question INCORRECTLY.
@@ -37,11 +47,14 @@ export async function POST(request: NextRequest) {
     - Their wrong answer: "${context.wrongAnswer}"
     - Reference answer: "${referenceAnswer || "Not provided"}"
     - Transcript context: "${context.transcriptContext || "Not available"}"
+    - Learner memory context:
+      ${learningMemoryContext}
 
     YOUR GOAL:
     1. Help the student understand why their answer was wrong and what the correct concept is.
-    2. Be conversational and encouraging. Do not just lecture; ask if they understand.
+    2. Be conversational and adaptive to the learner memory. Do not just lecture; ask if they understand.
     3. Answer any questions they have about the topic.
+    4. Keep explanations aligned with preferred explanation style and confidence level.
     
     RESOURCES:
     - If you think an **visual aid** (diagram, chart) or a **video explanation** would actally help the student understand better, you can request one.

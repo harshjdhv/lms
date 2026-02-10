@@ -20,7 +20,14 @@ import { cn } from "@/lib/utils"
 import { Button } from "@workspace/ui/components/button"
 import Link from "next/link"
 
-export function AssignmentFeed() {
+interface AssignmentFeedProps {
+    className?: string
+}
+
+const FEED_SHELL_CLASS = "flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+const FEED_HEIGHT_CLASS = "min-h-[560px] xl:h-[560px]"
+
+export function AssignmentFeed({ className }: AssignmentFeedProps) {
     const { data: assignments = [], isLoading } = useAssignments()
     const [filter, setFilter] = useState<'ALL' | string>('ALL')
 
@@ -31,7 +38,7 @@ export function AssignmentFeed() {
 
     if (isLoading) {
         return (
-            <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+            <div className={cn(FEED_SHELL_CLASS, FEED_HEIGHT_CLASS, className)}>
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-background/80 to-transparent backdrop-blur-sm">
                     <Skeleton className="h-6 w-32" />
                     <div className="flex gap-2">
@@ -41,7 +48,7 @@ export function AssignmentFeed() {
                 </div>
                 <div className="flex-1 p-4 space-y-4">
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="rounded-xl border bg-card p-5 space-y-3">
+                        <div key={i} className="space-y-3 rounded-xl border border-border/60 bg-card p-5">
                             <Skeleton className="h-5 w-24 rounded-full" />
                             <Skeleton className="h-6 w-3/4" />
                             <Skeleton className="h-16 w-full rounded-lg" />
@@ -57,7 +64,7 @@ export function AssignmentFeed() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+            className={cn(FEED_SHELL_CLASS, FEED_HEIGHT_CLASS, className)}
         >
             {/* Header with course filters */}
             <div className="flex flex-col gap-3 p-4 border-b bg-gradient-to-r from-background/80 to-transparent backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
@@ -98,7 +105,7 @@ export function AssignmentFeed() {
             </div>
 
             {/* Assignment list */}
-            <ScrollArea className="h-[430px] flex-1 p-4">
+            <ScrollArea className="flex-1 p-4">
                 <div className="flex flex-col gap-4">
                     <AnimatePresence mode="popLayout">
                         {filtered.length === 0 ? (
@@ -106,7 +113,7 @@ export function AssignmentFeed() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed rounded-xl bg-gradient-to-br from-background to-muted/30"
+                                className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-xl border-2 border-dashed py-16 text-center bg-gradient-to-br from-background to-muted/30"
                             >
                                 <div className="rounded-full bg-blue-500/10 p-4 mb-4">
                                     <CheckCircle2 className="h-8 w-8 text-blue-500" />
@@ -169,7 +176,7 @@ function AssignmentCard({ assignment, index }: { assignment: Assignment; index: 
             transition={{ duration: 0.3, delay: index * 0.05 }}
             whileHover={{ y: -2 }}
             className={cn(
-                "group relative flex flex-col gap-3 rounded-xl border p-5 text-card-foreground shadow-sm",
+                "group relative flex min-h-[220px] flex-col gap-3 rounded-xl border border-border/60 p-5 text-card-foreground shadow-sm",
                 "transition-all duration-300 hover:shadow-lg bg-gradient-to-br from-card to-background",
                 isApproved && "border-l-4 border-l-emerald-500",
                 isRejected && "border-l-4 border-l-red-500",
@@ -239,7 +246,7 @@ function AssignmentCard({ assignment, index }: { assignment: Assignment; index: 
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-2 mt-auto text-xs text-muted-foreground border-t">
+            <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>Posted {new Date(assignment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
