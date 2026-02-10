@@ -25,14 +25,14 @@ interface EvaluationResult {
   correct: boolean;
   feedback: string;
   hint?: string;
+  // Combined similarity/semantic score in the 0-1 range from the evaluator.
+  score?: number;
 }
 
 export function ReflectionModal({ reflection, studentId, onComplete, chapterId, previousTime = 0 }: Props) {
   const [question, setQuestion] = useState<string>("");
-  const [options, setOptions] = useState<string[] | null>(null);
-  const [correctIndex, setCorrectIndex] = useState<number | null>(null);
+  const [referenceAnswer, setReferenceAnswer] = useState<string>("");
   const [answer, setAnswer] = useState<string>("");
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [showHint, setShowHint] = useState(false);
@@ -54,8 +54,6 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const isMultipleChoice = options !== null && options.length > 0;
-
   useEffect(() => {
     if (mode === 'chat') {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,7 +67,6 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
     const generateQuestion = async () => {
       setIsGeneratingQuestion(true);
       setAnswer("");
-      setSelectedOptionIndex(null);
       setEvaluation(null);
       setShowHint(false);
       setMode('quiz'); // Reset to quiz mode
@@ -140,14 +137,12 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
 
         const data = await response.json();
         setQuestion(data.question ?? "");
-        setOptions(data.options ?? null);
-        setCorrectIndex(typeof data.correctIndex === "number" ? data.correctIndex : null);
+        setReferenceAnswer(data.referenceAnswer ?? "");
       } catch (error) {
         if (!active) return;
         console.error("Failed to generate question:", error);
         setQuestion(`What key concepts did you learn about ${reflection.topic}?`);
-        setOptions(null);
-        setCorrectIndex(null);
+        setReferenceAnswer("");
       } finally {
         if (active) setIsGeneratingQuestion(false);
       }
@@ -161,38 +156,25 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
   }, [reflection.topic, reflection.time, chapterId, previousTime]);
 
   const handleSubmit = async () => {
-    const hasAnswer = isMultipleChoice
-      ? selectedOptionIndex !== null
-      : answer.trim().length > 0;
+    const hasAnswer = answer.trim().length > 0;
     if (!hasAnswer) return;
 
     setIsSubmitting(true);
     try {
       let result: EvaluationResult;
 
-      if (isMultipleChoice && correctIndex !== null && selectedOptionIndex !== null) {
-        const correct = selectedOptionIndex === correctIndex;
-        result = {
-          correct,
-          feedback: correct
-            ? "Well done! You got it right."
-            : "That's not correct. Review the topic and try again.",
-        };
-      } else {
-        const response = await fetch("/api/reflection/evaluate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question,
-            answer: isMultipleChoice && selectedOptionIndex !== null && options
-              ? options[selectedOptionIndex]
-              : answer.trim(),
-            topic: reflection.topic,
-            studentId,
-          }),
-        });
-        result = await response.json();
-      }
+      const response = await fetch("/api/reflection/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question,
+          answer: answer.trim(),
+          topic: reflection.topic,
+          studentId,
+          referenceAnswer,
+        }),
+      });
+      result = await response.json();
 
       setEvaluation(result);
       setAttempts(attempts + 1);
@@ -230,9 +212,8 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
           context: {
             topic: reflection.topic,
             question: question,
-            wrongAnswer: isMultipleChoice && options && selectedOptionIndex !== null
-              ? options[selectedOptionIndex]
-              : answer,
+            wrongAnswer: answer.trim(),
+            referenceAnswer,
             transcriptContext: "", // Ideally pass the transcript text if we had it stored, simpler for now
           }
         }),
@@ -301,10 +282,8 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
     }
   };
 
-
-
   const canSubmit =
-    isMultipleChoice ? selectedOptionIndex !== null : answer.trim().length > 0;
+    answer.trim().length > 0;
 
   return (
     <div className="fixed top-0 bottom-0 right-0 left-0 md:left-64 z-50 flex font-sans transition-all duration-300">
@@ -351,41 +330,13 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
                 {/* Answer Section */}
                 {!isGeneratingQuestion && (
                   <div className="space-y-6">
-                    {isMultipleChoice && options ? (
-                      <div className="grid gap-3">
-                        {options.map((opt, i) => (
-                          <button
-                            key={i}
-                            onClick={() => !evaluation && setSelectedOptionIndex(i)}
-                            disabled={!!evaluation}
-                            className={`
-                                    flex items-center p-4 rounded-xl border-2 text-left transition-all duration-200
-                                    ${selectedOptionIndex === i
-                                ? 'border-primary bg-primary/5 shadow-sm'
-                                : 'border-border/50 hover:border-border hover:bg-muted/30'
-                              }
-                                    ${!!evaluation ? 'cursor-default opacity-90' : 'cursor-pointer'}
-                                  `}
-                          >
-                            <div className={`
-                                    w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 shrink-0 transition-colors
-                                    ${selectedOptionIndex === i ? 'border-primary' : 'border-muted-foreground/30'}
-                                  `}>
-                              {selectedOptionIndex === i && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-                            </div>
-                            <span className="text-lg">{opt}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <Textarea
-                        value={answer}
-                        onChange={(e) => setAnswer(e.target.value)}
-                        placeholder="Type your answer here..."
-                        className="min-h-[150px] text-lg p-4 resize-none bg-background border-border/50 focus:border-primary"
-                        disabled={!!evaluation}
-                      />
-                    )}
+                    <Textarea
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      placeholder="Type your answer here..."
+                      className="min-h-[150px] text-lg p-4 resize-none bg-background border-border/50 focus:border-primary"
+                      disabled={!!evaluation}
+                    />
                   </div>
                 )}
 

@@ -7,10 +7,136 @@ const MODELS = {
   upgrade: "llama-3.3-70b-versatile", // Used when student fails twice
 };
 
+// Heuristic threshold for short-answer grading to allow minor paraphrases while rejecting vague answers.
+// Default is calibrated to balance false positives/negatives for 1-3 sentence responses
+// where roughly two key terms overlap with the reference answer.
+// Override via the REFLECTION_SCORE_THRESHOLD environment variable when calibrating with real-world scoring data.
+const DEFAULT_SIMILARITY_THRESHOLD = 0.62;
+const rawSimilarityThresholdValue = process.env.REFLECTION_SCORE_THRESHOLD;
+const RAW_SIMILARITY_THRESHOLD = rawSimilarityThresholdValue
+  ? Number.parseFloat(rawSimilarityThresholdValue)
+  : Number.NaN;
+const SIMILARITY_THRESHOLD = Number.isFinite(RAW_SIMILARITY_THRESHOLD)
+  ? RAW_SIMILARITY_THRESHOLD
+  : DEFAULT_SIMILARITY_THRESHOLD;
+// Semantic scoring is weighted higher to recognize correct paraphrases; lexical overlap is secondary.
+// Override via REFLECTION_AI_WEIGHT if tuning indicates a different balance is needed.
+const DEFAULT_AI_SCORE_WEIGHT = 0.85;
+const rawAiScoreWeightValue = process.env.REFLECTION_AI_WEIGHT;
+const RAW_AI_SCORE_WEIGHT = rawAiScoreWeightValue
+  ? Number.parseFloat(rawAiScoreWeightValue)
+  : Number.NaN;
+const AI_SCORE_WEIGHT =
+  Number.isFinite(RAW_AI_SCORE_WEIGHT) &&
+  RAW_AI_SCORE_WEIGHT > 0 &&
+  RAW_AI_SCORE_WEIGHT < 1
+    ? RAW_AI_SCORE_WEIGHT
+    : DEFAULT_AI_SCORE_WEIGHT;
+const SIMILARITY_SCORE_WEIGHT = 1 - AI_SCORE_WEIGHT;
+const STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "the",
+  "to",
+  "of",
+  "in",
+  "on",
+  "for",
+  "with",
+  "at",
+  "by",
+  "from",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "as",
+  "it",
+  "that",
+  "this",
+  "these",
+  "those",
+  "or",
+  "but",
+  "so",
+  "if",
+  "then",
+  "because",
+  "into",
+  "about",
+  "over",
+  "under",
+]);
+
+// Normalize text for coarse lexical similarity by stripping punctuation and stop words.
+const tokenize = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((token) => !STOP_WORDS.has(token));
+
+const buildFrequency = (tokens: string[]) => {
+  const map = new Map<string, number>();
+  tokens.forEach((token) => {
+    map.set(token, (map.get(token) ?? 0) + 1);
+  });
+  return map;
+};
+
+const cosineSimilarity = (a: Map<string, number>, b: Map<string, number>) => {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (const [token, count] of a) {
+    normA += count * count;
+    if (b.has(token)) {
+      dotProduct += count * (b.get(token) ?? 0);
+    }
+  }
+
+  for (const count of b.values()) {
+    normB += count * count;
+  }
+
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+
+const calculateLexicalSimilarity = (answer: string, referenceAnswer: string) => {
+  if (!answer.trim() || !referenceAnswer.trim()) return 0;
+  const answerTokens = tokenize(answer);
+  const referenceTokens = tokenize(referenceAnswer);
+  if (answerTokens.length === 0 || referenceTokens.length === 0) return 0;
+  return cosineSimilarity(
+    buildFrequency(answerTokens),
+    buildFrequency(referenceTokens),
+  );
+};
+
+const clampScore = (value: number) => Math.min(Math.max(value, 0), 1);
+const calculateCombinedScore = (
+  aiScore: number | null,
+  similarityScore: number,
+) => {
+  if (aiScore === null) return similarityScore;
+  return aiScore * AI_SCORE_WEIGHT + similarityScore * SIMILARITY_SCORE_WEIGHT;
+};
+const roundScore = (value: number, precision = 2) => {
+  const factor = 10 ** precision;
+  return Math.round(value * factor) / factor;
+};
+
 async function evaluateWithGroq(
   question: string,
   answer: string,
   topic: string,
+  referenceAnswer: string,
+  similarityScore: number,
   model: string = MODELS.default,
 ) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -19,21 +145,25 @@ async function evaluateWithGroq(
   }
 
   const prompt = `
-As an expert educator, evaluate this student answer:
+  As an expert educator, evaluate this student answer:
 
-Topic: ${topic}
-Question: ${question}
-Student's Answer: ${answer}
+  Topic: ${topic}
+  Question: ${question}
+  Reference Answer: ${referenceAnswer || "Not available"}
+  Student's Answer: ${answer}
+  Lexical Similarity Score (0-1): ${roundScore(similarityScore)}
 
-Provide your evaluation as a JSON object with:
-{
-  "correct": boolean,
-  "feedback": "specific feedback on their answer",
-  "hint": "a helpful hint if incorrect (or empty string if correct)"
-}
+  Provide your evaluation as a JSON object with:
+  {
+    "score": number, // 0-1 semantic correctness (independent from lexical similarity)
+    "feedback": "specific feedback on their answer",
+    "hint": "a helpful hint if incorrect (or empty string if correct)"
+  }
 
-Be encouraging but accurate. For partially correct answers, focus on what they got right and what needs improvement. Provide specific, actionable hints.
-`;
+  Be encouraging but accurate. For partially correct answers, focus on what they got right and what needs improvement. Provide specific, actionable hints.
+  The semantic score should reflect conceptual correctness even if wording differs; treat the token similarity as a loose baseline.
+  If the answer is correct, keep the hint empty and score high (closer to 1.0).
+  `;
 
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
@@ -71,12 +201,17 @@ Be encouraging but accurate. For partially correct answers, focus on what they g
   const content = data.choices[0].message.content.trim();
 
   try {
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    return {
+      score: typeof parsed.score === "number" ? parsed.score : 0,
+      feedback: typeof parsed.feedback === "string" ? parsed.feedback : "",
+      hint: typeof parsed.hint === "string" ? parsed.hint : "",
+    };
   } catch (parseError) {
     console.error("Failed to parse AI response as JSON:", content);
     // Fallback evaluation
     return {
-      correct: false,
+      score: calculateCombinedScore(null, similarityScore),
       feedback:
         "Unable to evaluate your answer automatically. Please review the question and try again.",
       hint: "Think about the key concepts covered in the topic.",
@@ -98,8 +233,11 @@ async function getStudentAttempts(studentId: string, topic: string) {
 }
 
 export async function POST(request: NextRequest) {
+  // Retain similarity score for fallback responses if evaluation fails.
+  let similarityScore = 0;
   try {
-    const { question, answer, topic, studentId } = await request.json();
+    const { question, answer, topic, studentId, referenceAnswer } =
+      await request.json();
 
     if (!question || !answer || !topic || !studentId) {
       return NextResponse.json(
@@ -107,6 +245,13 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const normalizedReferenceAnswer =
+      typeof referenceAnswer === "string" ? referenceAnswer : "";
+    similarityScore = calculateLexicalSimilarity(
+      answer,
+      normalizedReferenceAnswer,
+    );
 
     // Check student's previous attempts to decide model
     const previousAttempts = await getStudentAttempts(studentId, topic);
@@ -118,7 +263,14 @@ export async function POST(request: NextRequest) {
 
     try {
       // Try primary evaluation
-      evaluation = await evaluateWithGroq(question, answer, topic, modelToUse);
+      evaluation = await evaluateWithGroq(
+        question,
+        answer,
+        topic,
+        normalizedReferenceAnswer,
+        similarityScore,
+        modelToUse,
+      );
       modelUsed = modelToUse;
     } catch (error) {
       console.warn("Primary evaluation failed, trying fallback:", error);
@@ -129,6 +281,8 @@ export async function POST(request: NextRequest) {
           question,
           answer,
           topic,
+          normalizedReferenceAnswer,
+          similarityScore,
           MODELS.fallback,
         );
         modelUsed = MODELS.fallback;
@@ -137,7 +291,7 @@ export async function POST(request: NextRequest) {
 
         // Return a basic fallback evaluation
         evaluation = {
-          correct: false,
+          score: calculateCombinedScore(null, similarityScore),
           feedback:
             "Unable to evaluate your answer at this time. Please continue with the lesson.",
           hint: "",
@@ -147,18 +301,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure evaluation has required fields
-    if (typeof evaluation.correct !== "boolean") {
-      evaluation.correct = false;
-    }
+    const normalizedAiScore = clampScore(
+      typeof evaluation.score === "number" ? evaluation.score : 0,
+    );
+    // Blend semantic and lexical signals (AI_SCORE_WEIGHT/SIMILARITY_SCORE_WEIGHT)
+    // to reward conceptual understanding while still benefiting from keyword overlap.
+    const combinedScore = calculateCombinedScore(
+      normalizedAiScore,
+      similarityScore,
+    );
+    const correct = combinedScore >= SIMILARITY_THRESHOLD;
     if (!evaluation.feedback) {
-      evaluation.feedback = "Thank you for your answer.";
+      evaluation.feedback = correct
+        ? "Great job! You captured the key idea."
+        : "Thank you for your answer. Let's refine it a bit.";
     }
-    if (!evaluation.hint) {
+    if (!evaluation.hint || correct) {
       evaluation.hint = "";
     }
 
     return NextResponse.json({
-      ...evaluation,
+      correct,
+      feedback: evaluation.feedback,
+      hint: evaluation.hint,
+      score: roundScore(combinedScore),
       modelUsed,
       question,
       topic,
@@ -169,6 +335,7 @@ export async function POST(request: NextRequest) {
       {
         error: "Failed to evaluate answer",
         correct: false,
+        score: roundScore(calculateCombinedScore(null, similarityScore)),
         feedback:
           "An error occurred while evaluating your answer. Please try again.",
         hint: "",
