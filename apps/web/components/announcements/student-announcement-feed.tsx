@@ -1,9 +1,9 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import { ScrollArea } from "@workspace/ui/components/scroll-area"
 import { Megaphone, Calendar, Sparkles } from "lucide-react"
 import { useAnnouncements } from "@/hooks/queries/use-announcements"
 import { cn } from "@/lib/utils"
@@ -13,18 +13,16 @@ export function StudentAnnouncementFeed() {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
                 {[1, 2, 3].map((i) => (
-                    <Card key={i} className="overflow-hidden">
-                        <div className="h-32 bg-gradient-to-r from-muted/50 to-muted/30 animate-pulse" />
-                        <CardHeader className="pb-2">
+                    <div key={i} className="overflow-hidden rounded-xl border border-border/60 bg-card/70 p-4">
+                        <div className="mb-3 h-24 rounded-lg bg-gradient-to-r from-muted/50 to-muted/30 animate-pulse" />
+                        <div className="space-y-2">
                             <Skeleton className="h-5 w-20 rounded-full" />
-                            <Skeleton className="h-5 w-3/4 mt-2" />
-                        </CardHeader>
-                        <CardContent>
+                            <Skeleton className="h-5 w-3/4" />
                             <Skeleton className="h-16 w-full rounded-lg" />
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 ))}
             </div>
         )
@@ -36,39 +34,37 @@ export function StudentAnnouncementFeed() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
+                className="flex min-h-[404px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-gradient-to-br from-muted/20 to-transparent p-6 text-center"
             >
-                <Card className="bg-gradient-to-br from-muted/30 to-transparent border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="rounded-full bg-purple-500/10 p-4 mb-4">
-                            <Megaphone className="h-8 w-8 text-purple-500" />
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2">No Recent Announcements</h3>
-                        <p className="text-sm text-muted-foreground max-w-xs">
-                            Announcements from your teachers will appear here. Stay tuned!
-                        </p>
-                    </CardContent>
-                </Card>
+                <div className="rounded-full bg-purple-500/10 p-4 mb-4">
+                    <Megaphone className="h-8 w-8 text-purple-500" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No Recent Announcements</h3>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                    Announcements from your teachers will appear here. Stay tuned!
+                </p>
             </motion.div>
         )
     }
 
     return (
-        <div className="flex flex-col gap-4">
-            <AnimatePresence>
-                {announcements.map((announcement, index) => (
-                    <motion.div
-                        key={announcement.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.08 }}
-                    >
-                        <Card className={cn(
-                            "overflow-hidden flex flex-col h-full transition-all duration-300",
-                            "hover:shadow-lg hover:-translate-y-1 border-l-4 border-l-transparent",
-                            "hover:border-l-purple-500/50 group"
-                        )}>
+        <ScrollArea className="h-[404px] pr-2">
+            <div className="flex flex-col gap-3">
+                <AnimatePresence>
+                    {announcements.map((announcement, index) => (
+                        <motion.article
+                            key={announcement.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.08 }}
+                            whileHover={{ y: -2 }}
+                            className={cn(
+                                "group overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br from-card/95 to-background/80 p-4 transition-all duration-300",
+                                "hover:border-primary/30 hover:shadow-md"
+                            )}
+                        >
                             {announcement.imageUrl && (
-                                <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                                <div className="relative mb-3 aspect-video w-full overflow-hidden rounded-lg bg-muted">
                                     <img
                                         src={announcement.imageUrl}
                                         alt={announcement.title}
@@ -77,8 +73,8 @@ export function StudentAnnouncementFeed() {
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
                             )}
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center justify-between mb-2">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-2">
                                     <Badge
                                         variant="secondary"
                                         className="text-xs font-normal bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-700 dark:text-purple-400 border-0"
@@ -86,24 +82,22 @@ export function StudentAnnouncementFeed() {
                                         <Sparkles className="h-3 w-3 mr-1" />
                                         {announcement.course.title}
                                     </Badge>
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                    <span className="shrink-0 text-xs text-muted-foreground flex items-center gap-1.5">
                                         <Calendar className="h-3.5 w-3.5" />
                                         {new Date(announcement.createdAt).toLocaleDateString()}
                                     </span>
                                 </div>
-                                <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors">
+                                <h3 className="text-base font-semibold leading-tight group-hover:text-primary transition-colors">
                                     {announcement.title}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-1 pb-4">
+                                </h3>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 leading-relaxed">
                                     {announcement.content}
                                 </p>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                ))}
-            </AnimatePresence>
-        </div>
+                            </div>
+                        </motion.article>
+                    ))}
+                </AnimatePresence>
+            </div>
+        </ScrollArea>
     )
 }

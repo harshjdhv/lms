@@ -42,7 +42,7 @@ export function StudentCourseCatalog() {
             if (val) refetch()
         }}>
             <DialogTrigger asChild>
-                <Button className="w-full relative overflow-hidden group">
+                <Button className="relative w-full sm:w-auto overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <Search className="mr-2 h-4 w-4" />
                     Browse & Join Courses

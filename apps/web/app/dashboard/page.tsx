@@ -125,7 +125,7 @@ export default async function Page() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="flex flex-1 flex-col gap-8 p-4 pt-4 overflow-y-auto w-full">
+      <div className="flex flex-1 w-full min-w-0 flex-col gap-8 p-4 pt-4">
         {dbUser.role === 'TEACHER' ? (
           <TeacherDashboard courses={teacherCourses} teacherName={dbUser.name || 'Teacher'} />
         ) : (

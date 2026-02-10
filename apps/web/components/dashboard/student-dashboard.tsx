@@ -93,28 +93,29 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
             .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
             .slice(0, 5)
     }, [assignments])
+    const panelClass = "overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
 
     return (
-        <div className="flex flex-col gap-8 animate-in fade-in-50 duration-500">
+        <div className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-6 overflow-x-hidden animate-in fade-in-50 duration-500">
             {/* Welcome Header */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b"
+                className="sticky top-0 z-10 flex flex-col justify-between gap-4 border-b bg-background/95 pb-4 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:flex-row lg:items-center"
             >
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                        <h1 className="min-w-0 text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent sm:text-3xl">
                             Welcome back, {studentName.split(' ')[0]} 👋
                         </h1>
-                        <Sparkles className="h-6 w-6 text-amber-500 animate-pulse" />
+                        <Sparkles className="h-5 w-5 shrink-0 text-amber-500 animate-pulse sm:h-6 sm:w-6" />
                     </div>
-                    <p className="text-muted-foreground text-lg">
+                    <p className="text-muted-foreground text-base sm:text-lg">
                         Track your progress, complete assignments, and stay updated.
                     </p>
                     {/* Quick stats inline */}
-                    <div className="flex items-center gap-4 pt-2">
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
                         {stats.dueSoon > 0 && (
                             <div className="flex items-center gap-1.5 text-sm text-amber-600 bg-amber-500/10 px-3 py-1 rounded-full">
                                 <Clock className="h-3.5 w-3.5" />
@@ -129,18 +130,18 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:gap-3">
                     <Button
                         variant="outline"
                         size="icon"
                         onClick={() => refetchAssignments()}
                         disabled={isFetching}
-                        className="transition-transform hover:scale-105"
+                        className="shrink-0 transition-transform hover:scale-105"
                     >
                         <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
                     </Button>
                     <StudentCourseCatalog />
-                    <Button asChild className="gap-2 bg-gradient-to-r from-primary to-primary/80">
+                    <Button asChild className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80 sm:w-auto">
                         <Link href="/dashboard/assignments">
                             <FileText className="h-4 w-4" />
                             View All Assignments
@@ -150,7 +151,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
             </motion.div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
                 {isLoading ? (
                     [...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)
                 ) : (
@@ -196,16 +197,16 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
             </div>
 
             {/* Main Content */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 {/* Left Column - Assignments & Progress */}
-                <div className="xl:col-span-2 space-y-6">
+                <div className="min-w-0 space-y-6 xl:col-span-2">
                     {/* Progress Overview Card */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.2 }}
                     >
-                        <Card className="overflow-hidden border shadow-lg">
+                        <Card className={cn(panelClass, "min-h-[300px]")}>
                             <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b pb-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -225,7 +226,7 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-6">
-                                <div className="grid grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
                                     <ProgressItem
                                         label="Pending"
                                         value={stats.pendingSubmissions}
@@ -263,14 +264,14 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                 </div>
 
                 {/* Right Column - Deadlines & Announcements */}
-                <div className="space-y-6">
+                <div className="min-w-0 space-y-6 xl:sticky xl:top-24 self-start">
                     {/* Upcoming Deadlines Card */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.4 }}
                     >
-                        <Card className="overflow-hidden border shadow-lg">
+                        <Card className={cn(panelClass, "min-h-[300px]")}>
                             <CardHeader className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border-b pb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 flex items-center justify-center">
@@ -319,18 +320,26 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.5 }}
-                        className="space-y-4"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/10 flex items-center justify-center">
-                                <Megaphone className="h-4 w-4 text-purple-600" />
-                            </div>
-                            <h2 className="text-xl font-semibold tracking-tight">Announcements</h2>
-                            <Badge variant="secondary" className="ml-auto">
-                                {stats.recentAnnouncements}
-                            </Badge>
-                        </div>
-                        <StudentAnnouncementFeed />
+                        <Card className={cn(panelClass, "min-h-[520px]")}>
+                            <CardHeader className="bg-gradient-to-r from-purple-500/10 via-pink-500/5 to-transparent border-b pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/10 flex items-center justify-center">
+                                        <Megaphone className="h-5 w-5 text-purple-600" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">Announcements</CardTitle>
+                                        <CardDescription>Recent updates from your courses</CardDescription>
+                                    </div>
+                                    <Badge variant="secondary" className="ml-auto">
+                                        {stats.recentAnnouncements}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                <StudentAnnouncementFeed />
+                            </CardContent>
+                        </Card>
                     </motion.div>
                 </div>
             </div>
@@ -435,29 +444,29 @@ function DeadlineItem({
 // Loading skeleton for the dashboard
 export function StudentDashboardSkeleton() {
     return (
-        <div className="flex flex-col gap-8">
+        <div className="mx-auto flex w-full min-w-0 max-w-[1400px] flex-col gap-6 overflow-x-hidden">
             {/* Header Skeleton */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b">
+            <div className="flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
                 <div className="space-y-2">
-                    <Skeleton className="h-9 w-72" />
-                    <Skeleton className="h-5 w-96" />
+                    <Skeleton className="h-9 w-[min(18rem,100%)]" />
+                    <Skeleton className="h-5 w-[min(26rem,100%)]" />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex w-full flex-wrap gap-3 md:w-auto md:flex-nowrap">
                     <Skeleton className="h-10 w-10 rounded-lg" />
-                    <Skeleton className="h-10 w-32" />
-                    <Skeleton className="h-10 w-40" />
+                    <Skeleton className="h-10 w-32 max-w-full" />
+                    <Skeleton className="h-10 w-40 max-w-full" />
                 </div>
             </div>
 
             {/* Stats Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
                 {[...Array(4)].map((_, i) => (
                     <StatsCardSkeleton key={i} />
                 ))}
             </div>
 
             {/* Content Skeleton */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <div className="xl:col-span-2 space-y-6">
                     <Skeleton className="h-48 w-full rounded-xl" />
                     <Skeleton className="h-96 w-full rounded-xl" />

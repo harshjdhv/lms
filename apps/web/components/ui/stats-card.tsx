@@ -51,7 +51,7 @@ export function StatsCard({
         >
             <div
                 className={cn(
-                    "relative overflow-hidden rounded-xl border-0 shadow-lg p-6",
+                    "relative h-full min-h-[156px] overflow-hidden rounded-xl border border-border/50 p-6 shadow-sm",
                     "transition-all duration-300 hover:shadow-xl",
                     `bg-gradient-to-br ${gradient}`
                 )}
@@ -122,7 +122,7 @@ export const gradientPresets = {
 // Stats card skeleton for loading states
 export function StatsCardSkeleton() {
     return (
-        <div className="relative overflow-hidden rounded-xl border-0 shadow-lg p-6 bg-muted/20 animate-pulse">
+        <div className="relative h-full min-h-[156px] overflow-hidden rounded-xl border border-border/50 bg-muted/20 p-6 shadow-sm animate-pulse">
             <div className="flex items-center justify-between mb-3">
                 <div className="h-4 w-24 bg-muted/50 rounded" />
                 <div className="h-8 w-8 bg-muted/50 rounded-lg" />

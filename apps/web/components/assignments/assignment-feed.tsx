@@ -31,7 +31,7 @@ export function AssignmentFeed() {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col h-full bg-gradient-to-br from-sidebar/50 to-background border rounded-2xl overflow-hidden shadow-lg">
+            <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-background/80 to-transparent backdrop-blur-sm">
                     <Skeleton className="h-6 w-32" />
                     <div className="flex gap-2">
@@ -57,11 +57,11 @@ export function AssignmentFeed() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="flex flex-col h-full bg-gradient-to-br from-sidebar/50 to-background border rounded-2xl overflow-hidden shadow-lg"
+            className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
         >
             {/* Header with course filters */}
-            <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-background/80 to-transparent backdrop-blur-sm">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 p-4 border-b bg-gradient-to-r from-background/80 to-transparent backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-2">
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/10 flex items-center justify-center">
                         <FileText className="h-4 w-4 text-blue-600" />
                     </div>
@@ -70,7 +70,7 @@ export function AssignmentFeed() {
                         {filtered.length}
                     </Badge>
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 max-w-[50%] no-scrollbar">
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar sm:max-w-[55%]">
                     <Badge
                         variant={filter === 'ALL' ? "default" : "outline"}
                         className={cn(
@@ -98,7 +98,7 @@ export function AssignmentFeed() {
             </div>
 
             {/* Assignment list */}
-            <ScrollArea className="flex-1 p-4 h-[400px]">
+            <ScrollArea className="h-[430px] flex-1 p-4">
                 <div className="flex flex-col gap-4">
                     <AnimatePresence mode="popLayout">
                         {filtered.length === 0 ? (
