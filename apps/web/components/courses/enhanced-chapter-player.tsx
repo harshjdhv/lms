@@ -51,11 +51,11 @@ export function EnhancedChapterPlayer({
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-10 space-y-6 text-center">
         <Link
-          href={`/dashboard/courses/${courseId}`}
+          href="/dashboard/courses/my"
           className="self-start mb-4 text-sm text-muted-foreground hover:text-foreground flex items-center transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Course
+          Back to My Courses
         </Link>
 
         <div className="p-6 rounded-full bg-muted">
@@ -98,11 +98,11 @@ export function EnhancedChapterPlayer({
       {/* Main content: video + title */}
       <div className="flex-1 min-w-0 flex flex-col p-4 lg:p-6">
         <Link
-          href={`/dashboard/courses/${courseId}`}
+          href="/dashboard/courses/my"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to {courseTitle}
+          Back to My Courses
         </Link>
 
         <div className="space-y-3 mb-4">

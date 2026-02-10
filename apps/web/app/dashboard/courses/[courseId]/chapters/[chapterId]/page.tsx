@@ -39,7 +39,7 @@ export default async function ChapterPage({
     });
 
     if (!chapter || !course) {
-        redirect("/dashboard/courses");
+        redirect("/dashboard/courses/my");
     }
 
     const dbUser = await prisma.user.findUnique({

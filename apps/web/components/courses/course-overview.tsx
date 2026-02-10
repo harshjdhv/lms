@@ -37,11 +37,11 @@ export function CourseOverview({ course: initialCourse, isEnrolled }: CourseOver
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="space-y-2">
                         <Link
-                            href="/dashboard/courses/catalog"
+                            href="/dashboard/courses/my"
                             className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors w-fit"
                         >
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Catalog
+                            Back to My Courses
                         </Link>
                         <h1 className="text-3xl font-bold tracking-tight">{course.title}</h1>
                         <p className="text-muted-foreground text-lg max-w-2xl">

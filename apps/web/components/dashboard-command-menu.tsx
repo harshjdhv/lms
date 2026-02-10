@@ -35,7 +35,7 @@ export function DashboardCommandMenu() {
                     id: "courses",
                     title: "Courses",
                     icon: <BookOpen className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/courses"),
+                    onSelect: () => router.push("/dashboard/courses/my"),
                 },
                 {
                     id: "assignments",

@@ -18,6 +18,7 @@ import { useMyCourses } from "@/hooks/queries/use-courses";
 import { StatsCard, gradientPresets, StatsCardSkeleton } from "@/components/ui/stats-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useState, useMemo } from "react";
+import { cn } from "@workspace/ui/lib/utils";
 
 interface MyCoursesViewProps {
     isTeacher: boolean;
@@ -69,25 +70,31 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
     const hasCourses = filteredCourses && filteredCourses.length > 0;
 
     return (
-        <div className="w-full flex flex-col gap-8 p-6 max-w-[1600px] mx-auto animate-in fade-in-50 duration-500">
+        <div className={cn(
+            "w-full flex flex-col p-6 mx-auto animate-in fade-in-50 duration-500",
+            isTeacher ? "gap-8 max-w-[1600px]" : "gap-6 max-w-[1400px]"
+        )}>
             {/* Enhanced Header */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b"
+                className={cn(
+                    "flex flex-col md:flex-row md:items-center justify-between gap-4",
+                    isTeacher ? "pb-6 border-b" : "pb-3"
+                )}
             >
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
-                            {isTeacher ? "My Courses" : "My Learning"}
+                            {isTeacher ? "My Courses" : "My Classes"}
                         </h1>
                         {isTeacher && <Sparkles className="h-5 w-5 text-amber-500" />}
                     </div>
                     <p className="text-muted-foreground text-lg">
                         {isTeacher
                             ? "Create, manage, and track your course content."
-                            : "Continue your learning journey."}
+                            : "Pick up where you left off."}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -112,7 +119,7 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
             </motion.div>
 
             {/* Stats Overview */}
-            {courses && courses.length > 0 && (
+            {isTeacher && courses && courses.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <StatsCard
                         title={isTeacher ? "Total Courses" : "Enrolled Courses"}
@@ -152,7 +159,7 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                             ? `No courses match "${searchQuery}". Try a different search.`
                             : isTeacher
                                 ? "You haven't created any courses yet. Start by creating your first course."
-                                : "You are not enrolled in any courses yet. Browse the catalog to get started."
+                                : "You are not enrolled in any courses yet."
                     }
                     iconColor="text-blue-500"
                     iconBgColor="bg-blue-500/10"
@@ -170,8 +177,8 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                                     href: "/dashboard/courses/new",
                                 }
                                 : {
-                                    label: "Browse Catalog",
-                                    href: "/dashboard/courses/catalog",
+                                    label: "Refresh",
+                                    href: "/dashboard/courses/my",
                                     variant: "outline",
                                 }
                     }
@@ -181,7 +188,12 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.2 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
+                    className={cn(
+                        "grid gap-6",
+                        isTeacher
+                            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                            : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                    )}
                 >
                     <AnimatePresence>
                         {filteredCourses.map((course, index) => (

@@ -34,7 +34,7 @@ export function CourseCard({
     isTeacher = false,
     imageUrl,
 }: CourseCardProps) {
-    const [isPending, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
     const [isNavigating, setIsNavigating] = useState(false);
 
     const handleClick = () => {
@@ -42,92 +42,107 @@ export function CourseCard({
         startTransition(() => { });
     };
 
+    const classroomThemes = [
+        "from-sky-600 to-cyan-500",
+        "from-emerald-600 to-teal-500",
+        "from-orange-500 to-amber-500",
+        "from-rose-600 to-pink-500",
+        "from-indigo-600 to-violet-500",
+        "from-blue-700 to-indigo-500",
+    ] as const;
+
+    const themeIndex = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % classroomThemes.length;
+    const headerGradient = classroomThemes[themeIndex] || classroomThemes[0];
+    const teacherInitial = (isTeacher ? "T" : (teacherName || title || "C")).trim().charAt(0).toUpperCase();
+
     return (
-        <Card className={cn(
-            "group flex flex-col h-full overflow-hidden transition-all duration-300",
-            "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20",
-            isNavigating && "scale-[0.98] opacity-70"
-        )}>
-            {/* Course thumbnail area */}
-            <div className="relative aspect-video w-full bg-gradient-to-br from-primary/10 via-muted to-primary/5 flex items-center justify-center overflow-hidden">
+        <Card
+            className={cn(
+                "group flex h-full flex-col overflow-hidden rounded-2xl border bg-card py-0 gap-0",
+                "shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-all duration-300",
+                "hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(0,0,0,0.16)]",
+                isNavigating && "scale-[0.99] opacity-80"
+            )}
+        >
+            <div className={cn("relative h-36 overflow-hidden bg-gradient-to-r", headerGradient)}>
                 {imageUrl ? (
                     <img
                         src={imageUrl}
                         alt={title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="absolute inset-0 block h-full w-full object-cover"
                     />
                 ) : (
-                    <>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <BookOpen className="w-10 h-10 text-primary/30 group-hover:scale-110 transition-transform duration-300" />
-                    </>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <BookOpen className="h-10 w-10 text-white/70" />
+                    </div>
                 )}
-
-                {/* Chapter count badge */}
-                <div className="absolute bottom-2 right-2">
-                    <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm text-xs">
-                        {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}
-                    </Badge>
+                <div className="absolute inset-0 bg-black/25" />
+                <div className="absolute -bottom-5 right-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-background bg-white font-semibold text-foreground shadow-sm">
+                    {teacherInitial}
                 </div>
 
-                {/* Loading overlay */}
                 {isNavigating && (
-                    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-                        <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     </div>
                 )}
             </div>
 
-            <CardContent className="flex-1 p-4 space-y-2">
-                <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+            <CardContent className="flex-1 p-4 pt-7">
+                <h3 className="line-clamp-1 text-lg font-semibold">
                     {title}
                 </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
-                    {description || "No description provided."}
+                <p className="mt-1 text-xs text-muted-foreground">
+                    {isTeacher ? "Your class" : (teacherName || "Course")}
                 </p>
-
-                {/* Teacher info */}
-                {teacherName && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-                        <User className="w-3 h-3" />
-                        <span>{teacherName}</span>
-                    </div>
-                )}
-
-                {/* Progress bar for students */}
-                {typeof progress === "number" && (
-                    <div className="space-y-1.5 pt-2">
+                <p className="line-clamp-2 min-h-[2.5rem] text-sm text-muted-foreground">
+                    {description || (isTeacher ? "Manage this class content and updates." : "Continue learning from the latest class material.")}
+                </p>
+                <div className="mt-4 flex items-center justify-between">
+                    <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
+                        {chapterCount} {chapterCount === 1 ? "topic" : "topics"}
+                    </Badge>
+                    {isTeacher ? (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            Teacher
+                        </span>
+                    ) : typeof progress === "number" ? (
+                        <span className="text-xs font-medium text-primary">
+                            {Math.round(progress)}% complete
+                        </span>
+                    ) : null}
+                </div>
+                {typeof progress === "number" && !isTeacher && (
+                    <div className="mt-3 space-y-1.5">
                         <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Progress</span>
                             <span className="font-medium text-primary">{Math.round(progress)}%</span>
                         </div>
-                        <Progress
-                            value={progress}
-                            className="h-1.5"
-                        />
+                        <Progress value={progress} className="h-1.5" />
                     </div>
                 )}
             </CardContent>
 
-            <CardFooter className="p-4 pt-0">
+            <CardFooter className="px-4 pb-4 pt-0">
                 <Button
                     asChild
-                    className="w-full group/btn"
+                    className="w-full rounded-xl"
                     variant={isTeacher ? "outline" : "default"}
                     onClick={handleClick}
                 >
                     <Link href={`/dashboard/courses/${id}`}>
                         {isTeacher ? (
                             <>
-                                <Edit className="mr-2 w-4 h-4" />
-                                Manage
-                                <ChevronRight className="ml-auto w-4 h-4 opacity-50 group-hover/btn:translate-x-0.5 transition-transform" />
+                                <Edit className="mr-2 h-4 w-4" />
+                                Manage Class
+                                <ChevronRight className="ml-auto h-4 w-4 opacity-70 transition-transform group-hover:translate-x-0.5" />
                             </>
                         ) : (
                             <>
-                                <PlayCircle className="mr-2 w-4 h-4" />
-                                {progress && progress > 0 ? "Continue" : "Start Learning"}
-                                <ChevronRight className="ml-auto w-4 h-4 opacity-50 group-hover/btn:translate-x-0.5 transition-transform" />
+                                <PlayCircle className="mr-2 h-4 w-4" />
+                                Open Class
+                                <ChevronRight className="ml-auto h-4 w-4 opacity-70 transition-transform group-hover:translate-x-0.5" />
                             </>
                         )}
                     </Link>

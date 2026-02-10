@@ -286,12 +286,12 @@ export function ReflectionModal({ reflection, studentId, onComplete, chapterId, 
     answer.trim().length > 0;
 
   return (
-    <div className="fixed top-0 bottom-0 right-0 left-0 md:left-64 z-50 flex font-sans transition-all duration-300">
-      {/* Backdrop - now fills the offset container */}
+    <div className="fixed inset-0 z-50 flex font-sans transition-all duration-300">
+      {/* Full-screen backdrop blocks all page interactions while reflection is active */}
       <div className="absolute inset-0 bg-background/95 backdrop-blur-sm transition-all duration-300" />
 
       {/* Main Content Area */}
-      <div className="relative flex-1 flex flex-col h-full lg:mr-80 xl:mr-96 w-full transition-all duration-300">
+      <div className="relative flex-1 flex flex-col h-full w-full transition-all duration-300">
 
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-border/40 bg-background/50 backdrop-blur-sm shrink-0">

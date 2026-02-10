@@ -281,6 +281,17 @@ export function ReflectionVideoPlayer({
     };
   }, [videoId, reflectionPoints.length, initializePlayer, addDebugLog]);
 
+  useEffect(() => {
+    if (!showReflection) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [showReflection]);
+
   const handleReflectionComplete = useCallback(() => {
     setShowReflection(false);
     setVideoPaused(false);

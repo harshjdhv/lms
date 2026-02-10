@@ -167,11 +167,11 @@ export function CourseEditor({ course }: CourseEditorProps) {
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                     <Link
-                        href="/dashboard/courses"
+                        href="/dashboard/courses/my"
                         className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Courses
+                        Back to My Courses
                     </Link>
                     <h1 className="text-2xl font-bold tracking-tight">{course.title}</h1>
                     <p className="text-muted-foreground mt-1">
