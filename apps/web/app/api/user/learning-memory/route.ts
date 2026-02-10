@@ -92,8 +92,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true, memory });
   } catch (error) {
     console.error("Failed to update learning memory:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to update learning memory";
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : undefined;
     return NextResponse.json(
-      { error: "Failed to update learning memory" },
+      {
+        error: "Failed to update learning memory",
+        message,
+        code,
+      },
       { status: 500 },
     );
   }

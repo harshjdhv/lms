@@ -76,12 +76,18 @@ export function LearningMemorySettings() {
           }),
         });
         if (!response.ok) {
-          throw new Error("Failed to save learning settings");
+          const data = await response.json().catch(() => ({}));
+          throw new Error(
+            data?.message || data?.error || "Failed to save learning settings",
+          );
         }
         toast.success("Learning preferences updated");
       } catch (error) {
         console.error(error);
-        toast.error("Could not save learning preferences");
+        toast.error("Could not save learning preferences", {
+          description:
+            error instanceof Error ? error.message : "Unknown error",
+        });
       }
     });
   };
