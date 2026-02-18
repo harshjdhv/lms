@@ -33,7 +33,7 @@ export const metadata = {
     title: "ConnectX LMS - AI-Powered Engineering Education",
     description:
       "Revolutionary LMS with AI pair programming, IoT simulations, and 3D algorithm visualizations for engineering students.",
-    url: "https://connectx-lms.vercel.app", // Update this with your actual domain
+    url: "https://lms.harshjdhv.com", // Update this with your actual domain
     siteName: "ConnectX LMS",
     images: [
       {
