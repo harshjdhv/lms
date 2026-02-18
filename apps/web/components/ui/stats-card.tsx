@@ -53,7 +53,7 @@ export function StatsCard({
                 className={cn(
                     "relative h-full min-h-[156px] overflow-hidden rounded-xl border border-border/50 p-6 shadow-sm",
                     "transition-all duration-300 hover:shadow-xl",
-                    `bg-gradient-to-br ${gradient}`
+                    `bg-linear-to-br ${gradient}`
                 )}
             >
                 {/* Background decoration */}

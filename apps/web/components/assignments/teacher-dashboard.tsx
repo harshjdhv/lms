@@ -7,12 +7,9 @@ import {
     Users,
     FileText,
     Clock,
-    CheckCircle2,
     Plus,
     Megaphone,
-    TrendingUp,
     BarChart3,
-    ArrowRight,
     Sparkles,
     PlusCircle,
     Eye,
@@ -20,7 +17,7 @@ import {
     PlayCircle,
     MoreHorizontal,
     Search,
-    Filter,
+    Link,
 } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -136,7 +133,7 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
             >
                 <div className="space-y-1">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
+                        <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/60 bg-clip-text">
                             Welcome back, {teacherName.split(' ')[0]}
                         </h1>
                         <Sparkles className="h-6 w-6 text-amber-500 animate-pulse" />
@@ -147,14 +144,14 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" asChild>
-                        <a href="/dashboard/courses/new" className="gap-2">
+                        <Link href="/dashboard/courses/new" className="gap-2">
                             <PlusCircle className="h-4 w-4" />
                             New Course
-                        </a>
+                        </Link>
                     </Button>
                     <Button
                         onClick={() => document.getElementById('create-assignment-section')?.scrollIntoView({ behavior: 'smooth' })}
-                        className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                        className="gap-2 bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                     >
                         <FileText className="h-4 w-4" />
                         Create Assignment
@@ -303,7 +300,7 @@ function AssignmentTable({
             transition={{ duration: 0.4 }}
         >
             <Card className="overflow-hidden border shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-muted/50 to-transparent border-b py-4">
+                <CardHeader className="bg-linear-to-r from-muted/50 to-transparent border-b py-4">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <BarChart3 className="h-5 w-5 text-primary" />
                         Assignment Overview
@@ -339,7 +336,7 @@ function AssignmentTable({
                                                 <div className={cn(
                                                     "h-10 w-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110",
                                                     assignment.status === "ACTIVE"
-                                                        ? "bg-gradient-to-br from-primary/20 to-primary/10 text-primary"
+                                                        ? "bg-linear-to-br from-primary/20 to-primary/10 text-primary"
                                                         : "bg-muted text-muted-foreground"
                                                 )}>
                                                     <FileText className="h-5 w-5" />
@@ -452,7 +449,7 @@ function StatusBadge({ status }: { status: string }) {
 function AssignmentTableSkeleton() {
     return (
         <Card className="overflow-hidden border shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-muted/50 to-transparent border-b py-4">
+            <CardHeader className="bg-linear-to-r from-muted/50 to-transparent border-b py-4">
                 <Skeleton className="h-6 w-48" />
                 <Skeleton className="h-4 w-64 mt-2" />
             </CardHeader>
