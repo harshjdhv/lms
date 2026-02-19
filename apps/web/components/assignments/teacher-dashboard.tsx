@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
     BookOpen,
@@ -8,21 +8,20 @@ import {
     FileText,
     Clock,
     Plus,
-    Megaphone,
     BarChart3,
     Sparkles,
-    PlusCircle,
     Eye,
     PauseCircle,
     PlayCircle,
     MoreHorizontal,
-    Search,
-    Link,
+    Megaphone,
+    ArrowRight,
 } from "lucide-react"
+
+import Link from "next/link"
 
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
-import { Input } from "@workspace/ui/components/input"
 import {
     Card,
     CardContent,
@@ -30,12 +29,6 @@ import {
     CardHeader,
     CardTitle,
 } from "@workspace/ui/components/card"
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@workspace/ui/components/tabs"
 import {
     Table,
     TableBody,
@@ -56,10 +49,9 @@ import { toast } from "sonner"
 import { StatsCard, StatsCardSkeleton, gradientPresets } from "@/components/ui/stats-card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ReviewSubmissionsDialog } from "@/components/assignments/review-submissions-dialog"
-import { CreateAssignmentSection } from "@/components/assignments/create-assignment-section"
-import { CreateAnnouncementSection } from "@/components/announcements/create-announcement-section"
-import { TeacherAnnouncementList } from "@/components/announcements/teacher-announcement-list"
 import { useAssignments, useUpdateAssignmentStatus } from "@/hooks/queries/use-assignments"
+import { useAnnouncements } from "@/hooks/queries/use-announcements"
+import { TeacherAnnouncementList } from "@/components/announcements/teacher-announcement-list"
 import { cn } from "@/lib/utils"
 
 interface Course {
@@ -73,21 +65,9 @@ interface TeacherDashboardProps {
 }
 
 export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDashboardProps) {
-    const [refresh, setRefresh] = useState(0)
-    const [refreshAnnouncements, setRefreshAnnouncements] = useState(0)
-    const [activeTab, setActiveTab] = useState("assignments")
-    const [searchQuery, setSearchQuery] = useState("")
-
-    const { data: assignments = [], isLoading } = useAssignments()
+    const { data: assignments = [], isLoading: isLoadingAssignments } = useAssignments()
+    const { data: announcements = [], isLoading: isLoadingAnnouncements } = useAnnouncements()
     const updateStatusMutation = useUpdateAssignmentStatus()
-
-    const handleCreated = () => {
-        setRefresh(prev => prev + 1)
-    }
-
-    const handleAnnouncementCreated = () => {
-        setRefreshAnnouncements(prev => prev + 1)
-    }
 
     // Calculate stats
     const stats = useMemo(() => {
@@ -105,15 +85,9 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
         }
     }, [assignments, courses])
 
-    // Filter assignments
-    const filteredAssignments = useMemo(() => {
-        return assignments.filter(a =>
-            a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            a.course.title.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-    }, [assignments, searchQuery])
 
-    const updateStatus = async (id: string, status: string) => {
+
+    const onUpdateStatus = async (id: string, status: string) => {
         try {
             await updateStatusMutation.mutateAsync({ id, status })
             toast.success(`Assignment marked as ${status.toLowerCase()}`)
@@ -142,26 +116,11 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
                         Manage your courses, track submissions, and engage with your students.
                     </p>
                 </div>
-                <div className="flex gap-3">
-                    <Button variant="outline" asChild>
-                        <Link href="/dashboard/courses/new" className="gap-2">
-                            <PlusCircle className="h-4 w-4" />
-                            New Course
-                        </Link>
-                    </Button>
-                    <Button
-                        onClick={() => document.getElementById('create-assignment-section')?.scrollIntoView({ behavior: 'smooth' })}
-                        className="gap-2 bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                    >
-                        <FileText className="h-4 w-4" />
-                        Create Assignment
-                    </Button>
-                </div>
             </motion.div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {isLoading ? (
+                {isLoadingAssignments ? (
                     [...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)
                 ) : (
                     <>
@@ -205,65 +164,124 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
                 )}
             </div>
 
-            {/* Main Content Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <TabsList className="grid w-full max-w-md grid-cols-2">
-                        <TabsTrigger value="assignments" className="gap-2">
-                            <FileText className="h-4 w-4" />
-                            Assignments
-                            {stats.pendingReview > 0 && (
-                                <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-xs">
-                                    {stats.pendingReview}
-                                </Badge>
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger value="announcements" className="gap-2">
-                            <Megaphone className="h-4 w-4" />
-                            Announcements
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
-                            />
+            {/* Dashboard Content Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                {/* Left Column: Recent Activity */}
+                <div className="xl:col-span-2 space-y-8">
+                    {/* Recent Assignments */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-primary" />
+                                Recent Assignments
+                            </h2>
+                            <Button variant="ghost" size="sm" asChild className="gap-1">
+                                <Link href="/dashboard/assignments">
+                                    View All <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            </Button>
                         </div>
+                        <AssignmentTable
+                            assignments={assignments.slice(0, 5)}
+                            isLoading={isLoadingAssignments}
+                            onUpdateStatus={onUpdateStatus}
+                        />
+                    </div>
+
+                    {/* Recent Announcements */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+                                <Megaphone className="h-5 w-5 text-orange-500" />
+                                Recent Announcements
+                            </h2>
+                            <Button variant="ghost" size="sm" asChild className="gap-1">
+                                <Link href="/dashboard/announcements">
+                                    View All <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </div>
+                        <TeacherAnnouncementList
+                            announcements={announcements.slice(0, 3)}
+                            isLoading={isLoadingAnnouncements}
+                        />
                     </div>
                 </div>
 
-                {/* Assignments Tab */}
-                <TabsContent value="assignments" className="space-y-6">
-                    <AssignmentTable
-                        assignments={filteredAssignments}
-                        isLoading={isLoading}
-                        onUpdateStatus={updateStatus}
-                    />
+                {/* Right Column: Quick Actions & Courses */}
+                <div className="space-y-8">
+                    {/* Quick Actions */}
+                    <Card className="border-none shadow-md bg-linear-to-b from-primary/5 to-transparent">
+                        <CardHeader>
+                            <CardTitle>Quick Actions</CardTitle>
+                            <CardDescription>Common tasks you might need to do</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <Button className="w-full justify-start h-auto py-3 px-4" asChild>
+                                <Link href="/dashboard/create-assignments">
+                                    <div className="bg-primary/20 p-2 rounded-full mr-3">
+                                        <Plus className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-medium">Create Assignment</span>
+                                        <span className="text-xs text-muted-foreground font-normal">Task for students</span>
+                                    </div>
+                                </Link>
+                            </Button>
+                            <Button className="w-full justify-start h-auto py-3 px-4" variant="outline" asChild>
+                                <Link href="/dashboard/create-announcements">
+                                    <div className="bg-orange-500/10 p-2 rounded-full mr-3">
+                                        <Megaphone className="h-4 w-4 text-orange-600" />
+                                    </div>
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-medium">Post Announcement</span>
+                                        <span className="text-xs text-muted-foreground font-normal">Update for class</span>
+                                    </div>
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
 
-                    <div id="create-assignment-section" className="scroll-mt-20">
-                        <CreateAssignmentSection courses={courses} onCreated={handleCreated} />
-                    </div>
-                </TabsContent>
+                    {/* Your Courses Summary */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                                <span>Your Courses</span>
+                                <Badge variant="secondary">{courses.length}</Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {courses.slice(0, 4).map((course) => (
+                                <div key={course.id} className="flex items-center justify-between group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                            <BookOpen className="h-4 w-4" />
+                                        </div>
+                                        <span className="font-medium truncate max-w-[150px]">{course.title}</span>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
+                                        <Link href={`/dashboard/courses/${course.id}`}>
+                                            <ArrowRight className="h-3 w-3" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                            ))}
+                            {courses.length > 4 && (
+                                <Button variant="link" className="w-full h-auto p-0 pt-2 text-muted-foreground text-xs" asChild>
+                                    <Link href="/dashboard/courses/my">View all courses</Link>
+                                </Button>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
 
-                {/* Announcements Tab */}
-                <TabsContent value="announcements" className="space-y-6">
-                    <TeacherAnnouncementList refreshTrigger={refreshAnnouncements} />
-                    <div id="create-announcement-section" className="scroll-mt-20">
-                        <CreateAnnouncementSection courses={courses} onCreated={handleAnnouncementCreated} />
-                    </div>
-                </TabsContent>
-            </Tabs>
         </div>
     )
 }
 
 // Enhanced Assignment Table Component
-function AssignmentTable({
+export function AssignmentTable({
     assignments,
     isLoading,
     onUpdateStatus,

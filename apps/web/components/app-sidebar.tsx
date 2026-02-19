@@ -13,6 +13,7 @@ import {
   BookOpen,
   Calendar,
   Command,
+  File,
   FileText,
   GraduationCap,
   Heart,
@@ -99,6 +100,20 @@ export function AppSidebar({
       icon: UserCog,
       isActive: pathname.startsWith("/dashboard/account"),
     },
+    ...user.role === "TEACHER" ? [
+      {
+        title: "Create Assignments",
+        url: "/dashboard/create-assignments",
+        icon: FileText,
+        isActive: pathname.startsWith("/dashboard/create-assignments"),
+      },
+      {
+        title: "Create Announcements",
+        url: "/dashboard/create-announcements",
+        icon: File,
+        isActive: pathname.startsWith("/dashboard/create-announcements"),
+      }
+    ] : []
   ];
 
   const navSecondary = [

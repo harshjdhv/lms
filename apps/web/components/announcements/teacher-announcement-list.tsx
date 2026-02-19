@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -12,18 +11,23 @@ import {
     TableRow
 } from "@workspace/ui/components/table"
 import { Megaphone, Calendar } from "lucide-react"
-import { useAnnouncements } from "@/hooks/queries/use-announcements"
 
-export function TeacherAnnouncementList({ refreshTrigger }: { refreshTrigger: number }) {
-    const { data: announcements = [], isLoading, refetch } = useAnnouncements()
+interface Announcement {
+    id: string
+    title: string
+    content: string
+    createdAt: string | Date
+    course: {
+        title: string
+    }
+}
 
-    // Refetch when refreshTrigger changes (after creating a new announcement)
-    useEffect(() => {
-        if (refreshTrigger > 0) {
-            refetch()
-        }
-    }, [refreshTrigger, refetch])
+interface TeacherAnnouncementListProps {
+    announcements: Announcement[]
+    isLoading: boolean
+}
 
+export function TeacherAnnouncementList({ announcements, isLoading }: TeacherAnnouncementListProps) {
     return (
         <Card className="shadow-none border-none bg-transparent">
             <CardHeader className="px-0 pt-0">
