@@ -12,6 +12,6 @@ interface AnnouncementsManagerProps {
     courses: Course[];
 }
 
-export const AnnouncementsManager = ({ courses: }) => {
+export const AnnouncementsManager = ({ courses }: AnnouncementsManagerProps) => {
 
 };
