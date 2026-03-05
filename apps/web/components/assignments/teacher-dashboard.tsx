@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
@@ -65,6 +66,7 @@ interface TeacherDashboardProps {
 }
 
 export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDashboardProps) {
+    const router = useRouter()
     const { data: assignments = [], isLoading: isLoadingAssignments } = useAssignments()
     const { data: announcements = [], isLoading: isLoadingAnnouncements } = useAnnouncements()
     const updateStatusMutation = useUpdateAssignmentStatus()
@@ -185,6 +187,7 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
                             assignments={assignments.slice(0, 5)}
                             isLoading={isLoadingAssignments}
                             onUpdateStatus={onUpdateStatus}
+                            onCreateAssignment={() => router.push("/dashboard/create-assignments")}
                         />
                     </div>
 
@@ -196,8 +199,8 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
                                 Recent Announcements
                             </h2>
                             <Button variant="ghost" size="sm" asChild className="gap-1">
-                                <Link href="/dashboard/announcements">
-                                    View All <ArrowRight className="h-4 w-4" />
+                                <Link href="/dashboard/create-announcements">
+                                    Manage <ArrowRight className="h-4 w-4" />
                                 </Link>
                             </Button>
                         </div>
@@ -285,10 +288,12 @@ export function AssignmentTable({
     assignments,
     isLoading,
     onUpdateStatus,
+    onCreateAssignment,
 }: {
     assignments: any[]
     isLoading: boolean
     onUpdateStatus: (id: string, status: string) => void
+    onCreateAssignment: () => void
 }) {
     if (isLoading) {
         return <AssignmentTableSkeleton />
@@ -305,7 +310,7 @@ export function AssignmentTable({
                 action={{
                     label: "Create Assignment",
                     icon: Plus,
-                    onClick: () => document.getElementById('create-assignment-section')?.scrollIntoView({ behavior: 'smooth' })
+                    onClick: onCreateAssignment,
                 }}
             />
         )

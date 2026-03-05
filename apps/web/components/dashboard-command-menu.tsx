@@ -8,10 +8,7 @@ import {
     FileText,
     GraduationCap,
     LayoutDashboard,
-    LifeBuoy,
-    Send,
-    Settings,
-    User,
+    UserCog,
     Users,
 } from "lucide-react"
 
@@ -64,39 +61,16 @@ export function DashboardCommandMenu() {
             ],
         },
         {
-            title: "Settings",
+            title: "Account",
             items: [
                 {
-                    id: "profile",
-                    title: "Profile",
-                    icon: <User className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/profile"),
-                },
-                {
-                    id: "settings",
-                    title: "Settings",
-                    icon: <Settings className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/settings"),
+                    id: "account",
+                    title: "Account",
+                    icon: <UserCog className="h-4 w-4" />,
+                    onSelect: () => router.push("/dashboard/account"),
                 },
             ],
-        },
-        {
-            title: "Help",
-            items: [
-                {
-                    id: "support",
-                    title: "Support",
-                    icon: <LifeBuoy className="h-4 w-4" />,
-                    onSelect: () => router.push("/support"),
-                },
-                {
-                    id: "feedback",
-                    title: "Feedback",
-                    icon: <Send className="h-4 w-4" />,
-                    onSelect: () => router.push("/feedback"),
-                },
-            ],
-        },
+        }
     ]
 
     return (

@@ -11,22 +11,17 @@ import Link from "next/link";
 import * as React from "react";
 import {
   BookOpen,
-  Calendar,
   Command,
   File,
   FileText,
-  GraduationCap,
   Heart,
   LayoutDashboard,
-  LifeBuoy,
-  Send,
   UserCog,
   Users,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 
-import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -116,19 +111,6 @@ export function AppSidebar({
     ] : []
   ];
 
-  const navSecondary = [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ];
-
   const getRoleBadge = () => {
     if (!user.role) return null;
 
@@ -177,8 +159,6 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
-
-        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser

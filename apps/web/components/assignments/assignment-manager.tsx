@@ -72,6 +72,7 @@ const AssignmentManager = ({ courses }: AssignmentManagerProps) => {
                     assignments={filteredAssignments}
                     isLoading={isLoading}
                     onUpdateStatus={updateStatus}
+                    onCreateAssignment={() => setShowCreate(true)}
                 />
             </div>
         </div>
