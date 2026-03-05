@@ -1,0 +1,373 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\graphicspath{{./figures/}}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{url}
+
+\begin{document}
+
+\title{Development of ConnectX: A Full-Stack Learning Management System with Real-Time Communication and AI Integration%
+\thanks{This work was developed as an academic project at VPPCOE.}
+}
+
+\author{
+\IEEEauthorblockN{Medha Kulkarni, Harsh Jadhav, Nirvik Acharekar, Manthan Sorkhade, Sahil Hinge}
+\IEEEauthorblockA{\textit{Department of Information Technology} \\
+\textit{Vasantdada Patil Pratishthan's College of Engineering and Visual Arts (VPPCOE \& VA)}\\
+Mumbai, India \\
+mkulkarni@pvppcoe.ac.in, harshjadhavconnect@gmail.com, nirvikacharekar@gmail.com, \\
+sorkhademanthan@gmail.com, sahilhinge89@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Most Learning Management Systems are still organized around static content delivery and delayed assessment. While they provide scale, they often fail to capture learning state in the moment, especially during video-first self-study. This paper presents ConnectX, an AI-integrated LMS that treats reflection as a continuous process rather than an end-of-unit event. The system introduces a reflection engine that pauses instructional video at context-aware checkpoints, generates open-ended questions, evaluates learner responses through a hybrid semantic-lexical scoring model, and updates a student memory profile used for subsequent personalization.
+
+The work contributes a practical architecture for integrating real-time tutoring, adaptive assessment, and collaboration workflows in one platform. The core technical contribution is a hybrid scoring pipeline that blends an LLM-based semantic evaluator with cosine-based lexical similarity, balancing conceptual flexibility and score stability. Beyond the reflection engine, the platform includes course management, assignment workflows, role-aware mentorship, and real-time communication.
+
+Because this project is in active academic deployment, this paper avoids fabricated performance claims. Instead, it provides a rigorous system and methodology description, a realistic experimental protocol for future validation, and an explicit account of current limitations. The goal is to position the project as a credible research prototype and a foundation for evidence-driven educational AI studies.
+\end{abstract}
+
+\begin{IEEEkeywords}
+AI in education, learning management systems, adaptive learning, reflection-based assessment, short-answer scoring, educational NLP, personalized tutoring
+\end{IEEEkeywords}
+
+\section{Introduction}
+Digital learning platforms have made educational content more accessible, but accessibility does not automatically produce learning depth. In many LMS environments, students watch long video segments passively, then face generic quiz items that may not reflect what they actually understood. The gap is especially visible in engineering education, where learners often need immediate conceptual correction and guided practice, not only summary-level grading.
+
+This paper addresses that gap through ConnectX, an AI-integrated LMS designed around \textit{in-situ reflection}. The central idea is simple: a learning system should observe interaction, intervene at meaningful points, evaluate understanding in natural language, and adapt future support based on prior difficulty patterns. Rather than treating analytics as retrospective dashboards, ConnectX uses a live learner memory to influence question difficulty, explanation style, and remediation path.
+
+The project is motivated by three practical concerns seen in classroom and self-paced use: (1) delayed feedback in video-heavy learning, (2) over-reliance on multiple-choice signals that underrepresent conceptual understanding, and (3) weak continuity between successive learning interactions. These concerns lead to the following research questions:
+
+\begin{itemize}
+\item \textbf{RQ1:} Can a reflection-driven loop embedded in video playback support more context-aware formative assessment than periodic static quizzes?
+\item \textbf{RQ2:} Can a hybrid semantic-lexical scoring strategy provide a stable and interpretable signal for short-answer correctness without forcing strict keyword matching?
+\item \textbf{RQ3:} Can learner-memory updates derived from interaction events provide a practical basis for personalization in day-to-day LMS usage?
+\end{itemize}
+
+The contributions of this paper are:
+\begin{itemize}
+\item A research-oriented architecture for an LMS that integrates adaptive reflection, real-time communication, and mentorship workflows.
+\item A reflection algorithm that links transcript context, LLM question generation, hybrid scoring, and memory updates in one loop.
+\item A concrete scoring formulation that combines semantic evaluation and lexical similarity for open-ended answers.
+\item A realistic evaluation plan suitable for a final-year project setting, without overstating uncollected results.
+\end{itemize}
+
+\section{Related Work}
+Research on AI-enhanced education has evolved along three parallel tracks: adaptive tutoring systems, automatic short-answer assessment, and learning analytics in LMS platforms. ConnectX is positioned at the intersection of these tracks.
+
+Adaptive tutoring systems typically personalize either content sequencing or feedback style. Many strong systems are pedagogically rich but difficult to operationalize in standard institutional LMS workflows. By contrast, mainstream LMS tools are operationally mature but often shallow in adaptation. ConnectX attempts a middle ground: maintain practical LMS primitives (courses, assignments, communication, role management) while introducing adaptive behavior at high-frequency interaction points.
+
+Automatic short-answer assessment has long struggled with the trade-off between flexibility and reliability. Pure lexical methods are transparent and cheap but brittle to paraphrasing. Pure neural or LLM-only scoring is flexible but can fluctuate and may be harder to calibrate in institutional settings. The hybrid scorer in this work is designed to reduce this tension: lexical overlap contributes stability, while semantic scoring captures conceptual correctness when wording differs.
+
+Reflection as a pedagogical strategy is widely supported in educational theory, but implementation inside production LMSs is usually coarse (end-of-module prompts or optional journaling). ConnectX operationalizes reflection as an embedded, time-linked video event with immediate evaluation and optional remedial dialogue. This shift from static reflection to \textit{event-driven reflection} is the main pedagogical novelty of the system.
+
+Finally, prior LMS analytics often focus on macro indicators (completion rate, time-on-platform, aggregate scores). ConnectX complements this with micro-level learning-state updates (weak topics, hint-seeking patterns, rewatch/skip behavior) intended to directly influence subsequent instructional prompts rather than only administrator dashboards.
+
+\section{System Architecture}
+ConnectX is implemented as a monorepo full-stack system with a Next.js application layer, Prisma-backed PostgreSQL persistence, Supabase authentication, and AI service integrations.
+
+\subsection{Architectural Layers}
+The system is organized into four cooperating layers (See Fig.~\ref{fig:arch}):
+\begin{enumerate}
+\item \textbf{Experience Layer:} Student and teacher interfaces for courses, chapter playback, assignments, mentorship, and community chat.
+\item \textbf{Application Layer:} Role-aware API routes handling business logic, access control, and orchestration across features.
+\item \textbf{Intelligence Layer:} Reflection generation, answer evaluation, remediation chat, transcript processing, and memory update services.
+\item \textbf{Data Layer:} Relational schema for users, courses, chapters, assignments, submissions, messages, mentorship entities, and learner memory.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=0.48\textwidth]{homepage}}
+\caption{ConnectX landing page showing platform overview, role selection, and authentication entry point.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Core Functional Modules}
+\textbf{Learning Delivery Module:} Supports course/chapter publication, enrollment, and chapter playback with reflection checkpoints.
+
+\textbf{Assessment Module:} Supports assignment lifecycle (create, submit, review) and reflection-based formative short-answer assessment.
+
+\textbf{Community Module:} Provides direct messaging with optimistic UI and realtime sync.
+
+\textbf{Mentorship Module:} Supports mentor-mentee mapping, document requirements, submission review, and role-specific progress views.
+
+\textbf{Reflection Intelligence Module:} Drives context extraction, question generation, answer scoring, tutor chat, and learner memory adaptation.
+
+\subsection{Implementation Footprint}
+The current repository-level implementation is broad enough to support multi-role deployment rather than only proof-of-concept demos. At the time of writing, the codebase includes dozens of feature-specific API routes, role-aware dashboard pages, and dedicated component modules for assignments, mentorship, reflection, and chat. This breadth matters for research validity: the reflection contribution is evaluated in a realistic LMS context, not in isolation.
+
+From a software architecture perspective, the system uses a hybrid rendering pattern. Server-side route guards and selective prefetching are combined with client-side React Query caching and mutation invalidation. This pattern is visible across dashboard routes and reduces friction during repeated interactions such as submission review or chapter navigation.
+
+\subsection{Data Model and Domain Boundaries}
+The data model is intentionally relational and role-centered (See Fig.~\ref{fig:schema}). Core entities include:
+\begin{itemize}
+\item \textbf{User} with role, onboarding status, profile fields, and role-specific attributes,
+\item \textbf{Course}, \textbf{Chapter}, \textbf{Enrollment}, and \textbf{UserProgress} for instructional flow,
+\item \textbf{Assignment} and \textbf{AssignmentSubmission} for teacher-student assessment workflows,
+\item \textbf{Chat} and \textbf{Message} for peer/mentor communication,
+\item \textbf{Mentorship}, \textbf{DocumentRequirement}, and \textbf{DocumentSubmission} for supervised guidance,
+\item \textbf{ReflectionPoint} and \textbf{StudentReflectionMemory} for adaptive reflection.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=0.48\textwidth]{teacherdashboard}}
+\caption{Teacher dashboard showing course management, assignment controls, mentorship overview, and announcement creation.}
+\label{fig:schema}
+\end{figure}
+
+This schema enables the research focus of this paper: reflection is not an external service but a first-class entity linked to chapter timeline and learner history.
+
+\subsection{Access Control and Role Logic}
+The platform uses Supabase session identity with database-level role interpretation. In practice, most write routes enforce both role and ownership checks. Teacher-only operations include course authoring, assignment status control, and mentorship document review. Student-only operations include assignment/document submission. This role discipline is important when analyzing educational AI systems because pedagogical trust depends on clear authority boundaries.
+
+\subsection{Design Rationale}
+The architectural decision was to avoid isolating AI features as an external add-on. Instead, reflection intelligence is embedded inside routine learning flow. This improves contextual fidelity: the system can use chapter identity, transcript segment, prior attempts, and behavioral events at the moment of intervention.
+
+A second design choice was to maintain explicit role boundaries (student/teacher) even in AI-heavy pathways. Teacher workflows remain auditable and controllable, while student-facing AI support stays scoped to formative interaction.
+
+\section{Methodology (Including Reflection Algorithm and Scoring Formula)}
+This section describes the central methodological contribution: a closed-loop reflection pipeline with hybrid scoring and memory-grounded personalization.
+
+\subsection{Reflection Loop Overview}
+At runtime, the reflection loop executes the following sequence (illustrated in Fig.~\ref{fig:reflection_flow}):
+\begin{enumerate}
+\item Detect reflection checkpoint during chapter playback.
+\item Build context from transcript window and learner memory summary.
+\item Generate an open-ended question and reference answer.
+\item Collect student response.
+\item Compute hybrid correctness score.
+\item Return feedback/hint and update learner memory.
+\item If needed, shift to AI remediation chat and retry.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=0.48\textwidth]{video_course}}
+\caption{Chapter playback view with embedded video player, reflection checkpoint triggers, and transcript-based context extraction.}
+\label{fig:reflection_flow}
+\end{figure}
+
+The loop is designed for low friction: students stay in the learning context instead of switching to separate quiz pages.
+
+\subsection{Transcript-Centered Context Construction}
+The question generation stage does not rely on static chapter metadata alone. It uses transcript context derived from the watched segment window around a reflection point. The system supports multiple transcript ingestion paths that are all present in code:
+\begin{itemize}
+\item direct YouTube transcript retrieval through TranscriptAPI,
+\item cached transcript reuse from chapter storage,
+\item direct-media STT processing through Deepgram or AssemblyAI webhooks.
+\end{itemize}
+
+This design reduces cold-start failures and keeps question prompts grounded in what the student has actually watched, not just what the chapter title suggests.
+
+\subsection{Hybrid Scoring Formulation}
+Given learner answer $A$ and reference answer $R$, the system computes:
+\begin{itemize}
+\item $S_{sem}$: semantic score from an LLM evaluator (range $[0,1]$),
+\item $S_{lex}$: lexical similarity from cosine similarity on normalized token-frequency vectors.
+\end{itemize}
+
+Combined score is:
+\begin{equation}
+S_{hyb} = w_{sem} \cdot S_{sem} + (1 - w_{sem}) \cdot S_{lex}
+\end{equation}
+where $0 < w_{sem} < 1$ is configurable.
+
+Correctness decision is threshold-based:
+\begin{equation}
+\hat{y} =
+\begin{cases}
+1, & S_{hyb} \ge \tau \\
+0, & S_{hyb} < \tau
+\end{cases}
+\end{equation}
+with threshold $\tau$ calibrated empirically.
+
+This structure reflects a deliberate bias: semantic interpretation should dominate, but lexical evidence should regularize outputs and reduce variance.
+
+\subsection{Learner Memory Update Strategy}
+After each reflection event, the system updates a per-student memory profile with:
+\begin{itemize}
+\item attempt counters and accuracy,
+\item weak-topic and strength-topic sets,
+\item per-topic statistics (attempts, streak, last outcome),
+\item interaction patterns (hint requests, rewatches, skips, pauses),
+\item preference fields (pace, explanation style, confidence, goals).
+\end{itemize}
+
+Memory is then serialized into a prompt-friendly summary for future question generation and tutor chat behavior.
+
+\subsection{Behavioral Signals Beyond Correctness}
+One methodological detail that improves personalization quality is the use of interaction events independent of final correctness. The system tracks events such as hint requests, skip patterns, rewatches, pause/resume actions, and AI chat help requests. These are stored as interaction and habit signals in learner memory. As a result, adaptation is not driven only by right/wrong labels, but also by how a student reaches an answer.
+
+\subsection{Remediation Mechanism}
+When responses are incorrect, the system offers two escalation paths:
+\begin{itemize}
+\item targeted hint and retry in the same prompt context,
+\item conversational AI remediation that explains the concept and may request supporting visual/video resources.
+\end{itemize}
+
+A batch remediation mode also exists for multi-question checkpoints, where failed concepts are revisited with progressively simpler questions.
+
+\subsection{Operational Safeguards in AI Calls}
+The intelligence pipeline includes practical safeguards that influence research reliability:
+\begin{itemize}
+\item fallback model strategy for generation/evaluation failure cases,
+\item JSON-structured response contracts to reduce parsing ambiguity,
+\item deterministic fallback messages when model responses are malformed,
+\item threshold and weight controls exposed via environment configuration.
+\end{itemize}
+
+These safeguards are relevant because educational settings require continuity even when model APIs are unstable.
+
+\subsection{Algorithmic Novelty in Context}
+The novelty is not a single new model, but a reproducible orchestration pattern combining:
+\begin{enumerate}
+\item event-driven reflection timing,
+\item transcript-grounded question generation,
+\item hybrid correctness scoring,
+\item persistent learner-memory adaptation,
+\item remediation branching.
+\end{enumerate}
+
+For academic deployment contexts, this systems-level contribution is practical and testable without requiring custom model training.
+
+\section{Experimental Design (Proposed if Data Missing)}
+A complete quantitative evaluation is not yet finalized; therefore, this section defines a realistic protocol for upcoming validation.
+
+\subsection{Study Design}
+\textbf{Participants:} Undergraduate IT students enrolled in programming-oriented modules.
+
+\textbf{Groups:}
+\begin{itemize}
+\item \textbf{Control group:} Standard LMS flow with static quizzes.
+\item \textbf{Experimental group:} ConnectX reflection-enabled flow with hybrid scoring and memory personalization.
+\end{itemize}
+
+\textbf{Duration:} 4--6 weeks across comparable content units.
+
+\subsection{Evaluation Metrics}
+\textbf{Learning outcomes:}
+\begin{itemize}
+\item pre-test/post-test gain,
+\item delayed retention quiz after one week,
+\item assignment quality rubric scores.
+\end{itemize}
+
+\textbf{Assessment quality:}
+\begin{itemize}
+\item agreement between hybrid score and teacher judgment,
+\item false-positive/false-negative rates on correctness labels,
+\item score variance under paraphrased equivalent answers.
+\end{itemize}
+
+\textbf{Engagement and process:}
+\begin{itemize}
+\item reflection completion rate,
+\item average retries per reflection point,
+\item hint usage and remediation entry frequency,
+\item chapter completion and rewatch patterns.
+\end{itemize}
+
+\textbf{User perception:}
+\begin{itemize}
+\item perceived usefulness and cognitive load survey,
+\item teacher perception of review support and interpretability.
+\end{itemize}
+
+\subsection{Ablation Plan}
+To isolate contribution, run two ablations in the experimental arm:
+\begin{itemize}
+\item \textbf{Ablation A:} semantic-only scoring (remove lexical term),
+\item \textbf{Ablation B:} lexical-only scoring (remove semantic term).
+\end{itemize}
+
+Comparison against full hybrid scoring will clarify whether the combination improves reliability and pedagogical usefulness.
+
+\subsection{Threats to Validity (Pre-Registered)}
+Potential threats include prior-topic familiarity, uneven instructor feedback quality, and novelty effects from AI interaction. Mitigation includes randomization at section level, standardized teacher rubrics, and multi-week observation to reduce novelty bias.
+
+\section{Results (Current Status and Reporting Template)}
+At the time of writing, full controlled-study results are not yet available. To preserve academic integrity, no synthetic outcomes are reported.
+
+The following result structure is prepared for final submission once data collection is complete:
+\begin{itemize}
+\item \textbf{R1 Learning Gain:} mean and standard deviation of pre/post improvement by group.
+\item \textbf{R2 Scoring Agreement:} correlation and agreement rate between hybrid score and teacher ratings.
+\item \textbf{R3 Engagement:} reflection completion, retries, and remediation transitions.
+\item \textbf{R4 Ablation Impact:} performance differences between hybrid, semantic-only, and lexical-only scorers.
+\item \textbf{R5 Qualitative Signals:} representative student and teacher observations on feedback usefulness.
+\end{itemize}
+
+For reproducibility, final results should include confidence intervals, statistical test choice justification, and release of anonymized aggregate logs where institutionally permitted.
+
+\subsection{Implementation Evidence Available Now}
+Although controlled learning-outcome experiments are pending, the following implementation evidence is already available from the running system and codebase (representative screenshots shown in Fig.~\ref{fig:dashboard} and Fig.~\ref{fig:chat}):
+\begin{itemize}
+\item fully implemented role-aware flow from authentication to onboarding to dashboard access,
+\item operational reflection lifecycle from video checkpointing through scoring and memory update,
+\item production-style route coverage across courses, assignments, mentorship, documents, and chat,
+\item real-time messaging integration with optimistic updates and server persistence.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=0.48\textwidth]{studentdashboard}}
+\caption{Student dashboard displaying enrolled courses, upcoming assignments, reflection progress, and real-time chat access.}
+\label{fig:dashboard}
+\end{figure}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=0.48\textwidth]{teacherdashboard}}
+\caption{Mentor view with course analytics, student enrollment data, and document review interface.}
+\label{fig:chat}
+\end{figure}
+
+\section{Discussion}
+ConnectX demonstrates that an LMS can move from content delivery to adaptive formative interaction without abandoning practical classroom workflows. The reflection engine changes the temporal position of assessment: instead of asking ``what did you remember at the end?'', it asks ``what do you understand right now?'' This shift matters for difficult technical topics where misconceptions compound quickly.
+
+The hybrid scorer is particularly important in this context. In educational practice, strict keyword matching often penalizes valid explanations, while unconstrained semantic judgment can over-credit vague responses. The blended approach offers a usable compromise and gives educators a clearer calibration surface through $w_{sem}$ and $\tau$.
+
+Another notable outcome is systems coherence. Reflection, assignments, mentorship, and chat are not disconnected modules; they share identity, role constraints, and persistence semantics. This coherence makes it easier to study cross-feature behavior, such as whether repeated reflection difficulty predicts assignment quality or mentorship document delays.
+
+The project also highlights a pragmatic lesson for academic engineering projects: AI contribution quality depends heavily on surrounding systems design. In ConnectX, reflection quality is influenced by transcript reliability, route-level authorization, and UI timing behavior, not only by prompt quality. This suggests that future educational AI research should evaluate complete interaction loops rather than isolated model outputs.
+
+At the same time, the project should be interpreted as a research prototype with production-oriented engineering, not as a finished pedagogical truth. Its value lies in providing a credible testbed for controlled studies on adaptive reflection and short-answer scoring in real LMS settings.
+
+\section{Limitations}
+Several limitations are current and explicit:
+\begin{itemize}
+\item \textbf{Evaluation completeness:} controlled comparative results are still under collection.
+\item \textbf{Model dependency:} quality of generation/evaluation depends on external LLM behavior and API availability.
+\item \textbf{Calibration sensitivity:} thresholds and weights may vary across subjects and cohorts.
+\item \textbf{Generalizability:} current implementation is primarily validated on IT-oriented learning content.
+\item \textbf{Operational maturity:} some platform areas (tests, observability, route consistency) require further hardening.
+\end{itemize}
+
+These constraints do not invalidate the contribution, but they define clear boundaries for interpretation.
+
+\section{Future Work}
+Future work is planned in four directions:
+\begin{enumerate}
+\item \textbf{Empirical validation:} execute the proposed controlled study and publish statistically grounded outcomes.
+\item \textbf{Scoring refinement:} add rubric-guided criterion scoring and confidence estimation to complement binary correctness.
+\item \textbf{Multimodal reflection:} incorporate diagram/code response formats for engineering subjects where text-only answers are limiting.
+\item \textbf{Teacher-in-the-loop adaptation:} allow instructors to adjust reflection difficulty policies and inspect memory evolution traces.
+\end{enumerate}
+
+Longer-term, ConnectX can support explainable feedback audits, domain-specific concept maps, and fairness analysis across student subgroups.
+
+\section{Conclusion}
+This paper reframed ConnectX from a feature inventory into a research-oriented educational AI system. The central contribution is a reflection-first learning loop that connects transcript-aware questioning, hybrid short-answer scoring, and learner-memory adaptation inside routine LMS usage.
+
+Rather than claiming finalized efficacy without evidence, the work provides a transparent technical foundation and a concrete evaluation pathway. This is an important step for final-year project research: it demonstrates system novelty, methodological clarity, and academic honesty at the same time.
+
+If validated through the proposed experiments, ConnectX can offer a practical model for how future LMS platforms blend pedagogical reflection, NLP-based assessment, and human-centered educational workflows.
+
+\end{document}
