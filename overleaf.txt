@@ -42,7 +42,7 @@ AI in education, learning management systems, adaptive learning, reflection-base
 \end{IEEEkeywords}
 
 \section{Introduction}
-Digital learning platforms have made educational content more accessible, but accessibility does not automatically produce learning depth. In many LMS environments, students watch long video segments passively, then face generic quiz items that may not reflect what they actually understood. The gap is especially visible in engineering education, where learners often need immediate conceptual correction and guided practice, not only summary-level grading.
+Digital learning platforms have made educational content more accessible, but accessibility does not automatically produce learning depth. In many LMS environments, students watch long video segments passively, then face generic quiz items that may not reflect what they actually understood. The gap is especially visible in engineering education, where learners often need immediate conceptual correction and guided practice, not only summary-level grading \cite{anderson1995,corbett1994,vlehn2011}.
 
 This paper addresses that gap through ConnectX, an AI-integrated LMS designed around \textit{in-situ reflection}. The central idea is simple: a learning system should observe interaction, intervene at meaningful points, evaluate understanding in natural language, and adapt future support based on prior difficulty patterns. Rather than treating analytics as retrospective dashboards, ConnectX uses a live learner memory to influence question difficulty, explanation style, and remediation path.
 
@@ -63,18 +63,18 @@ The contributions of this paper are:
 \end{itemize}
 
 \section{Related Work}
-Research on AI-enhanced education has evolved along three parallel tracks: adaptive tutoring systems, automatic short-answer assessment, and learning analytics in LMS platforms. ConnectX is positioned at the intersection of these tracks.
+Research on AI-enhanced education has evolved along three parallel tracks: adaptive tutoring systems, automatic short-answer assessment, and learning analytics in LMS platforms \cite{anderson1995,vlehn2011,mohler2009,burrows2015,siemens2012}. ConnectX is positioned at the intersection of these tracks.
 
 Adaptive tutoring systems typically personalize either content sequencing or feedback style. Many strong systems are pedagogically rich but difficult to operationalize in standard institutional LMS workflows. By contrast, mainstream LMS tools are operationally mature but often shallow in adaptation. ConnectX attempts a middle ground: maintain practical LMS primitives (courses, assignments, communication, role management) while introducing adaptive behavior at high-frequency interaction points.
 
-Automatic short-answer assessment has long struggled with the trade-off between flexibility and reliability. Pure lexical methods are transparent and cheap but brittle to paraphrasing. Pure neural or LLM-only scoring is flexible but can fluctuate and may be harder to calibrate in institutional settings. The hybrid scorer in this work is designed to reduce this tension: lexical overlap contributes stability, while semantic scoring captures conceptual correctness when wording differs.
+Automatic short-answer assessment has long struggled with the trade-off between flexibility and reliability. Pure lexical methods are transparent and cheap but brittle to paraphrasing. Pure neural or LLM-only scoring is flexible but can fluctuate and may be harder to calibrate in institutional settings. The hybrid scorer in this work is designed to reduce this tension: lexical overlap contributes stability, while semantic scoring captures conceptual correctness when wording differs \cite{mohler2009,burrows2015}.
 
-Reflection as a pedagogical strategy is widely supported in educational theory, but implementation inside production LMSs is usually coarse (end-of-module prompts or optional journaling). ConnectX operationalizes reflection as an embedded, time-linked video event with immediate evaluation and optional remedial dialogue. This shift from static reflection to \textit{event-driven reflection} is the main pedagogical novelty of the system.
+Reflection as a pedagogical strategy is widely supported in educational theory, but implementation inside production LMSs is usually coarse (end-of-module prompts or optional journaling) \cite{boud1985}. ConnectX operationalizes reflection as an embedded, time-linked video event with immediate evaluation and optional remedial dialogue. This shift from static reflection to \textit{event-driven reflection} is the main pedagogical novelty of the system.
 
-Finally, prior LMS analytics often focus on macro indicators (completion rate, time-on-platform, aggregate scores). ConnectX complements this with micro-level learning-state updates (weak topics, hint-seeking patterns, rewatch/skip behavior) intended to directly influence subsequent instructional prompts rather than only administrator dashboards.
+Finally, prior LMS analytics often focus on macro indicators (completion rate, time-on-platform, aggregate scores) \cite{siemens2012}. ConnectX complements this with micro-level learning-state updates (weak topics, hint-seeking patterns, rewatch/skip behavior) intended to directly influence subsequent instructional prompts rather than only administrator dashboards.
 
 \section{System Architecture}
-ConnectX is implemented as a monorepo full-stack system with a Next.js application layer, Prisma-backed PostgreSQL persistence, Supabase authentication, and AI service integrations.
+ConnectX is implemented as a monorepo full-stack system with a Next.js application layer, Prisma-backed PostgreSQL persistence, Supabase authentication, and AI service integrations \cite{nextjsdocs,prismadocs,supabasedocs}.
 
 \subsection{Architectural Layers}
 The system is organized into four cooperating layers (See Fig.~\ref{fig:arch}):
@@ -92,28 +92,31 @@ The system is organized into four cooperating layers (See Fig.~\ref{fig:arch}):
 \end{figure}
 
 \subsection{Core Functional Modules}
-\textbf{Learning Delivery Module:} Supports course/chapter publication, enrollment, and chapter playback with reflection checkpoints.
+\textbf{Learning Delivery Module:} Supports course/chapter publication, enrollment, and chapter playback with reflection checkpoints. Courses may include file attachments for supplementary learning material and are optionally tagged with a semester identifier (e.g., SEM-7, SEM-8) to support institutional content organization across academic terms. The video embedding layer supports both YouTube and Vimeo URLs, broadening the range of instructional content sources available to teachers.
 
-\textbf{Assessment Module:} Supports assignment lifecycle (create, submit, review) and reflection-based formative short-answer assessment.
+\textbf{Assessment Module:} Supports the full assignment lifecycle (create, submit, review) and reflection-based formative short-answer assessment. In addition to the open-ended reflection pathway, the system includes a batch quiz generation mode that produces multiple-choice questions from transcript context. This mode is useful for rapid concept checks during longer video segments: the AI generates a set of four to five MCQ items at once, each with four options and a single correct answer. Failed items from a batch are then eligible for remediation, creating a complementary assessment pathway alongside the primary open-ended reflection.
 
-\textbf{Community Module:} Provides direct messaging with optimistic UI and realtime sync.
+\textbf{Community Module:} Provides direct messaging with optimistic UI and realtime sync. The realtime layer is built on Supabase Realtime Postgres Changes, with dedicated channel subscriptions per chat \cite{supabaserealtime}. Presence fields and indicators are modeled in the schema and UI, while realtime message delivery is the primary fully wired live capability in the current flow.
+
+\textbf{Announcement Module:} Teachers can create course-bound announcements with optional images, which are then surfaced in a time-filtered feed on the student dashboard. This provides a lightweight broadcast channel that complements the peer-to-peer community chat, allowing instructors to communicate deadlines, resource updates, or motivational prompts without requiring individual messages.
 
 \textbf{Mentorship Module:} Supports mentor-mentee mapping, document requirements, submission review, and role-specific progress views.
 
-\textbf{Reflection Intelligence Module:} Drives context extraction, question generation, answer scoring, tutor chat, and learner memory adaptation.
+\textbf{Reflection Intelligence Module:} Drives context extraction, question generation (both open-ended and batch MCQ), answer scoring, tutor chat, and learner memory adaptation. In the primary chapter-editor flow, reflection checkpoints are generated from transcript-available chapter timelines using bounded randomized placement (typically 4--5 points after the one-minute mark); an additional smart-reflection API route exists for bulk chapter-level auto-generation heuristics.
 
 \subsection{Implementation Footprint}
-The current repository-level implementation is broad enough to support multi-role deployment rather than only proof-of-concept demos. At the time of writing, the codebase includes dozens of feature-specific API routes, role-aware dashboard pages, and dedicated component modules for assignments, mentorship, reflection, and chat. This breadth matters for research validity: the reflection contribution is evaluated in a realistic LMS context, not in isolation.
+The current repository-level implementation is broad enough to support multi-role deployment rather than only proof-of-concept demos. At the time of writing, the codebase includes dozens of feature-specific API routes, role-aware dashboard pages, and dedicated component modules for assignments, mentorship, reflection, announcements, and chat. This breadth matters for research validity: the reflection contribution is evaluated in a realistic LMS context, not in isolation.
 
-From a software architecture perspective, the system uses a hybrid rendering pattern. Server-side route guards and selective prefetching are combined with client-side React Query caching and mutation invalidation. This pattern is visible across dashboard routes and reduces friction during repeated interactions such as submission review or chapter navigation.
+From a software architecture perspective, the system uses a hybrid rendering pattern. Server-side route guards and selective prefetching are combined with client-side React Query caching and mutation invalidation \cite{tanstackquery}. This pattern is visible across dashboard routes and reduces friction during repeated interactions such as submission review or chapter navigation. The dashboard also includes a keyboard-driven command menu that allows users to quickly navigate between sections and trigger common actions without leaving the current view.
 
 \subsection{Data Model and Domain Boundaries}
 The data model is intentionally relational and role-centered (See Fig.~\ref{fig:schema}). Core entities include:
 \begin{itemize}
-\item \textbf{User} with role, onboarding status, profile fields, and role-specific attributes,
-\item \textbf{Course}, \textbf{Chapter}, \textbf{Enrollment}, and \textbf{UserProgress} for instructional flow,
+\item \textbf{User} with role (Student, Teacher, or Admin), onboarding status, profile fields, and role-specific attributes such as expertise and title for teachers, or student ID, grade, and semester for students,
+\item \textbf{Course}, \textbf{Chapter}, \textbf{Attachment}, \textbf{Enrollment}, and \textbf{UserProgress} for instructional flow, where courses and users may carry a semester tag for institutional term-based organization,
 \item \textbf{Assignment} and \textbf{AssignmentSubmission} for teacher-student assessment workflows,
-\item \textbf{Chat} and \textbf{Message} for peer/mentor communication,
+\item \textbf{Announcement} for course-scoped teacher-to-student broadcast communication,
+\item \textbf{Chat}, \textbf{Message}, and \textbf{UserPresence} for peer/mentor communication with live online status tracking,
 \item \textbf{Mentorship}, \textbf{DocumentRequirement}, and \textbf{DocumentSubmission} for supervised guidance,
 \item \textbf{ReflectionPoint} and \textbf{StudentReflectionMemory} for adaptive reflection.
 \end{itemize}
@@ -127,7 +130,7 @@ The data model is intentionally relational and role-centered (See Fig.~\ref{fig:
 This schema enables the research focus of this paper: reflection is not an external service but a first-class entity linked to chapter timeline and learner history.
 
 \subsection{Access Control and Role Logic}
-The platform uses Supabase session identity with database-level role interpretation. In practice, most write routes enforce both role and ownership checks. Teacher-only operations include course authoring, assignment status control, and mentorship document review. Student-only operations include assignment/document submission. This role discipline is important when analyzing educational AI systems because pedagogical trust depends on clear authority boundaries.
+The platform uses Supabase session identity with server-side role interpretation enforced at the API route level \cite{supabasedocs}. In practice, most write routes enforce both role and ownership checks through middleware guards and server-side user resolution. The system defines three roles: Student, Teacher, and Admin. Teacher-only operations include course authoring, assignment status control, announcement creation, and mentorship document review. Student-facing operations include assignment submission, document upload, and enrollment flows. The Admin role is provisioned for future platform-wide management capabilities. This role discipline is important when analyzing educational AI systems because pedagogical trust depends on clear authority boundaries.
 
 \subsection{Design Rationale}
 The architectural decision was to avoid isolating AI features as an external add-on. Instead, reflection intelligence is embedded inside routine learning flow. This improves contextual fidelity: the system can use chapter identity, transcript segment, prior attempts, and behavioral events at the moment of intervention.
@@ -160,9 +163,9 @@ The loop is designed for low friction: students stay in the learning context ins
 \subsection{Transcript-Centered Context Construction}
 The question generation stage does not rely on static chapter metadata alone. It uses transcript context derived from the watched segment window around a reflection point. The system supports multiple transcript ingestion paths that are all present in code:
 \begin{itemize}
-\item direct YouTube transcript retrieval through TranscriptAPI,
+\item direct YouTube transcript retrieval through TranscriptAPI (primary active path),
 \item cached transcript reuse from chapter storage,
-\item direct-media STT processing through Deepgram or AssemblyAI webhooks.
+\item direct-media STT utilities and webhook handlers for Deepgram or AssemblyAI integration.
 \end{itemize}
 
 This design reduces cold-start failures and keeps question prompts grounded in what the student has actually watched, not just what the chapter title suggests.
@@ -211,10 +214,10 @@ One methodological detail that improves personalization quality is the use of in
 When responses are incorrect, the system offers two escalation paths:
 \begin{itemize}
 \item targeted hint and retry in the same prompt context,
-\item conversational AI remediation that explains the concept and may request supporting visual/video resources.
+\item conversational AI remediation that explains the concept and may request supporting visual/video resources. When the tutor returns a structured resource request, the system uses the Serper API to retrieve image/video results and renders them inline in the chat interface \cite{serperdocs}.
 \end{itemize}
 
-A batch remediation mode also exists for multi-question checkpoints, where failed concepts are revisited with progressively simpler questions.
+A batch remediation mode also exists for multi-question checkpoints, where failed items from the batch MCQ quiz are revisited individually. For each failed concept, the system generates a contextual explanation of why the student's selected answer was incorrect, then presents a new, simpler multiple-choice question on the same topic. This progressive simplification loop continues until the student demonstrates understanding, ensuring that no concept is left unaddressed before the learner returns to the main video.
 
 \subsection{Operational Safeguards in AI Calls}
 The intelligence pipeline includes practical safeguards that influence research reliability:
@@ -369,5 +372,21 @@ This paper reframed ConnectX from a feature inventory into a research-oriented e
 Rather than claiming finalized efficacy without evidence, the work provides a transparent technical foundation and a concrete evaluation pathway. This is an important step for final-year project research: it demonstrates system novelty, methodological clarity, and academic honesty at the same time.
 
 If validated through the proposed experiments, ConnectX can offer a practical model for how future LMS platforms blend pedagogical reflection, NLP-based assessment, and human-centered educational workflows.
+
+\begin{thebibliography}{00}
+\bibitem{anderson1995} J. R. Anderson, A. T. Corbett, K. R. Koedinger, and R. Pelletier, ``Cognitive tutors: Lessons learned,'' \textit{The Journal of the Learning Sciences}, vol. 4, no. 2, pp. 167--207, 1995.
+\bibitem{corbett1994} A. T. Corbett and J. R. Anderson, ``Knowledge tracing: Modeling the acquisition of procedural knowledge,'' \textit{User Modeling and User-Adapted Interaction}, vol. 4, no. 4, pp. 253--278, 1994.
+\bibitem{vlehn2011} K. VanLehn, ``The relative effectiveness of human tutoring, intelligent tutoring systems, and other tutoring systems,'' \textit{Educational Psychologist}, vol. 46, no. 4, pp. 197--221, 2011.
+\bibitem{mohler2009} M. Mohler and R. Mihalcea, ``Text-to-text semantic similarity for automatic short answer grading,'' in \textit{Proc. EACL}, 2009, pp. 567--575.
+\bibitem{burrows2015} S. Burrows, I. Gurevych, and B. Stein, ``The eras and trends of automatic short answer grading,'' \textit{Int. J. Artificial Intelligence in Education}, vol. 25, pp. 60--117, 2015.
+\bibitem{boud1985} D. Boud, R. Keogh, and D. Walker, Eds., \textit{Reflection: Turning Experience into Learning}. London, U.K.: Routledge, 1985.
+\bibitem{siemens2012} G. Siemens and R. S. J. d. Baker, ``Learning analytics and educational data mining: Towards communication and collaboration,'' in \textit{Proc. 2nd Int. Conf. Learning Analytics and Knowledge (LAK)}, 2012, pp. 252--254.
+\bibitem{nextjsdocs} Vercel, ``Next.js documentation,'' 2026. [Online]. Available: \url{https://nextjs.org/docs}
+\bibitem{prismadocs} Prisma, ``Prisma documentation,'' 2026. [Online]. Available: \url{https://www.prisma.io/docs}
+\bibitem{supabasedocs} Supabase, ``Supabase documentation,'' 2026. [Online]. Available: \url{https://supabase.com/docs}
+\bibitem{supabaserealtime} Supabase, ``Realtime Postgres Changes,'' 2026. [Online]. Available: \url{https://supabase.com/docs/guides/realtime/postgres-changes}
+\bibitem{tanstackquery} TanStack, ``TanStack Query documentation,'' 2026. [Online]. Available: \url{https://tanstack.com/query/latest}
+\bibitem{serperdocs} Serper, ``Serper API documentation,'' 2026. [Online]. Available: \url{https://serper.dev}
+\end{thebibliography}
 
 \end{document}
