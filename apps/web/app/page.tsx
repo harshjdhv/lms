@@ -1,680 +1,544 @@
 "use client";
 
-import * as React from "react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useSpring,
-  useMotionValue,
-  useAnimationFrame,
-} from "framer-motion";
-import {
-  ChevronRight,
-  Play,
-  Zap,
-  Command,
-  Activity,
-  Globe,
-  Server,
-  Code,
-  Shield,
-  Lock,
-  Sparkles,
-} from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
-import { cn } from "@workspace/ui/lib/utils";
+import { useEffect, useRef, useState } from "react";
+import ScrollStack, { ScrollStackItem } from "@/components/ui/scroll-stack";
 
-// --- Sections ---
+const WORDS = [
+  "AI", "pair", "programming,", "real-time", "collaboration,", "3D",
+  "visualizations,", "IoT", "simulations", "—", "the", "engineering",
+  "education", "platform", "your", "students", "deserve.",
+];
 
-function Navbar() {
-  const [scrolled, setScrolled] = React.useState(false);
+function lerpColor(t: number): string {
+  const v = Math.round(0x38 + (0xf0 - 0x38) * Math.max(0, Math.min(1, t)));
+  return `rgb(${v},${v},${v})`;
+}
 
-  React.useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+// ─── Features data ────────────────────────────────────────────────────────────
+const features = [
+  {
+    tag: "AI Coding",
+    title: "AI Pair Programming",
+    desc: "Get instant suggestions, bug explanations, and refactoring help powered by Claude — right inside the classroom editor.",
+    accent: "#7c3aed",
+    tagBg: "#ede9fe",
+    tagColor: "#6d28d9",
+    cardBg: "#faf9ff",
+  },
+  {
+    tag: "Live Sync",
+    title: "Real-time Collaboration",
+    desc: "Students and instructors edit the same file simultaneously. Cursors, selections, and comments — all live.",
+    accent: "#2563eb",
+    tagBg: "#dbeafe",
+    tagColor: "#1d4ed8",
+    cardBg: "#f8faff",
+  },
+  {
+    tag: "3D Visuals",
+    title: "Algorithm Visualizations",
+    desc: "Sorting, trees, graphs, and pathfinding rendered in interactive 3D. Watch the algorithm step by step.",
+    accent: "#059669",
+    tagBg: "#d1fae5",
+    tagColor: "#047857",
+    cardBg: "#f6fffe",
+  },
+  {
+    tag: "IoT Lab",
+    title: "IoT Simulations",
+    desc: "Simulate sensors, microcontrollers, and circuits in the browser. No hardware required for lab day one.",
+    accent: "#d97706",
+    tagBg: "#fef3c7",
+    tagColor: "#b45309",
+    cardBg: "#fffdf6",
+  },
+  {
+    tag: "Auto-Grade",
+    title: "Smart Grading",
+    desc: "AI grades every submission instantly with detailed feedback on correctness, efficiency, and code quality.",
+    accent: "#db2777",
+    tagBg: "#fce7f3",
+    tagColor: "#be185d",
+    cardBg: "#fff8fc",
+  },
+];
+
+// ─── Features section ─────────────────────────────────────────────────────────
+function FeaturesSection() {
+  return (
+    <section className="w-full" style={{ backgroundColor: "#FBFBFB" }}>
+      <div className="max-w-7xl mx-auto px-6 py-24">
+        <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
+          <div className="max-w-xl md:pl-10 lg:pl-16 lg:sticky lg:top-24">
+            <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest mb-4 block">
+              Platform Features
+            </span>
+            <h2 className="text-[clamp(1.9rem,3.2vw,2.8rem)] font-semibold leading-[1.1] tracking-tight text-black mb-5">
+              Everything engineering education needs
+            </h2>
+            <p className="text-sm text-neutral-500 leading-relaxed">
+              From AI-assisted coding to hardware simulations — ConnectX brings the full
+              engineering stack into the classroom.
+            </p>
+
+            <Link
+              href="/auth"
+              className="mt-7 inline-flex items-center gap-1.5 text-sm font-medium text-black underline underline-offset-4 hover:text-neutral-600 transition-colors w-fit"
+            >
+              Explore all features
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M1 6h10M7 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+
+            <div className="mt-10 space-y-3">
+              {features.map((f, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: f.tagBg }}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: f.accent }} />
+                  </div>
+                  <span className="text-sm text-neutral-500">{f.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <ScrollStack
+            useWindowScroll
+            itemDistance={60}
+            itemScale={0.03}
+            itemStackDistance={20}
+            stackPosition="20%"
+            baseScale={0.88}
+          >
+            {features.map((feature) => (
+              <ScrollStackItem
+                key={feature.title}
+                itemClassName="border border-neutral-200"
+                style={{
+                  backgroundColor: feature.cardBg,
+                  height: "auto",
+                  padding: "1.5rem",
+                  borderRadius: "1rem",
+                  boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+                }}
+              >
+                <span
+                  className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: feature.tagBg, color: feature.tagColor }}
+                >
+                  {feature.tag}
+                </span>
+                <h3 className="mt-3 text-base font-semibold tracking-tight text-neutral-900">
+                  {feature.title}
+                </h3>
+                <p className="mt-1.5 text-sm text-neutral-500 leading-relaxed">
+                  {feature.desc}
+                </p>
+              </ScrollStackItem>
+            ))}
+          </ScrollStack>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function Home() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const p = (vh - rect.top) / (rect.height + vh);
+      setProgress(Math.max(0, Math.min(1, p)));
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <motion.header
-      className="fixed top-0 left-0 right-0 z-50 flex justify-center py-4 px-4 sm:px-6"
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, delay: 0.2 }}
-    >
-      <div
-        className={cn(
-          "flex items-center justify-between w-full max-w-7xl px-4 py-3 rounded-full transition-all duration-500 ease-in-out",
-          scrolled
-            ? "bg-white/80 backdrop-blur-md border border-neutral-200/50 shadow-sm"
-            : "bg-transparent border border-transparent",
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <div className="size-9 bg-black rounded-lg flex items-center justify-center text-white">
-            <Command className="size-5" />
-          </div>
-          <span className="font-bold tracking-tight text-lg text-neutral-900">
-            ConnectX
-          </span>
-        </div>
+    <div className="relative min-h-screen overflow-x-clip font-sans" style={{ backgroundColor: "#FBFBFB" }}>
 
-        <nav className="hidden md:flex items-center gap-1">
-          {["Overview", "Features", "Pricing", "Stories"].map((item) => (
-            <Link
-              key={item}
-              href={`#${item.toLowerCase()}`}
-              className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-black rounded-full hover:bg-neutral-100/50 transition-all"
-            >
-              {item}
-            </Link>
-          ))}
-        </nav>
+      {/* Top section — vertical bars */}
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-[max(0px,calc(50%-40rem))] w-px bg-neutral-300 z-0" />
+        <div className="pointer-events-none absolute inset-y-0 right-[max(0px,calc(50%-40rem))] w-px bg-neutral-300 z-0" />
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/auth"
-            className="text-sm font-medium hover:opacity-70 transition-opacity hidden sm:block"
-          >
-            Log in
-          </Link>
-        </div>
-      </div>
-    </motion.header>
-  );
-}
-
-function Hero() {
-  const { scrollY } = useScroll();
-  // Relaxed the range so it doesn't disappear too quickly
-  const y = useTransform(scrollY, [0, 1000], [0, 200]);
-  const opacity = useTransform(scrollY, [0, 800], [1, 0.5]);
-  const rotateX = useTransform(scrollY, [0, 1000], [20, 0]);
-  const scale = useTransform(scrollY, [0, 1000], [0.95, 1.05]);
-
-  return (
-    <section className="relative min-h-[140vh] flex flex-col items-center pt-40 overflow-hidden bg-[#F5F5F7]">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        className="text-center z-10 px-4 mb-20 relative"
-      >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 shadow-sm mb-6">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-          </span>
-          <span className="text-xs font-semibold text-neutral-600 tracking-wide uppercase">
-            Powered by Componentry UI
-          </span>
-        </div>
-
-        <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-black mb-6 leading-[0.9]">
-          Knowledge,
-          <br />
-          <span className="bg-clip-text text-transparent bg-linear-to-b from-neutral-800 to-neutral-400">
-            Beautifully Organized.
-          </span>
-        </h1>
-
-        <p className="max-w-xl mx-auto text-lg text-neutral-500 font-medium leading-relaxed mb-10">
-          The learning management system that feels less like a tool and more
-          like a superpower.
-        </p>
-
-        <div className="flex items-center justify-center gap-4">
-          <Link href="/dashboard">
-            <Button
-              size="lg"
-              className="h-14 px-8 rounded-full text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105"
-            >
-              Start Free Trial
-            </Button>
-          </Link>
-        </div>
-      </motion.div>
-
-      {/* 3D Mockup Container */}
-      <div className="perspective-1000 w-full max-w-7xl px-4 relative z-20">
-        <motion.div
-          style={{ rotateX, y, opacity, scale }}
-          initial={{ rotateX: 40, opacity: 0, y: 100 }}
-          animate={{ rotateX: 20, opacity: 1, y: 0 }}
-          transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
-          className="relative mx-auto rounded-t-3xl border-[6px] border-neutral-900 bg-neutral-900 shadow-2xl overflow-hidden aspect-video origin-bottom"
-        >
-          {/* Simulated Screen Content is rendered here as pure SVG/HTML to avoid images */}
-          <div className="absolute inset-0 bg-white rounded-t-2xl overflow-hidden flex flex-col">
-            {/* App Header */}
-            <div className="h-12 border-b border-neutral-100 flex items-center justify-between px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-              <div className="flex gap-4">
-                <div className="w-4 h-4 rounded-full bg-neutral-100" />
-                <div className="w-20 h-4 rounded-full bg-neutral-100" />
-              </div>
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="text-xs font-bold text-blue-600">JS</span>
-                </div>
-              </div>
+        {/* Navbar */}
+        <header className="relative z-10 flex items-center justify-between px-8 py-5 max-w-7xl mx-auto w-full">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-black flex items-center justify-center">
+              <span className="text-white text-xs font-bold">C</span>
             </div>
+            <span className="font-semibold text-[15px] text-black tracking-tight">ConnectX</span>
+          </div>
 
-            {/* App Body */}
-            <div className="flex-1 flex bg-neutral-50/50">
-              {/* Sidebar */}
-              <div className="w-64 border-r border-neutral-100 bg-white p-4 hidden md:block">
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="h-10 w-full rounded-lg bg-neutral-50 hover:bg-neutral-100 transition-colors flex items-center px-3 gap-3"
-                    >
-                      <div className="size-4 bg-neutral-200 rounded-sm" />
-                      <div className="h-2 w-20 bg-neutral-200 rounded-full" />
+          <nav className="hidden md:flex items-center gap-7 text-sm text-neutral-600">
+            <Link href="#" className="hover:text-black transition-colors">Features</Link>
+            <Link href="#" className="hover:text-black transition-colors">Courses</Link>
+            <Link href="#" className="hover:text-black transition-colors">Pricing</Link>
+            <Link href="#" className="hover:text-black transition-colors">About</Link>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <Link href="/auth" className="text-sm text-neutral-600 hover:text-black transition-colors font-medium">
+              Log in
+            </Link>
+            <Link
+              href="/auth"
+              className="text-sm bg-black text-white px-4 py-2 rounded-full font-medium hover:bg-neutral-800 transition-colors"
+            >
+              Get started
+            </Link>
+          </div>
+        </header>
+
+        {/* Horizontal rule with plus markers */}
+        <div className="relative z-10 w-full h-px bg-neutral-300">
+          <div className="absolute left-[max(0px,calc(50%-40rem))] top-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5" />
+              <line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5" />
+            </svg>
+          </div>
+          <div className="absolute right-[max(0px,calc(50%-40rem))] top-0 translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5" />
+              <line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Hero */}
+        <main className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-24 pb-32">
+          <div className="inline-flex items-center gap-2 bg-white border border-neutral-200 rounded-full px-4 py-1.5 text-xs text-neutral-600 mb-8 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+            Now with AI-powered learning paths
+          </div>
+
+          <h1 className="text-[clamp(2.4rem,5vw,4rem)] font-semibold leading-[1.1] tracking-tight text-black max-w-2xl">
+            The LMS Built for Engineering Education
+          </h1>
+
+          <p className="mt-4 text-sm text-neutral-500 max-w-md leading-relaxed">
+            AI pair programming, IoT simulations, real-time collaboration, and
+            3D algorithm visualizations — all in one platform.
+          </p>
+
+          <div className="mt-10 flex items-center gap-3 flex-wrap justify-center">
+            <Link
+              href="/auth"
+              className="inline-flex items-center gap-2 bg-black text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors shadow-sm"
+            >
+              Start for free
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            <Link
+              href="#"
+              className="inline-flex items-center gap-2 bg-white text-black text-sm font-medium px-6 py-3 rounded-full border border-neutral-200 hover:border-neutral-400 transition-colors shadow-sm"
+            >
+              Watch demo
+            </Link>
+          </div>
+
+          <p className="mt-5 text-xs text-neutral-400">
+            No credit card required · Free 14-day trial · Cancel anytime
+          </p>
+
+          {/* App preview */}
+          <div className="mt-20 relative w-full max-w-5xl">
+            <style>{`
+              @keyframes lms-float  { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-10px)} }
+              @keyframes lms-float2 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-7px)}  }
+              @keyframes lms-float3 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-9px)}  }
+              @keyframes lms-pulse  { 0%,100%{opacity:1} 50%{opacity:0.3} }
+              @keyframes lms-prog1  { from{width:0} to{width:100%} }
+              @keyframes lms-prog2  { from{width:0} to{width:72%}  }
+              @keyframes lms-prog3  { from{width:0} to{width:38%}  }
+              @keyframes lms-in     { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+            `}</style>
+
+            <div className="absolute inset-x-1/4 top-10 h-48 bg-violet-100/50 blur-3xl rounded-full pointer-events-none" />
+
+            <div className="relative flex items-start justify-center gap-5 pb-20">
+              {/* Left card — Submissions */}
+              <div
+                className="mt-16 w-60 bg-white rounded-2xl border border-neutral-200 shadow-lg overflow-hidden shrink-0"
+                style={{ animation: "lms-float 6s ease-in-out infinite" }}
+              >
+                <div className="px-4 py-3 border-b border-neutral-100">
+                  <p className="text-[11px] font-semibold text-neutral-700">Submissions · Week 4</p>
+                  <p className="text-[9px] text-neutral-400 mt-0.5">Binary Search Trees</p>
+                </div>
+                <div className="divide-y divide-neutral-50">
+                  {[
+                    { name: "Sarah J.",  score: 92,   status: "Graded",  dot: "bg-green-400" },
+                    { name: "Mike T.",   score: 88,   status: "Graded",  dot: "bg-green-400" },
+                    { name: "Emma R.",   score: null, status: "Pending", dot: "bg-amber-400" },
+                    { name: "Liam K.",   score: 95,   status: "Graded",  dot: "bg-green-400" },
+                    { name: "Priya S.", score: null, status: "Pending", dot: "bg-amber-400" },
+                    { name: "Alex M.",   score: 79,   status: "Graded",  dot: "bg-green-400" },
+                  ].map((s) => (
+                    <div key={s.name} className="flex items-center justify-between px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
+                          <span className="text-[8px] font-semibold text-neutral-500">{s.name[0]}</span>
+                        </div>
+                        <span className="text-[10px] text-neutral-600">{s.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                        <span className="text-[10px] font-semibold text-neutral-700 w-5 text-right">{s.score ?? "—"}</span>
+                      </div>
                     </div>
                   ))}
-                  <div className="h-px bg-neutral-100 my-4" />
-                  <div className="h-10 w-full rounded-lg bg-blue-50/50 text-blue-600 flex items-center px-3 gap-3 border border-blue-100">
-                    <Zap className="size-4" />
-                    <span className="text-xs font-bold">Deep Focus Mode</span>
+                </div>
+              </div>
+
+              {/* Center card — BST course */}
+              <div
+                className="w-72 bg-white rounded-2xl border-2 border-violet-400/80 shadow-2xl overflow-hidden shrink-0 relative z-10"
+                style={{ animation: "lms-float2 5s ease-in-out infinite 0.4s" }}
+              >
+                <div className="bg-neutral-50/80 border-b border-neutral-100 flex items-center justify-center" style={{ height: "170px" }}>
+                  <svg width="210" height="130" viewBox="0 0 210 130" fill="none">
+                    <line x1="105" y1="26" x2="58" y2="76" stroke="#e5e7eb" strokeWidth="1.5" />
+                    <line x1="105" y1="26" x2="152" y2="76" stroke="#e5e7eb" strokeWidth="1.5" />
+                    <line x1="58" y1="76" x2="32" y2="114" stroke="#e5e7eb" strokeWidth="1.5" />
+                    <line x1="58" y1="76" x2="82" y2="114" stroke="#e5e7eb" strokeWidth="1.5" />
+                    <line x1="152" y1="76" x2="128" y2="114" stroke="#e5e7eb" strokeWidth="1.5" />
+                    <line x1="152" y1="76" x2="176" y2="114" stroke="#e5e7eb" strokeWidth="1.5" />
+                    <circle cx="105" cy="22" r="18" fill="#7c3aed" />
+                    <text x="105" y="26" textAnchor="middle" fill="white" fontSize="10" fontWeight="700">50</text>
+                    <circle cx="58" cy="72" r="15" fill="white" stroke="#d1d5db" strokeWidth="1.5" />
+                    <text x="58" y="76" textAnchor="middle" fill="#374151" fontSize="9" fontWeight="600">25</text>
+                    <circle cx="152" cy="72" r="15" fill="white" stroke="#d1d5db" strokeWidth="1.5" />
+                    <text x="152" y="76" textAnchor="middle" fill="#374151" fontSize="9" fontWeight="600">75</text>
+                    <circle cx="32" cy="110" r="12" fill="white" stroke="#e5e7eb" strokeWidth="1" />
+                    <text x="32" y="114" textAnchor="middle" fill="#9ca3af" fontSize="8">12</text>
+                    <circle cx="82" cy="110" r="12" fill="white" stroke="#e5e7eb" strokeWidth="1" />
+                    <text x="82" y="114" textAnchor="middle" fill="#9ca3af" fontSize="8">37</text>
+                    <circle cx="128" cy="110" r="12" fill="white" stroke="#e5e7eb" strokeWidth="1" />
+                    <text x="128" y="114" textAnchor="middle" fill="#9ca3af" fontSize="8">63</text>
+                    <circle cx="176" cy="110" r="12" fill="#f5f3ff" stroke="#c4b5fd" strokeWidth="1.5" />
+                    <text x="176" y="114" textAnchor="middle" fill="#7c3aed" fontSize="8" fontWeight="600">88</text>
+                  </svg>
+                </div>
+                <div className="p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-[9px] bg-violet-100 text-violet-600 font-semibold px-2 py-0.5 rounded-full">Week 4</span>
+                    <span className="text-[9px] bg-neutral-100 text-neutral-500 font-medium px-2 py-0.5 rounded-full">Algorithms</span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-neutral-800">Binary Search Trees</h3>
+                  <p className="text-[10px] text-neutral-500 mt-1.5 leading-relaxed">
+                    Understand insertion, deletion &amp; traversal. Complexity analysis with interactive 3D visualizations.
+                  </p>
+                  <p className="text-[10px] text-neutral-400 mt-1 leading-relaxed">
+                    Complete the coding challenge to unlock your next AI-personalized module.
+                  </p>
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-500" style={{ animation: "lms-pulse 1.4s ease-in-out infinite" }} />
+                    <span className="text-[9px] text-violet-500 font-medium">AI grading submissions...</span>
                   </div>
                 </div>
               </div>
 
-              {/* Dashboard Content */}
-              <div className="flex-1 p-8 overflow-hidden">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex justify-between items-end mb-8">
-                    <div>
-                      <div className="text-3xl font-bold tracking-tight text-neutral-900 mb-2">
-                        My Progress
-                      </div>
-                      <div className="text-neutral-500">
-                        Keep up the momentum, Harsh!
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="px-3 py-1 bg-neutral-100 rounded-full text-xs font-bold text-neutral-600">
-                        This Week
-                      </span>
-                    </div>
+              {/* Right card — AI Feedback */}
+              <div
+                className="mt-24 w-60 bg-white rounded-2xl border border-neutral-200 shadow-lg overflow-hidden shrink-0"
+                style={{ animation: "lms-float3 5.5s ease-in-out infinite 1s" }}
+              >
+                <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-neutral-700">AI Feedback</p>
+                    <p className="text-[9px] text-neutral-400 mt-0.5">Sarah Johnson · 92/100</p>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-6 mb-8">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow"
-                      >
-                        <div className="size-10 bg-neutral-100 rounded-full mb-4 flex items-center justify-center">
-                          <Activity className="size-5 text-neutral-400" />
-                        </div>
-                        <div className="text-2xl font-bold text-neutral-900 mb-1">
-                          94%
-                        </div>
-                        <div className="text-sm text-neutral-500">
-                          Course Completion
-                        </div>
-                      </div>
-                    ))}
+                  <div className="w-8 h-8 rounded-full bg-green-50 border border-green-100 flex items-center justify-center shrink-0">
+                    <span className="text-[11px] font-bold text-green-600">A</span>
                   </div>
-
-                  <div className="h-64 bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <Command className="size-32" />
+                </div>
+                <div className="p-4 space-y-3">
+                  {[
+                    { label: "Correctness",     score: "95%", anim: "lms-prog1", c: "bg-green-400" },
+                    { label: "Time Complexity", score: "88%", anim: "lms-prog2", c: "bg-violet-400" },
+                    { label: "Code Quality",    score: "90%", anim: "lms-prog3", c: "bg-blue-400" },
+                  ].map((m) => (
+                    <div key={m.label}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-[9px] text-neutral-500">{m.label}</span>
+                        <span className="text-[9px] font-semibold text-neutral-700">{m.score}</span>
+                      </div>
+                      <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
+                        <div className={`h-full ${m.c} rounded-full`} style={{ width: m.score, animation: `${m.anim} 1.4s ease-out both` }} />
+                      </div>
                     </div>
-                    <div className="flex items-end h-full gap-4 pt-10">
-                      {[30, 45, 60, 40, 70, 85, 95, 80, 60, 50, 65, 75].map(
-                        (h, i) => (
-                          <motion.div
-                            key={i}
-                            className="flex-1 bg-neutral-900 rounded-t-md opacity-20 hover:opacity-100 hover:bg-blue-600 transition-all cursor-pointer"
-                            initial={{ height: "0%" }}
-                            whileInView={{ height: `${h}%` }}
-                            viewport={{ once: true }}
-                            transition={{
-                              duration: 1,
-                              delay: i * 0.05,
-                              ease: "backOut",
-                            }}
-                          />
-                        ),
-                      )}
-                    </div>
+                  ))}
+                  <div className="pt-1 space-y-1.5">
+                    <div className="h-2 bg-neutral-100 rounded-full w-full" />
+                    <div className="h-2 bg-neutral-100 rounded-full w-4/5" />
+                    <div className="h-2 bg-neutral-100 rounded-full w-3/4" />
+                    <div className="h-2 bg-neutral-100 rounded-full w-2/3" />
+                    <div className="h-2 bg-neutral-100 rounded-full w-1/2" />
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Glass Reflection Overlay */}
-          <div className="absolute inset-0 bg-linear-to-tr from-white/10 via-transparent to-transparent pointer-events-none z-30" />
-        </motion.div>
+            {/* Bottom status pill */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2" style={{ animation: "lms-in 0.5s ease-out 0.8s both" }}>
+              <div className="flex items-center gap-2 bg-neutral-900 text-white text-[11px] font-medium px-4 py-2 rounded-full shadow-lg whitespace-nowrap">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-400" style={{ animation: "lms-pulse 1.2s ease-in-out infinite" }} />
+                Grading 3 submissions with AI
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="1" width="3" height="3" rx="0.5" fill="currentColor" opacity="0.6" />
+                  <rect x="5.5" y="1" width="3" height="3" rx="0.5" fill="currentColor" opacity="0.9" />
+                  <rect x="10" y="1" width="3" height="3" rx="0.5" fill="currentColor" />
+                  <rect x="1" y="5.5" width="3" height="3" rx="0.5" fill="currentColor" opacity="0.9" />
+                  <rect x="5.5" y="5.5" width="3" height="3" rx="0.5" fill="currentColor" opacity="0.6" />
+                  <rect x="10" y="5.5" width="3" height="3" rx="0.5" fill="currentColor" opacity="0.9" />
+                  <rect x="1" y="10" width="3" height="3" rx="0.5" fill="currentColor" />
+                  <rect x="5.5" y="10" width="3" height="3" rx="0.5" fill="currentColor" opacity="0.9" />
+                  <rect x="10" y="10" width="3" height="3" rx="0.5" fill="currentColor" opacity="0.6" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <div className="w-full h-px bg-neutral-300" />
       </div>
 
-      {/* Floor reflection (simulated) */}
-      <div className="absolute bottom-0 w-full h-40 bg-linear-to-t from-[#F5F5F7] to-transparent z-30" />
-    </section>
-  );
-}
+      {/* Dark statement section */}
+      <section className="relative w-full px-6 py-10">
+        <div
+          ref={sectionRef}
+          className="relative rounded-2xl py-28 px-8 overflow-hidden"
+          style={{ backgroundColor: "#1A1A1C" }}
+        >
+          <p className="max-w-4xl mx-auto text-center text-[clamp(1.9rem,4vw,3.2rem)] font-semibold leading-tight tracking-tight">
+            {WORDS.map((word, i) => {
+              const n = WORDS.length;
+              const t = progress * (n + 4) - i;
+              return (
+                <span
+                  key={i}
+                  className="inline-block mr-[0.28em]"
+                  style={{ color: lerpColor(t) }}
+                >
+                  {word}
+                </span>
+              );
+            })}
+          </p>
+        </div>
+      </section>
 
-// --- Velocity Scroll Component ---
-function VelocityText() {
-  const { scrollY } = useScroll();
-  const baseVelocity = -15;
-  const smoothVelocity = useSpring(scrollY, {
-    damping: 50,
-    stiffness: 400,
-  });
-  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 5], {
-    clamp: false,
-  });
+      {/* Grid section: Features + Footer */}
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-[max(0px,calc(50%-40rem))] w-px bg-neutral-300 z-0" />
+        <div className="pointer-events-none absolute inset-y-0 right-[max(0px,calc(50%-40rem))] w-px bg-neutral-300 z-0" />
 
-  const x = useMotionValue(0);
-  const directionFactor = React.useRef<number>(1);
+        {/* Top rule with + markers */}
+        <div className="relative z-10 w-full h-px bg-neutral-300">
+          <div className="absolute left-[max(0px,calc(50%-40rem))] top-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5"/><line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5"/></svg>
+          </div>
+          <div className="absolute right-[max(0px,calc(50%-40rem))] top-0 translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5"/><line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5"/></svg>
+          </div>
+        </div>
 
-  useAnimationFrame((t, delta) => {
-    let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
-    if (velocityFactor.get() < 0) {
-      directionFactor.current = -1;
-    } else if (velocityFactor.get() > 0) {
-      directionFactor.current = 1;
-    }
-    moveBy += directionFactor.current * moveBy * velocityFactor.get();
+        {/* Features section */}
+        <FeaturesSection />
 
-    let newX = x.get() + moveBy;
+        {/* Mid rule with + markers */}
+        <div className="relative z-10 w-full h-px bg-neutral-300">
+          <div className="absolute left-[max(0px,calc(50%-40rem))] top-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5"/><line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5"/></svg>
+          </div>
+          <div className="absolute right-[max(0px,calc(50%-40rem))] top-0 translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5"/><line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5"/></svg>
+          </div>
+        </div>
 
-    // Wrap the x value to create infinite loop
-    // Adjust this value based on your content width
-    const wrapAt = -2000; // negative because we're scrolling left
-    if (newX < wrapAt) {
-      newX = 0;
-    } else if (newX > 0) {
-      newX = wrapAt;
-    }
+      {/* Footer */}
+      <footer className="w-full" style={{ backgroundColor: "#FBFBFB" }}>
+        <div className="max-w-7xl mx-auto px-8 pt-20 pb-10">
 
-    x.set(newX);
-  });
+          {/* Big wordmark */}
+          <p
+            className="font-semibold leading-none tracking-tighter text-black select-none"
+            style={{ fontSize: "clamp(4rem, 13vw, 11rem)" }}
+          >
+            ConnectX
+          </p>
 
-  return (
-    <div className="relative py-32 bg-linear-to-br from-neutral-50 via-white to-blue-50/30 border-y border-neutral-200/50 overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
+          {/* Tagline + CTA row */}
+          <div className="mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+            <p className="text-sm text-neutral-400 max-w-xs leading-relaxed">
+              The LMS built for engineering education. AI, IoT, 3D — all in one.
+            </p>
+            <Link
+              href="/auth"
+              className="inline-flex items-center gap-2 bg-black text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors shrink-0"
+            >
+              Start for free
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+          </div>
 
-      <div className="relative flex whitespace-nowrap">
-        <motion.div style={{ x }} className="flex gap-24 items-center">
-          {[...Array(4)].map((_, i) => (
-            <React.Fragment key={i}>
-              <span className="text-5xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter select-none">
-                Structure your knowledge.
-              </span>
-              <div className="size-3 rounded-full bg-blue-500 shrink-0" />
-              <span className="text-5xl md:text-7xl lg:text-8xl font-black text-blue-600 tracking-tighter select-none">
-                Empower your students.
-              </span>
-              <div className="size-3 rounded-full bg-purple-500 shrink-0" />
-              <span className="text-5xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter select-none">
-                Build with confidence.
-              </span>
-              <div className="size-3 rounded-full bg-neutral-400 shrink-0" />
-            </React.Fragment>
-          ))}
-        </motion.div>
+          {/* Bottom strip */}
+          <div className="mt-12 pt-6 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-neutral-400">© {new Date().getFullYear()} ConnectX. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              {["Features", "Pricing", "Privacy", "Terms"].map((item) => (
+                <Link key={item} href="#" className="text-xs text-neutral-400 hover:text-black transition-colors">
+                  {item}
+                </Link>
+              ))}
+              <div className="flex items-center gap-4 ml-2">
+                <Link href="#" className="text-neutral-400 hover:text-black transition-colors">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </Link>
+                <Link href="#" className="text-neutral-400 hover:text-black transition-colors">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </footer>
+
+        {/* Bottom rule with + markers */}
+        <div className="relative z-10 w-full h-px bg-neutral-300">
+          <div className="absolute left-[max(0px,calc(50%-40rem))] top-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5"/><line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5"/></svg>
+          </div>
+          <div className="absolute right-[max(0px,calc(50%-40rem))] top-0 translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><line x1="10" y1="4" x2="10" y2="16" stroke="#a3a3a3" strokeWidth="1.5"/><line x1="4" y1="10" x2="16" y2="10" stroke="#a3a3a3" strokeWidth="1.5"/></svg>
+          </div>
+        </div>
       </div>
     </div>
-  );
-}
-
-// --- Modern Features Section ---
-function ModernFeatures() {
-  return (
-    <section className="bg-white py-32 px-4 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto relative z-10">
-        <motion.div
-          className="text-center mb-20"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-black">
-            Built for the future.
-          </h2>
-          <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
-            Everything you need to create, manage, and scale your learning
-            platform.
-          </p>
-        </motion.div>
-
-        {/* Bento Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Feature 1 - Large Card */}
-          <motion.div
-            className="md:col-span-2 bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 md:p-12 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <div className="relative z-10">
-              <div className="inline-flex items-center justify-center size-14 bg-blue-100 rounded-2xl mb-6">
-                <Code className="size-7 text-blue-600" />
-              </div>
-              <h3 className="text-3xl md:text-4xl font-bold text-black mb-4 tracking-tight">
-                Drag & Drop Course Builder
-              </h3>
-              <p className="text-lg text-neutral-600 mb-8 max-w-xl">
-                Create complex learning paths with our intuitive visual editor.
-                Add videos, quizzes, assignments, and live sessions with zero
-                code.
-              </p>
-
-              {/* Visual Demo */}
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="bg-white border-2 border-neutral-200 rounded-xl p-4 flex items-center gap-4 hover:border-blue-300 transition-all"
-                    initial={{ x: -20, opacity: 0 }}
-                    whileInView={{ x: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.2 + i * 0.1 }}
-                  >
-                    <div className="size-10 rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold">
-                      {i}
-                    </div>
-                    <div className="flex-1">
-                      <div className="h-2 w-32 bg-neutral-200 rounded-full mb-2" />
-                      <div className="h-1.5 w-full bg-neutral-100 rounded-full" />
-                    </div>
-                    <ChevronRight className="size-5 text-neutral-400" />
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Feature 2 - Tall Card */}
-          <motion.div
-            className="bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="relative z-10 h-full flex flex-col">
-              <div className="inline-flex items-center justify-center size-14 bg-purple-100 rounded-2xl mb-6">
-                <Activity className="size-7 text-purple-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-black mb-4 tracking-tight">
-                Real-time Analytics
-              </h3>
-              <p className="text-neutral-600 mb-8">
-                Track every metric that matters. Student engagement, completion
-                rates, and more.
-              </p>
-
-              {/* Chart Visual */}
-              <div className="flex-1 flex items-end gap-2 mt-auto">
-                {[40, 70, 50, 90, 60, 80, 75].map((h, i) => (
-                  <motion.div
-                    key={i}
-                    className="flex-1 bg-purple-500 rounded-t-lg"
-                    initial={{ height: 0 }}
-                    whileInView={{ height: `${h}%` }}
-                    viewport={{ once: true }}
-                    transition={{
-                      duration: 0.8,
-                      delay: 0.3 + i * 0.05,
-                      type: "spring",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Feature 3 - Wide Card */}
-          <motion.div
-            className="md:col-span-2 bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <div className="flex flex-col md:flex-row gap-8 items-center">
-              <div className="flex-1">
-                <div className="inline-flex items-center justify-center size-14 bg-green-100 rounded-2xl mb-6">
-                  <Shield className="size-7 text-green-600" />
-                </div>
-                <h3 className="text-3xl font-bold text-black mb-4 tracking-tight">
-                  Enterprise Security
-                </h3>
-                <p className="text-lg text-neutral-600 mb-6">
-                  SOC2 Type II certified. Your data encrypted at rest and in
-                  transit. GDPR compliant.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {["SSO", "RBAC", "2FA", "Audit Logs"].map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium border-2 border-green-200"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Lock Visual */}
-              <div className="relative">
-                <motion.div
-                  className="size-32 border-4 border-green-200 rounded-full flex items-center justify-center"
-                  animate={{ rotate: 360 }}
-                  transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                >
-                  <Lock className="size-16 text-green-300" />
-                </motion.div>
-                <motion.div
-                  className="absolute inset-0 border-4 border-dashed border-green-300 rounded-full"
-                  animate={{ rotate: -360 }}
-                  transition={{
-                    duration: 15,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Feature 4 - Square Card */}
-          <motion.div
-            className="bg-neutral-50 border-2 border-neutral-200 rounded-3xl p-8 relative overflow-hidden group hover:border-neutral-300 transition-all hover:shadow-lg"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <div className="relative z-10">
-              <div className="inline-flex items-center justify-center size-14 bg-orange-100 rounded-2xl mb-6">
-                <Sparkles className="size-7 text-orange-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-black mb-4 tracking-tight">
-                AI-Powered
-              </h3>
-              <p className="text-neutral-600 mb-6">
-                Smart recommendations, automated grading, and personalized
-                learning paths.
-              </p>
-
-              {/* AI Chat Bubbles */}
-              <div className="space-y-3">
-                <motion.div
-                  className="bg-white border-2 border-neutral-200 rounded-2xl rounded-tr-sm p-3 text-sm text-neutral-700 ml-auto w-fit max-w-[80%]"
-                  initial={{ x: 20, opacity: 0 }}
-                  whileInView={{ x: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.5 }}
-                >
-                  Explain this concept
-                </motion.div>
-                <motion.div
-                  className="bg-orange-500 rounded-2xl rounded-tl-sm p-3 text-sm text-white w-fit max-w-[80%]"
-                  initial={{ x: -20, opacity: 0 }}
-                  whileInView={{ x: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <div className="flex gap-1 mb-2">
-                    <motion.div
-                      className="size-1.5 bg-white rounded-full"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                    />
-                    <motion.div
-                      className="size-1.5 bg-white rounded-full"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                    />
-                    <motion.div
-                      className="size-1.5 bg-white rounded-full"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                    />
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="bg-black text-white py-24 px-6 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex flex-col items-center text-center mb-20">
-          <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 max-w-3xl mx-auto">
-            Ready to transform your <br />
-            <span className="text-neutral-500">teaching experience?</span>
-          </h2>
-          <p className="text-neutral-400 text-lg mb-10 max-w-2xl">
-            Join thousands of educators who are already building the future of
-            learning with ConnectX.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 bg-neutral-900 border border-neutral-800 rounded-full px-6 h-14 text-white placeholder:text-neutral-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 transition-all"
-            />
-            <Button className="h-14 px-8 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all hover:scale-105">
-              Get Started
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-neutral-800 pt-16">
-          <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="size-8 bg-white rounded-lg flex items-center justify-center text-black">
-                <Command className="size-5" />
-              </div>
-              <span className="font-bold tracking-tight text-lg">ConnectX</span>
-            </div>
-            <p className="text-neutral-500 text-sm leading-relaxed">
-              Designing the future of education technology.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-6 text-neutral-200">Navigation</h4>
-            <ul className="space-y-4 text-sm text-neutral-500">
-              <li className="hover:text-white transition-colors">
-                <Link href="/dashboard" className="cursor-pointer">
-                  Dashboard
-                </Link>
-              </li>
-              <li className="hover:text-white transition-colors">
-                <Link href="/auth" className="cursor-pointer">
-                  Authentication
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-6 text-neutral-200">Legal</h4>
-            <ul className="space-y-4 text-sm text-neutral-500">
-              <li className="hover:text-white transition-colors cursor-pointer">
-                Terms
-              </li>
-              <li className="hover:text-white transition-colors cursor-pointer">
-                Privacy
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-neutral-800 mt-16 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-4 text-neutral-600 text-sm">
-            <span>© 2024 ConnectX Inc. All rights reserved.</span>
-            <span className="text-neutral-700">•</span>
-            <a
-              href="https://componentry.fun"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-neutral-500 hover:text-neutral-300 transition-colors"
-            >
-              UI components from{" "}
-              <span className="font-semibold">componentry.fun</span>
-            </a>
-          </div>
-          <div className="flex gap-6">
-            {[Globe, Server, Code].map((Icon, i) => (
-              <div
-                key={i}
-                className="size-10 rounded-full bg-neutral-900 flex items-center justify-center border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group"
-              >
-                <Icon className="size-4 text-neutral-400 group-hover:text-white transition-colors" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Massive Background Text */}
-        <div className="absolute -bottom-40 -left-20 right-0 pointer-events-none select-none opacity-[0.02] overflow-hidden">
-          <h1 className="text-[20rem] font-black tracking-tighter text-white leading-none whitespace-nowrap">
-            CONNECTX
-          </h1>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-export default function Page() {
-  return (
-    <main className="bg-[#F5F5F7] text-neutral-900 selection:bg-orange-500/30 font-sans">
-      <Navbar />
-      <Hero />
-      <VelocityText />
-      <ModernFeatures />
-      <Footer />
-    </main>
   );
 }
