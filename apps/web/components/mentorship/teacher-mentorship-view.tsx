@@ -1,9 +1,3 @@
-/**
- * @file components/mentorship/teacher-mentorship-view.tsx
- * @description Teacher's view of the mentorship page - manage mentees and document requirements
- * @module Apps/Web/Components/Mentorship
- */
-
 "use client";
 
 import { useState } from "react";
@@ -19,18 +13,10 @@ import {
     MoreHorizontal,
     GraduationCap,
     AlertCircle,
-    Filter,
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Badge } from "@workspace/ui/components/badge";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@workspace/ui/components/card";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -38,19 +24,27 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@workspace/ui/components/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
-import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Progress } from "@workspace/ui/components/progress";
 import { useMentorshipData } from "@/hooks/queries/use-mentorship";
 import { AddMenteeDialog } from "./add-mentee-dialog";
 import { CreateRequirementDialog } from "./create-requirement-dialog";
 import { SubmissionReviewPanel } from "./submission-review-panel";
+import { StatsCard, StatsCardSkeleton, gradientPresets } from "@/components/ui/stats-card";
 import { cn } from "@/lib/utils";
+
+const HATCH = {
+    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+    backgroundSize: "6px 6px",
+};
+
+const TABS = [
+    { id: "mentees", label: "Mentees", icon: GraduationCap },
+    { id: "requirements", label: "Requirements", icon: FileText },
+    { id: "submissions", label: "Submissions", icon: Eye },
+] as const;
+
+type Tab = typeof TABS[number]["id"];
 
 interface TeacherMentorshipViewProps {
     userName: string;
@@ -61,449 +55,291 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
     const [searchQuery, setSearchQuery] = useState("");
     const [addMenteeOpen, setAddMenteeOpen] = useState(false);
     const [createRequirementOpen, setCreateRequirementOpen] = useState(false);
-    const [selectedTab, setSelectedTab] = useState("overview");
+    const [activeTab, setActiveTab] = useState<Tab>("mentees");
 
     if (isLoading) {
-        return <MentorshipSkeleton />;
+        return (
+            <div className="flex w-full min-w-0 flex-col">
+                <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center">
+                    <div className="space-y-2">
+                        <div className="h-7 w-56 bg-muted rounded animate-pulse" />
+                        <div className="h-4 w-80 bg-muted/50 rounded animate-pulse" />
+                    </div>
+                    <div className="flex gap-3">
+                        <div className="h-9 w-36 bg-muted rounded animate-pulse" />
+                        <div className="h-9 w-28 bg-muted rounded animate-pulse" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+                    {[...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)}
+                </div>
+                <div className="h-4 w-full border-b shrink-0" style={HATCH} />
+                <div className="flex border-b divide-x divide-border">
+                    {TABS.map(t => <div key={t.id} className="px-6 py-3 h-11 w-36 bg-muted/40 animate-pulse" />)}
+                </div>
+                <div className="px-6 py-6 space-y-px">
+                    {[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-muted/40 animate-pulse border-b border-border" />)}
+                </div>
+            </div>
+        );
     }
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-                <AlertCircle className="h-12 w-12 text-destructive" />
-                <p className="text-lg text-muted-foreground">Failed to load mentorship data</p>
-                <Button variant="outline" onClick={() => window.location.reload()}>
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <AlertCircle className="h-10 w-10 text-destructive" />
+                <p className="text-sm text-muted-foreground">Failed to load mentorship data</p>
+                <Button variant="outline" size="sm" className="rounded-none" onClick={() => window.location.reload()}>
                     Try Again
                 </Button>
             </div>
         );
     }
 
-    const stats = data?.stats || {
-        totalMentees: 0,
-        activeMentees: 0,
-        pendingDocuments: 0,
-        completedDocuments: 0,
-    };
-
+    const stats = data?.stats || { totalMentees: 0, activeMentees: 0, pendingDocuments: 0, completedDocuments: 0 };
     const mentees = data?.mentees || [];
     const requirements = data?.requirements || [];
     const submissions = data?.submissions || [];
+    const pendingCount = submissions.filter(s => s.status === "PENDING").length;
 
-    const filteredMentees = mentees.filter((m) =>
+    const filteredMentees = mentees.filter(m =>
         m.mentee?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.mentee?.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const pendingSubmissions = submissions.filter((s) => s.status === "PENDING");
-
     return (
-        <div className="space-y-8">
+        <div className="flex w-full min-w-0 flex-col">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
-                        Mentorship Dashboard
-                    </h1>
-                    <p className="text-muted-foreground text-lg">
-                        Manage your mentees and track their document submissions.
-                    </p>
+            <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center">
+                <div className="min-w-0 space-y-1">
+                    <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Mentorship Dashboard</h1>
+                    <p className="text-sm text-muted-foreground">Manage your mentees and track their document submissions.</p>
                 </div>
-                <div className="flex gap-3">
-                    <Button
-                        variant="outline"
-                        onClick={() => setCreateRequirementOpen(true)}
-                        className="gap-2"
-                    >
+                <div className="flex items-center gap-3 shrink-0">
+                    <Button variant="outline" onClick={() => setCreateRequirementOpen(true)} className="rounded-none gap-2">
                         <FileText className="h-4 w-4" />
                         New Requirement
                     </Button>
-                    <Button onClick={() => setAddMenteeOpen(true)} className="gap-2">
+                    <Button onClick={() => setAddMenteeOpen(true)} className="rounded-none gap-2">
                         <Plus className="h-4 w-4" />
                         Add Mentee
                     </Button>
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard
-                    title="Total Mentees"
-                    value={stats.totalMentees}
-                    icon={Users}
-                    description={`${stats.activeMentees} active`}
-                    trend="neutral"
-                    gradient="from-blue-500/10 to-cyan-500/10"
-                    iconColor="text-blue-500"
-                />
-                <StatsCard
-                    title="Document Requirements"
-                    value={requirements.length}
-                    icon={FileText}
-                    description="Total documents"
-                    trend="neutral"
-                    gradient="from-purple-500/10 to-pink-500/10"
-                    iconColor="text-purple-500"
-                />
-                <StatsCard
-                    title="Pending Reviews"
-                    value={stats.pendingDocuments}
-                    icon={Clock}
-                    description="Awaiting review"
-                    trend={stats.pendingDocuments > 0 ? "warning" : "success"}
-                    gradient="from-amber-500/10 to-orange-500/10"
-                    iconColor="text-amber-500"
-                />
-                <StatsCard
-                    title="Approved Documents"
-                    value={stats.completedDocuments}
-                    icon={CheckCircle2}
-                    description="Successfully reviewed"
-                    trend="success"
-                    gradient="from-emerald-500/10 to-green-500/10"
-                    iconColor="text-emerald-500"
-                />
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+                <StatsCard title="Total Mentees" value={stats.totalMentees} icon={Users} description={`${stats.activeMentees} active`} index={0} {...gradientPresets.blue} />
+                <StatsCard title="Requirements" value={requirements.length} icon={FileText} description="Document requirements" index={1} {...gradientPresets.purple} />
+                <StatsCard title="Pending Reviews" value={stats.pendingDocuments} icon={Clock} description="Awaiting review" trend={stats.pendingDocuments > 0 ? "warning" : "neutral"} index={2} {...gradientPresets.amber} />
+                <StatsCard title="Approved" value={stats.completedDocuments} icon={CheckCircle2} description="Successfully reviewed" trend="success" index={3} {...gradientPresets.emerald} />
             </div>
 
-            {/* Main Content Tabs */}
-            <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-                <TabsList className="grid w-full max-w-lg grid-cols-3">
-                    <TabsTrigger value="overview" className="gap-2">
-                        <GraduationCap className="h-4 w-4" />
-                        Mentees
-                    </TabsTrigger>
-                    <TabsTrigger value="requirements" className="gap-2">
-                        <FileText className="h-4 w-4" />
-                        Requirements
-                    </TabsTrigger>
-                    <TabsTrigger value="submissions" className="gap-2 relative">
-                        <Eye className="h-4 w-4" />
-                        Submissions
-                        {pendingSubmissions.length > 0 && (
-                            <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1 text-xs">
-                                {pendingSubmissions.length}
+            {/* Hatched divider */}
+            <div className="h-4 w-full border-b shrink-0" style={HATCH} />
+
+            {/* Tab nav */}
+            <div className="flex border-b divide-x divide-border">
+                {TABS.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                            "flex items-center gap-2 px-6 py-3 text-sm transition-colors",
+                            activeTab === tab.id
+                                ? "bg-background font-medium border-b-2 border-b-foreground -mb-px"
+                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                        )}
+                    >
+                        <tab.icon className="h-3.5 w-3.5" />
+                        {tab.label}
+                        {tab.id === "submissions" && pendingCount > 0 && (
+                            <Badge variant="destructive" className="rounded-none h-4 min-w-4 px-1 text-[10px]">
+                                {pendingCount}
                             </Badge>
                         )}
-                    </TabsTrigger>
-                </TabsList>
+                    </button>
+                ))}
+            </div>
 
-                {/* Mentees Tab */}
-                <TabsContent value="overview" className="space-y-4">
-                    <div className="flex items-center gap-4">
+            {/* Tab content */}
+            {activeTab === "mentees" && (
+                <div className="flex flex-col">
+                    {/* Search bar */}
+                    <div className="flex items-center gap-3 px-6 py-3 border-b">
                         <div className="relative flex-1 max-w-sm">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search mentees..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="pl-9 rounded-none h-8 text-sm"
                             />
                         </div>
-                        <Button variant="outline" size="icon">
-                            <Filter className="h-4 w-4" />
-                        </Button>
                     </div>
 
                     {filteredMentees.length === 0 ? (
-                        <EmptyMentees onAdd={() => setAddMenteeOpen(true)} />
+                        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                            <Users className="h-8 w-8 text-muted-foreground/40" />
+                            <div>
+                                <p className="text-sm font-medium">No mentees yet</p>
+                                <p className="text-xs text-muted-foreground mt-1">Add students to guide them through their academic journey.</p>
+                            </div>
+                            <Button onClick={() => setAddMenteeOpen(true)} className="rounded-none gap-2" size="sm">
+                                <Plus className="h-4 w-4" />
+                                Add Your First Mentee
+                            </Button>
+                        </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredMentees.map((mentorship) => (
-                                <MenteeCard key={mentorship.id} mentorship={mentorship} />
+                        <div className="divide-y divide-border">
+                            {filteredMentees.map(mentorship => (
+                                <MenteeRow key={mentorship.id} mentorship={mentorship} />
                             ))}
                         </div>
                     )}
-                </TabsContent>
+                </div>
+            )}
 
-                {/* Requirements Tab */}
-                <TabsContent value="requirements" className="space-y-4">
+            {activeTab === "requirements" && (
+                <div className="flex flex-col">
                     {requirements.length === 0 ? (
-                        <EmptyRequirements onCreate={() => setCreateRequirementOpen(true)} />
+                        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                            <FileText className="h-8 w-8 text-muted-foreground/40" />
+                            <div>
+                                <p className="text-sm font-medium">No document requirements</p>
+                                <p className="text-xs text-muted-foreground mt-1">Create requirements that your mentees need to submit.</p>
+                            </div>
+                            <Button onClick={() => setCreateRequirementOpen(true)} className="rounded-none gap-2" size="sm">
+                                <Plus className="h-4 w-4" />
+                                Create First Requirement
+                            </Button>
+                        </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {requirements.map((req) => (
-                                <RequirementCard key={req.id} requirement={req} menteeCount={mentees.length} />
+                        <div className="divide-y divide-border">
+                            {requirements.map(req => (
+                                <RequirementRow key={req.id} requirement={req} menteeCount={mentees.length} />
                             ))}
                         </div>
                     )}
-                </TabsContent>
+                </div>
+            )}
 
-                {/* Submissions Tab */}
-                <TabsContent value="submissions" className="space-y-4">
+            {activeTab === "submissions" && (
+                <div className="px-6 py-6">
                     <SubmissionReviewPanel submissions={submissions} />
-                </TabsContent>
-            </Tabs>
+                </div>
+            )}
 
-            {/* Dialogs */}
             <AddMenteeDialog open={addMenteeOpen} onOpenChange={setAddMenteeOpen} />
-            <CreateRequirementDialog
-                open={createRequirementOpen}
-                onOpenChange={setCreateRequirementOpen}
-            />
+            <CreateRequirementDialog open={createRequirementOpen} onOpenChange={setCreateRequirementOpen} />
         </div>
     );
 }
 
-// Stats Card Component
-function StatsCard({
-    title,
-    value,
-    icon: Icon,
-    description,
-    trend,
-    gradient,
-    iconColor,
-}: {
-    title: string;
-    value: number;
-    icon: React.ComponentType<{ className?: string }>;
-    description: string;
-    trend: "success" | "warning" | "neutral";
-    gradient: string;
-    iconColor: string;
-}) {
-    return (
-        <Card className={cn("overflow-hidden border-0 shadow-lg", `bg-gradient-to-br ${gradient}`)}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-                <div className={cn("p-2 rounded-lg bg-background/80", iconColor)}>
-                    <Icon className="h-4 w-4" />
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="text-3xl font-bold">{value}</div>
-                <p className="text-xs text-muted-foreground mt-1">{description}</p>
-            </CardContent>
-        </Card>
-    );
-}
-
-// Mentee Card Component
-function MenteeCard({ mentorship }: { mentorship: any }) {
+function MenteeRow({ mentorship }: { mentorship: any }) {
     const mentee = mentorship.mentee;
-    const initials = mentee?.name
-        ?.split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase() || "?";
+    const initials = mentee?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
     return (
-        <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-14 w-14 ring-2 ring-primary/10">
-                            <AvatarImage src={mentee?.avatar || undefined} alt={mentee?.name || "Mentee"} />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-lg">
-                                {initials}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1">
-                            <h3 className="font-semibold text-lg leading-none">{mentee?.name || "Unknown"}</h3>
-                            <p className="text-sm text-muted-foreground">{mentee?.email}</p>
-                            <div className="flex gap-2 mt-2">
-                                {mentee?.studentId && (
-                                    <Badge variant="outline" className="text-xs">
-                                        {mentee.studentId}
-                                    </Badge>
-                                )}
-                                {mentee?.semester && (
-                                    <Badge variant="secondary" className="text-xs">
-                                        {mentee.semester}
-                                    </Badge>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <FileText className="h-4 w-4 mr-2" />
-                                View Documents
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remove Mentee
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-                <div className="mt-4 pt-4 border-t flex items-center justify-between">
-                    <Badge
-                        variant={mentorship.status === "ACTIVE" ? "default" : "secondary"}
-                        className={cn(
-                            mentorship.status === "ACTIVE" && "bg-emerald-500 hover:bg-emerald-600"
-                        )}
-                    >
-                        {mentorship.status}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                        Added {new Date(mentorship.createdAt).toLocaleDateString()}
-                    </span>
-                </div>
-            </CardContent>
-        </Card>
+        <div className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+            <Avatar className="h-9 w-9 shrink-0 border border-border">
+                <AvatarImage src={mentee?.avatar || undefined} alt={mentee?.name || "Mentee"} />
+                <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{mentee?.name || "Unknown"}</p>
+                <p className="text-xs text-muted-foreground truncate">{mentee?.email}</p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+                {mentee?.studentId && (
+                    <Badge variant="outline" className="rounded-none text-xs">{mentee.studentId}</Badge>
+                )}
+                {mentee?.semester && (
+                    <Badge variant="secondary" className="rounded-none text-xs">{mentee.semester}</Badge>
+                )}
+                <Badge
+                    variant={mentorship.status === "ACTIVE" ? "default" : "secondary"}
+                    className={cn("rounded-none text-xs", mentorship.status === "ACTIVE" && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20")}
+                >
+                    {mentorship.status}
+                </Badge>
+            </div>
+
+            <span className="text-xs text-muted-foreground shrink-0 hidden md:block">
+                {new Date(mentorship.createdAt).toLocaleDateString()}
+            </span>
+
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-none">
+                    <DropdownMenuItem><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
+                    <DropdownMenuItem><FileText className="h-4 w-4 mr-2" />View Documents</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive focus:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />Remove Mentee
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
     );
 }
 
-// Requirement Card Component
-function RequirementCard({
-    requirement,
-    menteeCount,
-}: {
-    requirement: any;
-    menteeCount: number;
-}) {
+function RequirementRow({ requirement, menteeCount }: { requirement: any; menteeCount: number }) {
     const submissionCount = requirement._count?.submissions || 0;
     const progress = menteeCount > 0 ? Math.round((submissionCount / menteeCount) * 100) : 0;
-    const isOverdue =
-        requirement.dueDate && new Date(requirement.dueDate) < new Date();
+    const isOverdue = requirement.dueDate && new Date(requirement.dueDate) < new Date();
 
     return (
-        <Card className="hover:shadow-lg transition-all duration-300">
-            <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            {requirement.title}
-                            {requirement.isRequired && (
-                                <Badge variant="destructive" className="text-xs">Required</Badge>
-                            )}
-                        </CardTitle>
-                        {requirement.category && (
-                            <Badge variant="outline" className="text-xs">
-                                {requirement.category}
-                            </Badge>
-                        )}
-                    </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Edit Requirement</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+        <div className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+            <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{requirement.title}</p>
+                    {requirement.isRequired && (
+                        <Badge variant="destructive" className="rounded-none text-[10px] px-1.5 py-0">Required</Badge>
+                    )}
+                    {requirement.category && (
+                        <Badge variant="outline" className="rounded-none text-[10px] px-1.5 py-0">{requirement.category}</Badge>
+                    )}
                 </div>
                 {requirement.description && (
-                    <CardDescription className="line-clamp-2">
-                        {requirement.description}
-                    </CardDescription>
+                    <p className="text-xs text-muted-foreground truncate">{requirement.description}</p>
                 )}
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-3">
-                    {requirement.dueDate && (
-                        <div className="flex items-center gap-2 text-sm">
-                            <Clock className={cn("h-4 w-4", isOverdue ? "text-destructive" : "text-muted-foreground")} />
-                            <span className={cn(isOverdue && "text-destructive font-medium")}>
-                                Due: {new Date(requirement.dueDate).toLocaleDateString()}
-                                {isOverdue && " (Overdue)"}
-                            </span>
-                        </div>
-                    )}
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Submissions</span>
-                            <span className="font-medium">{submissionCount}/{menteeCount}</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
+            </div>
+
+            <div className="flex items-center gap-4 shrink-0">
+                {requirement.dueDate && (
+                    <span className={cn("text-xs flex items-center gap-1", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                        <Clock className="h-3 w-3" />
+                        {isOverdue ? "Overdue" : new Date(requirement.dueDate).toLocaleDateString()}
+                    </span>
+                )}
+                <div className="w-24 space-y-1 hidden md:block">
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>Submissions</span>
+                        <span>{submissionCount}/{menteeCount}</span>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-// Empty States
-function EmptyMentees({ onAdd }: { onAdd: () => void }) {
-    return (
-        <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="rounded-full bg-primary/10 p-4 mb-4">
-                    <Users className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No Mentees Yet</h3>
-                <p className="text-muted-foreground mb-4 max-w-sm">
-                    Start building your mentee network. Add students to guide them through their academic journey.
-                </p>
-                <Button onClick={onAdd} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Your First Mentee
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-function EmptyRequirements({ onCreate }: { onCreate: () => void }) {
-    return (
-        <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="rounded-full bg-purple-500/10 p-4 mb-4">
-                    <FileText className="h-8 w-8 text-purple-500" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No Document Requirements</h3>
-                <p className="text-muted-foreground mb-4 max-w-sm">
-                    Create document requirements that your mentees need to submit. Track their progress easily.
-                </p>
-                <Button onClick={onCreate} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create First Requirement
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-// Loading Skeleton
-function MentorshipSkeleton() {
-    return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b">
-                <div className="space-y-2">
-                    <Skeleton className="h-9 w-64" />
-                    <Skeleton className="h-5 w-96" />
-                </div>
-                <div className="flex gap-3">
-                    <Skeleton className="h-10 w-36" />
-                    <Skeleton className="h-10 w-32" />
+                    <Progress value={progress} className="h-1" />
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-32" />
-                ))}
-            </div>
-            <Skeleton className="h-12 w-96" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-48" />
-                ))}
-            </div>
+
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-none">
+                    <DropdownMenuItem>Edit Requirement</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     );
 }

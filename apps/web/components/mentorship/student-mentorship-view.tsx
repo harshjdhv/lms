@@ -1,9 +1,3 @@
-/**
- * @file components/mentorship/student-mentorship-view.tsx
- * @description Student's view of the mentorship page - view mentor and submit documents
- * @module Apps/Web/Components/Mentorship
- */
-
 "use client";
 
 import { useState } from "react";
@@ -24,25 +18,24 @@ import {
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@workspace/ui/components/card";
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@workspace/ui/components/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
-import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Progress } from "@workspace/ui/components/progress";
 import { useMentorshipData } from "@/hooks/queries/use-mentorship";
 import { DocumentUploadDialog } from "./document-upload-dialog";
+import { StatsCard, StatsCardSkeleton, gradientPresets } from "@/components/ui/stats-card";
 import { cn } from "@/lib/utils";
+
+const HATCH = {
+    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+    backgroundSize: "6px 6px",
+};
+
+const TABS = [
+    { id: "required", label: "Required Documents" },
+    { id: "optional", label: "Optional Documents" },
+] as const;
+
+type Tab = typeof TABS[number]["id"];
 
 interface StudentMentorshipViewProps {
     userName: string;
@@ -52,17 +45,41 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     const { data, isLoading, error } = useMentorshipData();
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [selectedRequirement, setSelectedRequirement] = useState<any>(null);
+    const [activeTab, setActiveTab] = useState<Tab>("required");
 
     if (isLoading) {
-        return <StudentMentorshipSkeleton />;
+        return (
+            <div className="flex w-full min-w-0 flex-col">
+                <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center">
+                    <div className="space-y-2">
+                        <div className="h-7 w-56 bg-muted rounded animate-pulse" />
+                        <div className="h-4 w-80 bg-muted/50 rounded animate-pulse" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+                    {[...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)}
+                </div>
+                <div className="h-4 w-full border-b shrink-0" style={HATCH} />
+                <div className="grid grid-cols-1 xl:grid-cols-4 divide-y xl:divide-y-0 xl:divide-x divide-border">
+                    <div className="px-6 py-6 space-y-4">
+                        <div className="h-20 w-20 rounded-full bg-muted animate-pulse mx-auto" />
+                        <div className="h-5 w-32 bg-muted rounded animate-pulse mx-auto" />
+                        <div className="h-4 w-48 bg-muted/50 rounded animate-pulse mx-auto" />
+                    </div>
+                    <div className="xl:col-span-3 space-y-px">
+                        {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted/40 animate-pulse border-b border-border" />)}
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-                <AlertCircle className="h-12 w-12 text-destructive" />
-                <p className="text-lg text-muted-foreground">Failed to load mentorship data</p>
-                <Button variant="outline" onClick={() => window.location.reload()}>
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <AlertCircle className="h-10 w-10 text-destructive" />
+                <p className="text-sm text-muted-foreground">Failed to load mentorship data</p>
+                <Button variant="outline" size="sm" className="rounded-none" onClick={() => window.location.reload()}>
                     Try Again
                 </Button>
             </div>
@@ -74,18 +91,11 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     const submissions = data?.submissions || [];
     const stats = data?.stats || { pendingDocuments: 0, completedDocuments: 0 };
 
-    // Map submissions to requirements
-    const getSubmissionForRequirement = (reqId: string) =>
-        submissions.find((s) => s.requirementId === reqId);
-
-    const requiredDocs = requirements.filter((r) => r.isRequired);
-    const optionalDocs = requirements.filter((r) => !r.isRequired);
-    const submittedCount = submissions.length;
-    const approvedCount = submissions.filter((s) => s.status === "APPROVED").length;
-    const progressPercent =
-        requirements.length > 0
-            ? Math.round((approvedCount / requirements.length) * 100)
-            : 0;
+    const getSubmissionForRequirement = (reqId: string) => submissions.find(s => s.requirementId === reqId);
+    const requiredDocs = requirements.filter(r => r.isRequired);
+    const optionalDocs = requirements.filter(r => !r.isRequired);
+    const approvedCount = submissions.filter(s => s.status === "APPROVED").length;
+    const progressPercent = requirements.length > 0 ? Math.round((approvedCount / requirements.length) * 100) : 0;
 
     const handleUpload = (requirement: any) => {
         setSelectedRequirement(requirement);
@@ -93,142 +103,151 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     };
 
     if (!mentor) {
-        return <NoMentorAssigned userName={userName} />;
+        return (
+            <div className="flex w-full min-w-0 flex-col">
+                <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5">
+                    <div className="min-w-0 space-y-1">
+                        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                            Welcome, {userName.split(" ")[0]}
+                        </h1>
+                        <p className="text-sm text-muted-foreground">Your mentorship dashboard</p>
+                    </div>
+                </div>
+                <div className="h-4 w-full border-b shrink-0" style={HATCH} />
+                <div className="flex flex-col items-center justify-center py-24 gap-4 text-center px-6">
+                    <User className="h-10 w-10 text-muted-foreground/40" />
+                    <div>
+                        <p className="text-sm font-medium">No mentor assigned yet</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                            Once a teacher adds you as their mentee, you'll be able to see their document requirements here.
+                        </p>
+                    </div>
+                    <Badge variant="secondary" className="rounded-none gap-1.5 py-1.5 px-3">
+                        <Clock className="h-3.5 w-3.5" />
+                        Waiting for assignment
+                    </Badge>
+                </div>
+            </div>
+        );
     }
 
+    const mentorInitials = mentor.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "M";
+    const activeDocs = activeTab === "required" ? requiredDocs : optionalDocs;
+
     return (
-        <div className="space-y-8">
+        <div className="flex w-full min-w-0 flex-col">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
-                        My Mentor & Documents
-                    </h1>
-                    <p className="text-muted-foreground text-lg">
-                        View your mentor's requirements and submit your documents.
-                    </p>
+            <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center">
+                <div className="min-w-0 space-y-1">
+                    <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">My Mentor & Documents</h1>
+                    <p className="text-sm text-muted-foreground">View your mentor's requirements and submit your documents.</p>
                 </div>
             </div>
 
-            {/* Mentor Card & Progress */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Mentor Info Card */}
-                <Card className="lg:col-span-1 overflow-hidden">
-                    <div className="h-24 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
-                    <CardContent className="-mt-12 relative">
-                        <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
-                            <AvatarImage src={mentor.avatar || undefined} alt={mentor.name || "Mentor"} />
-                            <AvatarFallback className="text-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                                {mentor.name
-                                    ?.split(" ")
-                                    .map((n: string) => n[0])
-                                    .join("")
-                                    .toUpperCase() || "M"}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="mt-4 space-y-3">
-                            <div>
-                                <h2 className="text-2xl font-bold">{mentor.name}</h2>
-                                {mentor.title && (
-                                    <p className="text-muted-foreground">{mentor.title}</p>
-                                )}
-                            </div>
-                            {mentor.expertise && (
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Award className="h-4 w-4 text-primary" />
-                                    <span>{mentor.expertise}</span>
-                                </div>
-                            )}
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                <span>{mentor.email}</span>
-                            </div>
-                            <Button variant="outline" className="w-full mt-4 gap-2">
-                                <Mail className="h-4 w-4" />
-                                Contact Mentor
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Progress Overview */}
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-primary" />
-                            Document Progress
-                        </CardTitle>
-                        <CardDescription>
-                            Track your document submission progress
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Progress Bar */}
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="font-medium">Overall Progress</span>
-                                <span className="text-muted-foreground">
-                                    {approvedCount}/{requirements.length} approved
-                                </span>
-                            </div>
-                            <Progress value={progressPercent} className="h-3" />
-                        </div>
-
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <StatBox
-                                label="Total Required"
-                                value={requirements.length}
-                                icon={FileText}
-                                color="text-blue-500"
-                                bgColor="bg-blue-500/10"
-                            />
-                            <StatBox
-                                label="Submitted"
-                                value={submittedCount}
-                                icon={Upload}
-                                color="text-purple-500"
-                                bgColor="bg-purple-500/10"
-                            />
-                            <StatBox
-                                label="Pending Review"
-                                value={stats.pendingDocuments}
-                                icon={Clock}
-                                color="text-amber-500"
-                                bgColor="bg-amber-500/10"
-                            />
-                            <StatBox
-                                label="Approved"
-                                value={approvedCount}
-                                icon={CheckCircle2}
-                                color="text-emerald-500"
-                                bgColor="bg-emerald-500/10"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+                <StatsCard title="Total Required" value={requirements.length} icon={FileText} description="Document requirements" index={0} {...gradientPresets.blue} />
+                <StatsCard title="Submitted" value={submissions.length} icon={Upload} description="Documents uploaded" index={1} {...gradientPresets.purple} />
+                <StatsCard title="Pending Review" value={stats.pendingDocuments} icon={Clock} description="Awaiting feedback" trend={stats.pendingDocuments > 0 ? "warning" : "neutral"} index={2} {...gradientPresets.amber} />
+                <StatsCard title="Approved" value={approvedCount} icon={CheckCircle2} description="Successfully approved" trend="success" index={3} {...gradientPresets.emerald} />
             </div>
 
-            {/* Documents Section */}
-            <Tabs defaultValue="required" className="space-y-6">
-                <TabsList className="grid w-full max-w-md grid-cols-2">
-                    <TabsTrigger value="required" className="gap-2">
-                        Required Documents
-                        <Badge variant="secondary">{requiredDocs.length}</Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="optional" className="gap-2">
-                        Optional
-                        <Badge variant="outline">{optionalDocs.length}</Badge>
-                    </TabsTrigger>
-                </TabsList>
+            {/* Hatched divider */}
+            <div className="h-4 w-full border-b shrink-0" style={HATCH} />
 
-                <TabsContent value="required" className="space-y-4">
-                    {requiredDocs.length === 0 ? (
-                        <EmptyDocuments type="required" />
+            {/* Two-column: mentor card left, documents right */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 divide-y xl:divide-y-0 xl:divide-x divide-border">
+
+                {/* Left — Mentor card */}
+                <div className="min-w-0 divide-y divide-border">
+                    {/* Section label */}
+                    <div className="flex items-center gap-2 px-6 py-3 bg-muted/30">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Mentor</span>
+                    </div>
+
+                    {/* Avatar + name */}
+                    <div className="flex flex-col items-center gap-3 px-6 py-6 text-center">
+                        <Avatar className="h-16 w-16 border-2 border-border">
+                            <AvatarImage src={mentor.avatar || undefined} alt={mentor.name || "Mentor"} />
+                            <AvatarFallback className="text-lg font-semibold">{mentorInitials}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p className="font-semibold">{mentor.name}</p>
+                            {mentor.title && <p className="text-xs text-muted-foreground mt-0.5">{mentor.title}</p>}
+                        </div>
+                    </div>
+
+                    {/* Expertise */}
+                    {mentor.expertise && (
+                        <div className="flex items-center justify-between px-6 py-3">
+                            <span className="text-xs text-muted-foreground">Expertise</span>
+                            <span className="text-xs font-medium flex items-center gap-1.5">
+                                <Award className="h-3 w-3 text-primary" />
+                                {mentor.expertise}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Email */}
+                    <div className="flex items-center justify-between gap-3 px-6 py-3">
+                        <span className="text-xs text-muted-foreground shrink-0">Email</span>
+                        <span className="text-xs truncate">{mentor.email}</span>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="px-6 py-4 space-y-2">
+                        <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Overall Progress</span>
+                            <span className="font-medium">{approvedCount}/{requirements.length} approved</span>
+                        </div>
+                        <Progress value={progressPercent} className="h-1.5" />
+                    </div>
+
+                    {/* Contact button */}
+                    <div className="px-6 py-4">
+                        <Button variant="outline" className="w-full rounded-none gap-2 text-sm" size="sm">
+                            <Mail className="h-4 w-4" />
+                            Contact Mentor
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Right — Documents */}
+                <div className="min-w-0 xl:col-span-3 divide-y divide-border">
+                    {/* Tab nav */}
+                    <div className="flex divide-x divide-border">
+                        {TABS.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-3 text-sm transition-colors",
+                                    activeTab === tab.id
+                                        ? "bg-background font-medium border-b-2 border-b-foreground -mb-px"
+                                        : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                                )}
+                            >
+                                {tab.label}
+                                <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0">
+                                    {tab.id === "required" ? requiredDocs.length : optionalDocs.length}
+                                </Badge>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Document list */}
+                    {activeDocs.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                            <FileText className="h-8 w-8 text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">
+                                No {activeTab} documents yet
+                            </p>
+                        </div>
                     ) : (
-                        <div className="grid gap-4">
-                            {requiredDocs.map((req) => (
-                                <DocumentRequirementCard
+                        <div className="divide-y divide-border">
+                            {activeDocs.map(req => (
+                                <DocumentRow
                                     key={req.id}
                                     requirement={req}
                                     submission={getSubmissionForRequirement(req.id)}
@@ -237,27 +256,9 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                             ))}
                         </div>
                     )}
-                </TabsContent>
+                </div>
+            </div>
 
-                <TabsContent value="optional" className="space-y-4">
-                    {optionalDocs.length === 0 ? (
-                        <EmptyDocuments type="optional" />
-                    ) : (
-                        <div className="grid gap-4">
-                            {optionalDocs.map((req) => (
-                                <DocumentRequirementCard
-                                    key={req.id}
-                                    requirement={req}
-                                    submission={getSubmissionForRequirement(req.id)}
-                                    onUpload={() => handleUpload(req)}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </TabsContent>
-            </Tabs>
-
-            {/* Upload Dialog */}
             <DocumentUploadDialog
                 open={uploadDialogOpen}
                 onOpenChange={setUploadDialogOpen}
@@ -267,277 +268,79 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     );
 }
 
-// Stat Box Component
-function StatBox({
-    label,
-    value,
-    icon: Icon,
-    color,
-    bgColor,
-}: {
-    label: string;
-    value: number;
-    icon: React.ComponentType<{ className?: string }>;
-    color: string;
-    bgColor: string;
-}) {
-    return (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50">
-            <div className={cn("p-2 rounded-lg", bgColor)}>
-                <Icon className={cn("h-5 w-5", color)} />
-            </div>
-            <div>
-                <p className="text-2xl font-bold">{value}</p>
-                <p className="text-xs text-muted-foreground">{label}</p>
-            </div>
-        </div>
-    );
-}
-
-// Document Requirement Card
-function DocumentRequirementCard({
-    requirement,
-    submission,
-    onUpload,
-}: {
-    requirement: any;
-    submission?: any;
-    onUpload: () => void;
-}) {
-    const isOverdue =
-        requirement.dueDate && new Date(requirement.dueDate) < new Date();
+function DocumentRow({ requirement, submission, onUpload }: { requirement: any; submission?: any; onUpload: () => void }) {
+    const isOverdue = requirement.dueDate && new Date(requirement.dueDate) < new Date();
     const daysUntilDue = requirement.dueDate
-        ? Math.ceil(
-            (new Date(requirement.dueDate).getTime() - Date.now()) /
-            (1000 * 60 * 60 * 24)
-        )
+        ? Math.ceil((new Date(requirement.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         : null;
 
-    const getStatusConfig = () => {
-        if (!submission) {
-            return {
-                label: "Not Submitted",
-                variant: "outline" as const,
-                icon: FileUp,
-                color: "text-muted-foreground",
-            };
-        }
+    const getStatus = () => {
+        if (!submission) return { label: "Not Submitted", icon: FileUp, color: "text-muted-foreground" };
         switch (submission.status) {
-            case "APPROVED":
-                return {
-                    label: "Approved",
-                    variant: "default" as const,
-                    icon: CheckCircle2,
-                    color: "text-emerald-500",
-                };
-            case "REJECTED":
-                return {
-                    label: "Rejected",
-                    variant: "destructive" as const,
-                    icon: XCircle,
-                    color: "text-destructive",
-                };
-            case "REVISION_REQUESTED":
-                return {
-                    label: "Revision Needed",
-                    variant: "secondary" as const,
-                    icon: RefreshCw,
-                    color: "text-amber-500",
-                };
-            default:
-                return {
-                    label: "Pending Review",
-                    variant: "secondary" as const,
-                    icon: Clock,
-                    color: "text-amber-500",
-                };
+            case "APPROVED": return { label: "Approved", icon: CheckCircle2, color: "text-emerald-600" };
+            case "REJECTED": return { label: "Rejected", icon: XCircle, color: "text-destructive" };
+            case "REVISION_REQUESTED": return { label: "Revision Needed", icon: RefreshCw, color: "text-amber-600" };
+            default: return { label: "Pending Review", icon: Clock, color: "text-amber-600" };
         }
     };
 
-    const status = getStatusConfig();
+    const status = getStatus();
     const StatusIcon = status.icon;
 
+    const leftBorderColor = submission?.status === "APPROVED"
+        ? "border-l-emerald-500"
+        : submission?.status === "REJECTED"
+            ? "border-l-destructive"
+            : submission
+                ? "border-l-amber-500"
+                : "border-l-transparent";
+
     return (
-        <Card
-            className={cn(
-                "transition-all duration-300 hover:shadow-md",
-                submission?.status === "APPROVED" && "border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/50 dark:bg-emerald-950/20",
-                submission?.status === "REJECTED" && "border-destructive/30 bg-destructive/5"
-            )}
-        >
-            <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-3">
-                            <div
-                                className={cn(
-                                    "p-2 rounded-lg",
-                                    submission?.status === "APPROVED"
-                                        ? "bg-emerald-500/10"
-                                        : submission?.status === "REJECTED"
-                                            ? "bg-destructive/10"
-                                            : "bg-primary/10"
-                                )}
-                            >
-                                <FileText
-                                    className={cn(
-                                        "h-5 w-5",
-                                        submission?.status === "APPROVED"
-                                            ? "text-emerald-500"
-                                            : submission?.status === "REJECTED"
-                                                ? "text-destructive"
-                                                : "text-primary"
-                                    )}
-                                />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-lg">{requirement.title}</h3>
-                                <div className="flex items-center gap-2 flex-wrap mt-1">
-                                    {requirement.category && (
-                                        <Badge variant="outline" className="text-xs">
-                                            {requirement.category}
-                                        </Badge>
-                                    )}
-                                    {requirement.isRequired && (
-                                        <Badge variant="destructive" className="text-xs">
-                                            Required
-                                        </Badge>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {requirement.description && (
-                            <p className="text-sm text-muted-foreground">{requirement.description}</p>
-                        )}
-
-                        <div className="flex flex-wrap items-center gap-4 text-sm">
-                            {requirement.dueDate && (
-                                <div
-                                    className={cn(
-                                        "flex items-center gap-1.5",
-                                        isOverdue ? "text-destructive" : "text-muted-foreground"
-                                    )}
-                                >
-                                    <Calendar className="h-4 w-4" />
-                                    <span>
-                                        {isOverdue
-                                            ? "Overdue"
-                                            : daysUntilDue !== null && daysUntilDue <= 7
-                                                ? `Due in ${daysUntilDue} day${daysUntilDue !== 1 ? "s" : ""}`
-                                                : `Due: ${new Date(requirement.dueDate).toLocaleDateString()}`}
-                                    </span>
-                                </div>
-                            )}
-                            <div className={cn("flex items-center gap-1.5", status.color)}>
-                                <StatusIcon className="h-4 w-4" />
-                                <span>{status.label}</span>
-                            </div>
-                        </div>
-
-                        {submission?.feedback && (
-                            <div className="mt-3 p-3 rounded-lg bg-muted/50 border-l-4 border-primary">
-                                <p className="text-sm font-medium mb-1">Feedback from mentor:</p>
-                                <p className="text-sm text-muted-foreground">{submission.feedback}</p>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        {submission && (
-                            <Button variant="outline" size="sm" asChild>
-                                <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                    View
-                                </a>
-                            </Button>
-                        )}
-                        {(!submission ||
-                            submission.status === "REJECTED" ||
-                            submission.status === "REVISION_REQUESTED") && (
-                                <Button onClick={onUpload} className="gap-2">
-                                    <Upload className="h-4 w-4" />
-                                    {submission ? "Resubmit" : "Upload"}
-                                </Button>
-                            )}
-                    </div>
+        <div className={cn("flex items-start gap-4 px-6 py-4 hover:bg-muted/20 transition-colors border-l-2", leftBorderColor)}>
+            <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{requirement.title}</p>
+                    {requirement.category && (
+                        <Badge variant="outline" className="rounded-none text-[10px] px-1.5 py-0">{requirement.category}</Badge>
+                    )}
                 </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-// No Mentor Assigned View
-function NoMentorAssigned({ userName }: { userName: string }) {
-    return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Welcome, {userName.split(" ")[0]}
-                    </h1>
-                    <p className="text-muted-foreground text-lg">
-                        Your mentorship dashboard
-                    </p>
+                {requirement.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-1">{requirement.description}</p>
+                )}
+                <div className="flex items-center gap-4 flex-wrap pt-0.5">
+                    {requirement.dueDate && (
+                        <span className={cn("text-xs flex items-center gap-1", isOverdue ? "text-destructive" : "text-muted-foreground")}>
+                            <Calendar className="h-3 w-3" />
+                            {isOverdue ? "Overdue" : daysUntilDue !== null && daysUntilDue <= 7 ? `Due in ${daysUntilDue}d` : new Date(requirement.dueDate).toLocaleDateString()}
+                        </span>
+                    )}
+                    <span className={cn("text-xs flex items-center gap-1", status.color)}>
+                        <StatusIcon className="h-3 w-3" />
+                        {status.label}
+                    </span>
                 </div>
+                {submission?.feedback && (
+                    <div className="mt-2 px-3 py-2 bg-muted/50 border-l-2 border-l-primary text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">Feedback: </span>{submission.feedback}
+                    </div>
+                )}
             </div>
 
-            <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="rounded-full bg-primary/10 p-6 mb-6">
-                        <User className="h-12 w-12 text-primary" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-3">No Mentor Assigned Yet</h2>
-                    <p className="text-muted-foreground max-w-md mb-6">
-                        You haven't been assigned to a mentor yet. Once a teacher adds you as their mentee,
-                        you'll be able to see their document requirements here.
-                    </p>
-                    <Badge variant="secondary" className="text-sm py-2 px-4">
-                        <Clock className="h-4 w-4 mr-2" />
-                        Waiting for assignment
-                    </Badge>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-// Empty Documents
-function EmptyDocuments({ type }: { type: "required" | "optional" }) {
-    return (
-        <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                    No {type === "required" ? "Required" : "Optional"} Documents
-                </h3>
-                <p className="text-muted-foreground max-w-sm">
-                    Your mentor hasn't added any {type} document requirements yet.
-                </p>
-            </CardContent>
-        </Card>
-    );
-}
-
-// Loading Skeleton
-function StudentMentorshipSkeleton() {
-    return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b">
-                <div className="space-y-2">
-                    <Skeleton className="h-9 w-72" />
-                    <Skeleton className="h-5 w-96" />
-                </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Skeleton className="h-80" />
-                <Skeleton className="h-80 lg:col-span-2" />
-            </div>
-            <Skeleton className="h-12 w-80" />
-            <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-32" />
-                ))}
+            <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                {submission && (
+                    <Button variant="outline" size="sm" className="rounded-none h-7 text-xs gap-1.5" asChild>
+                        <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3 w-3" />
+                            View
+                        </a>
+                    </Button>
+                )}
+                {(!submission || submission.status === "REJECTED" || submission.status === "REVISION_REQUESTED") && (
+                    <Button onClick={onUpload} size="sm" className="rounded-none h-7 text-xs gap-1.5">
+                        <Upload className="h-3 w-3" />
+                        {submission ? "Resubmit" : "Upload"}
+                    </Button>
+                )}
             </div>
         </div>
     );

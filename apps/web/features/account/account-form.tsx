@@ -16,18 +16,11 @@ import {
     Hash,
     BadgeInfo,
     Save,
+    ShieldCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@workspace/ui/components/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-    CardFooter,
-} from "@workspace/ui/components/card";
 import {
     Form,
     FormControl,
@@ -52,7 +45,7 @@ import {
     AvatarImage,
 } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
-import { Separator } from "@workspace/ui/components/separator";
+import { cn } from "@workspace/ui/lib/utils";
 
 import { updateUser } from "@/actions/update-user";
 import { LearningMemorySettings } from "@/components/learning/learning-memory-settings";
@@ -61,10 +54,8 @@ const formSchema = z.object({
     name: z.string().min(2, { message: "Name must be at least 2 characters." }),
     bio: z.string().optional(),
     phone: z.string().optional(),
-    // Teacher
     expertise: z.string().optional(),
     title: z.string().optional(),
-    // Student
     studentId: z.string().optional(),
     grade: z.string().optional(),
     semester: z.string().optional(),
@@ -131,113 +122,214 @@ export function AccountForm({ user }: AccountFormProps) {
         : "Member";
 
     const initials = user.name
-        ? user.name
-            .split(" ")
-            .map((n) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2)
+        ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
         : "U";
 
     return (
-        <div className="grid gap-6 md:grid-cols-12 lg:gap-10">
-            {/* Sidebar / Profile Summary */}
-            <div className="md:col-span-4 lg:col-span-3">
-                <Card className="overflow-hidden md:sticky md:top-6">
-                    <div className="h-32 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b" />
-                    <CardContent className="relative pt-0 pb-8 text-center">
-                        <div className="relative -mt-12 mb-4 flex justify-center">
-                            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                                <AvatarImage src={user.avatar || ""} alt={user.name || ""} />
-                                <AvatarFallback className="text-xl bg-primary/10 text-primary">
-                                    {initials}
-                                </AvatarFallback>
-                            </Avatar>
-                        </div>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full min-w-0 flex-col">
 
-                        <div className="space-y-1">
-                            <h3 className="text-xl font-semibold">{user.name || "User"}</h3>
-                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                                <Mail className="h-3 w-3" />
-                                <span className="truncate max-w-[200px]">{user.email}</span>
+                {/* Header */}
+                <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center">
+                    <div className="min-w-0 space-y-1">
+                        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Account Settings</h1>
+                        <p className="text-sm text-muted-foreground">Manage your profile and personal details.</p>
+                    </div>
+                    <Button type="submit" disabled={isPending} className="rounded-none gap-2 shrink-0">
+                        {isPending ? (
+                            <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
+                        ) : (
+                            <><Save className="h-4 w-4" />Save Changes</>
+                        )}
+                    </Button>
+                </div>
+
+                {/* Two-column layout */}
+                <div className="grid grid-cols-1 xl:grid-cols-4 divide-y xl:divide-y-0 xl:divide-x divide-border">
+
+                    {/* Left — Profile card */}
+                    <div className="min-w-0 divide-y divide-border">
+                        {/* Avatar block */}
+                        <div className="flex flex-col items-center gap-4 px-6 py-8">
+                            <div className="relative">
+                                <Avatar className="h-20 w-20 border-2 border-border">
+                                    <AvatarImage src={user.avatar || ""} alt={user.name || ""} />
+                                    <AvatarFallback className="text-lg bg-muted text-foreground font-semibold">
+                                        {initials}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </div>
+                            <div className="text-center space-y-1">
+                                <p className="font-semibold">{user.name || "User"}</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-[180px]">{user.email}</p>
+                                <Badge variant="secondary" className="rounded-none capitalize mt-1">
+                                    {roleLabel}
+                                </Badge>
                             </div>
                         </div>
 
-                        <div className="mt-4 flex justify-center">
-                            <Badge variant="secondary" className="px-3 py-1 capitalize">
-                                {roleLabel}
-                            </Badge>
-                        </div>
-
-                        <Separator className="my-6" />
-
-                        <div className="text-left space-y-3 px-2">
-                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                Overview
-                            </div>
-
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Status</span>
-                                <span className="font-medium flex items-center gap-1.5">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                    </span>
-                                    Active
+                        {/* Status row */}
+                        <div className="flex items-center justify-between px-6 py-4">
+                            <span className="text-sm text-muted-foreground">Status</span>
+                            <span className="flex items-center gap-1.5 text-sm font-medium">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                                 </span>
-                            </div>
+                                Active
+                            </span>
+                        </div>
 
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Member Since</span>
-                                <span>{new Date().getFullYear()}</span>
+                        {/* Email row */}
+                        <div className="flex items-center justify-between gap-3 px-6 py-4">
+                            <span className="text-sm text-muted-foreground shrink-0">Email</span>
+                            <code className="text-xs bg-muted px-2 py-1 truncate max-w-40">{user.email}</code>
+                        </div>
+
+                        {/* Role row */}
+                        <div className="flex items-center justify-between px-6 py-4">
+                            <span className="text-sm text-muted-foreground">Role</span>
+                            <span className="text-sm font-medium capitalize">{roleLabel}</span>
+                        </div>
+
+                        {/* Read-only notice */}
+                        <div className="flex items-start gap-2.5 px-6 py-4 bg-muted/30">
+                            <ShieldCheck className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                Email and role are managed by your institution and cannot be changed here.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Right — Form fields */}
+                    <div className="min-w-0 xl:col-span-3 divide-y divide-border">
+
+                        {/* General section */}
+                        <div className="flex items-center gap-2 px-6 py-3 bg-muted/30">
+                            <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">General</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                            <div className="px-6 py-4 space-y-2">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-sm font-medium">Full Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Your full name" className="rounded-none" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div className="px-6 py-4 space-y-2">
+                                <FormField
+                                    control={form.control}
+                                    name="phone"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-sm font-medium">Phone Number</FormLabel>
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                    <Input className="pl-9 rounded-none" placeholder="+1 (555) 000-0000" {...field} />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
 
-            {/* Main Form Area */}
-            <div className="md:col-span-8 lg:col-span-9 space-y-6">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Profile Information</CardTitle>
-                                <CardDescription>
-                                    Update your personal details and public profile information.
-                                </CardDescription>
-                            </CardHeader>
+                        <div className="px-6 py-4 space-y-2">
+                            <FormField
+                                control={form.control}
+                                name="bio"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-sm font-medium">Bio</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Write a short bio about yourself…"
+                                                className="rounded-none resize-none min-h-24"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormDescription className="text-xs">
+                                            Brief description shown on your profile card.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
 
-                            <CardContent className="space-y-8">
-                                {/* General Section */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                        <UserIcon className="h-4 w-4" /> General
-                                    </h4>
-                                    <div className="grid gap-4 md:grid-cols-2">
+                        {/* Teacher section */}
+                        {isTeacher && (
+                            <>
+                                <div className="flex items-center gap-2 px-6 py-3 bg-muted/30">
+                                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Professional Details</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                                    <div className="px-6 py-4">
                                         <FormField
                                             control={form.control}
-                                            name="name"
+                                            name="title"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Full Name</FormLabel>
+                                                    <FormLabel className="text-sm font-medium">Professional Title</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Your full name" {...field} />
+                                                        <Input placeholder="e.g. Senior Instructor" className="rounded-none" {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
+                                    </div>
+                                    <div className="px-6 py-4">
                                         <FormField
                                             control={form.control}
-                                            name="phone"
+                                            name="expertise"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Phone Number</FormLabel>
+                                                    <FormLabel className="text-sm font-medium">Field of Expertise</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="e.g. Computer Science" className="rounded-none" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Student section */}
+                        {isStudent && (
+                            <>
+                                <div className="flex items-center gap-2 px-6 py-3 bg-muted/30">
+                                    <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Academic Details</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                                    <div className="px-6 py-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="studentId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-sm font-medium">Student ID</FormLabel>
                                                     <FormControl>
                                                         <div className="relative">
-                                                            <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                            <Input className="pl-9" placeholder="+1 (555) 000-0000" {...field} />
+                                                            <Hash className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                            <Input className="pl-9 rounded-none" placeholder="ID Number" {...field} />
                                                         </div>
                                                     </FormControl>
                                                     <FormMessage />
@@ -245,174 +337,82 @@ export function AccountForm({ user }: AccountFormProps) {
                                             )}
                                         />
                                     </div>
-
-                                    <FormField
-                                        control={form.control}
-                                        name="bio"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Bio</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        placeholder="Write a short bio about yourself..."
-                                                        className="resize-none min-h-[100px]"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Brief description for your profile card.
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="px-6 py-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="grade"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-sm font-medium">Grade / Level</FormLabel>
+                                                    <FormControl>
+                                                        <div className="relative">
+                                                            <BadgeInfo className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                            <Input className="pl-9 rounded-none" placeholder="e.g. Year 4" {...field} />
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="px-6 py-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="semester"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-sm font-medium">Semester</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="rounded-none">
+                                                                <div className="flex items-center gap-2">
+                                                                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                                                                    <SelectValue placeholder="Select semester" />
+                                                                </div>
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {Array.from({ length: 8 }, (_, i) => (
+                                                                <SelectItem key={i} value={`SEM-${i + 1}`}>
+                                                                    Semester {i + 1}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
 
-                                <Separator />
+                                {/* Learning memory */}
+                                <div className="flex items-center gap-2 px-6 py-3 bg-muted/30">
+                                    <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Learning Preferences</span>
+                                </div>
+                                <div className="px-6 py-4">
+                                    <LearningMemorySettings />
+                                </div>
+                            </>
+                        )}
 
-                                {/* Role Specific Section */}
-                                {isTeacher && (
-                                    <div className="space-y-4">
-                                        <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                            <Building2 className="h-4 w-4" /> Professional Details
-                                        </h4>
-                                        <div className="grid gap-4 md:grid-cols-2">
-                                            <FormField
-                                                control={form.control}
-                                                name="title"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Professional Title</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="e.g. Senior Instructor" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name="expertise"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Field of Expertise</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="e.g. Computer Science" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                    </div>
+                        {/* Footer save bar */}
+                        <div className="flex items-center justify-between px-6 py-4 bg-muted/20">
+                            <p className="text-xs text-muted-foreground">
+                                Last updated: {new Date().toLocaleDateString()}
+                            </p>
+                            <Button type="submit" disabled={isPending} className="rounded-none gap-2">
+                                {isPending ? (
+                                    <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
+                                ) : (
+                                    <><Save className="h-4 w-4" />Save Changes</>
                                 )}
-
-                                {isStudent && (
-                                    <div className="space-y-4">
-                                        <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                            <GraduationCap className="h-4 w-4" /> Academic Details
-                                        </h4>
-                                        <div className="grid gap-4 md:grid-cols-3">
-                                            <FormField
-                                                control={form.control}
-                                                name="studentId"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Student ID</FormLabel>
-                                                        <FormControl>
-                                                            <div className="relative">
-                                                                <Hash className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                                <Input className="pl-9" placeholder="ID Number" {...field} />
-                                                            </div>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name="grade"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Grade/Level</FormLabel>
-                                                        <FormControl>
-                                                            <div className="relative">
-                                                                <BadgeInfo className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                                <Input className="pl-9" placeholder="e.g. Year 4" {...field} />
-                                                            </div>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name="semester"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Semester</FormLabel>
-                                                        <Select
-                                                            onValueChange={field.onChange}
-                                                            defaultValue={field.value}
-                                                        >
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <BookOpen className="h-4 w-4 text-muted-foreground" />
-                                                                        <SelectValue placeholder="Select semester" />
-                                                                    </div>
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                {Array.from({ length: 8 }, (_, i) => (
-                                                                    <SelectItem key={i} value={`SEM-${i + 1}`}>
-                                                                        Semester {i + 1}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-between border">
-                                    <div className="space-y-0.5">
-                                        <label className="text-sm font-medium">Email Address</label>
-                                        <p className="text-xs text-muted-foreground">Your primary email used for login.</p>
-                                    </div>
-                                    <code className="bg-background px-2 py-1 rounded border text-sm">{user.email}</code>
-                                </div>
-
-                            </CardContent>
-                            <CardFooter className="bg-muted/20 border-t px-6 py-4">
-                                <div className="flex w-full items-center justify-between">
-                                    <p className="text-xs text-muted-foreground">
-                                        Last updated: {new Date().toLocaleDateString()}
-                                    </p>
-                                    <Button type="submit" disabled={isPending} className="min-w-[120px]">
-                                        {isPending ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Save className="mr-2 h-4 w-4" />
-                                                Save Changes
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </CardFooter>
-                        </Card>
-                    </form>
-                </Form>
-                {isStudent && <LearningMemorySettings />}
-            </div>
-        </div>
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </Form>
     );
 }

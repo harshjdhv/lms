@@ -154,7 +154,7 @@ export default async function MentorshipPage() {
 
     return (
         <HydrationBoundary state={dehydrate(queryClient)}>
-            <div className="flex flex-1 flex-col gap-6 p-4 pt-4 overflow-y-auto w-full animate-in fade-in-50 duration-500">
+            <div className="flex w-full min-w-0 flex-col animate-in fade-in-50 duration-500">
                 {isTeacher ? (
                     <TeacherMentorshipView userName={dbUser.name || "Teacher"} />
                 ) : (
