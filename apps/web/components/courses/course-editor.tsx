@@ -17,7 +17,8 @@ import {
     Video,
     Settings2,
     Save,
-    Check
+    Check,
+    ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -40,7 +41,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChapterInlineEditor } from "./chapter-inline-editor";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 interface CourseEditorProps {
@@ -55,7 +55,6 @@ export function CourseEditor({ course }: CourseEditorProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
-    // Course details state
     const [title, setTitle] = useState(course.title);
     const [description, setDescription] = useState(course.description || "");
     const [imageUrl, setImageUrl] = useState(course.imageUrl || "");
@@ -63,7 +62,6 @@ export function CourseEditor({ course }: CourseEditorProps) {
     const [savingDetails, setSavingDetails] = useState(false);
     const [detailsSaved, setDetailsSaved] = useState(false);
 
-    // Chapter state
     const [chapters, setChapters] = useState(course.chapters);
     const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
 
@@ -75,7 +73,8 @@ export function CourseEditor({ course }: CourseEditorProps) {
     const [creatingChapter, setCreatingChapter] = useState(false);
     const [showNewChapterInput, setShowNewChapterInput] = useState(false);
 
-    const hasChanges = title !== course.title ||
+    const hasChanges =
+        title !== course.title ||
         description !== (course.description || "") ||
         imageUrl !== (course.imageUrl || "") ||
         isPublished !== course.isPublished;
@@ -93,9 +92,7 @@ export function CourseEditor({ course }: CourseEditorProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title, description, isPublished, imageUrl }),
             });
-
             if (!res.ok) throw new Error("Failed to update");
-
             setDetailsSaved(true);
             setTimeout(() => setDetailsSaved(false), 2000);
             toast.success("Course updated");
@@ -116,9 +113,7 @@ export function CourseEditor({ course }: CourseEditorProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title: newChapterTitle }),
             });
-
             if (!res.ok) throw new Error("Failed to create");
-
             const newChapter = await res.json();
             setChapters((prev) => [...prev, { ...newChapter, reflectionPoints: [] }]);
             setNewChapterTitle("");
@@ -138,7 +133,6 @@ export function CourseEditor({ course }: CourseEditorProps) {
             id: chapter.id,
             position: index + 1,
         }));
-
         try {
             await fetch(`/api/courses/${course.id}/chapters/reorder`, {
                 method: "PUT",
@@ -156,106 +150,112 @@ export function CourseEditor({ course }: CourseEditorProps) {
         if (active.id !== over?.id) {
             const oldIndex = chapters.findIndex((c) => c.id === active.id);
             const newIndex = chapters.findIndex((c) => c.id === over?.id);
-            const newChapters = arrayMove(chapters, oldIndex, newIndex);
-            handleReorder(newChapters);
+            handleReorder(arrayMove(chapters, oldIndex, newIndex));
         }
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto p-6 pb-20 space-y-8">
+        <div className="flex w-full min-w-0 flex-col overflow-x-hidden animate-in fade-in-50 duration-500">
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
+            <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center">
+                <div className="min-w-0 space-y-1">
                     <Link
                         href="/dashboard/courses/my"
-                        className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mb-1"
                     >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to My Courses
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                        My Courses
                     </Link>
-                    <h1 className="text-2xl font-bold tracking-tight">{course.title}</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Manage your course content and settings
-                    </p>
+                    <h1 className="text-xl font-semibold tracking-tight sm:text-2xl truncate">{course.title}</h1>
+                    <p className="text-sm text-muted-foreground">Manage your course content and settings</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                     <Badge
                         variant={isPublished ? "default" : "secondary"}
                         className={cn(
-                            "px-3 py-1",
+                            "rounded-none px-3 py-1",
                             isPublished && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                         )}
                     >
                         {isPublished ? "Published" : "Draft"}
                     </Badge>
+                    {hasChanges && (
+                        <Button
+                            onClick={handleSaveDetails}
+                            disabled={savingDetails}
+                            size="sm"
+                            className="rounded-none gap-2"
+                        >
+                            {savingDetails ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : detailsSaved ? (
+                                <><Check className="h-4 w-4" />Saved</>
+                            ) : (
+                                <><Save className="h-4 w-4" />Save Changes</>
+                            )}
+                        </Button>
+                    )}
                 </div>
             </div>
 
-            {/* Course Details Section */}
-            <section className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    <Settings2 className="h-4 w-4" />
-                    Course Details
-                </div>
+            {/* Main Content — two columns */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 divide-y xl:divide-y-0 xl:divide-x divide-border">
 
-                <div className="rounded-xl border bg-card p-1">
-                    <div className="grid gap-4 p-5">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Title</label>
-                            <Input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Course title"
-                                className="bg-background"
-                            />
-                        </div>
-
+                {/* Left Column — Course Settings */}
+                <div className="min-w-0 divide-y divide-border">
+                    {/* Section label */}
+                    <div className="flex items-center gap-2 px-6 py-3 bg-muted/30 border-b">
+                        <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Course Details</span>
                     </div>
 
-                    <div className="space-y-2">
+                    {/* Title */}
+                    <div className="px-6 py-4 space-y-2">
+                        <label className="text-sm font-medium">Title</label>
+                        <Input
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Course title"
+                            className="rounded-none"
+                        />
+                    </div>
+
+                    {/* Description */}
+                    <div className="px-6 py-4 space-y-2">
                         <label className="text-sm font-medium">Description</label>
                         <Textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Describe what students will learn..."
-                            rows={3}
-                            className="bg-background resize-none"
+                            rows={4}
+                            className="rounded-none resize-none"
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Course Image</label>
-                        <div className="flex items-start gap-4">
-                            {imageUrl && (
-                                <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-md border bg-muted">
-                                    <img
-                                        src={imageUrl}
-                                        alt="Course"
-                                        className="h-full w-full object-cover"
-                                    />
-                                </div>
-                            )}
-                            <div className="flex-1 space-y-2">
-                                <Input
-                                    value={imageUrl}
-                                    onChange={(e) => setImageUrl(e.target.value)}
-                                    placeholder="https://..."
-                                    className="bg-background"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Enter an image URL for your course cover.
-                                </p>
+                    {/* Cover Image */}
+                    <div className="px-6 py-4 space-y-2">
+                        <label className="text-sm font-medium">Cover Image</label>
+                        {imageUrl && (
+                            <div className="relative aspect-video w-full overflow-hidden border border-border">
+                                <img src={imageUrl} alt="Course" className="h-full w-full object-cover" />
                             </div>
-                        </div>
+                        )}
+                        <Input
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="rounded-none"
+                        />
+                        <p className="text-xs text-muted-foreground">Enter an image URL for your course cover.</p>
                     </div>
 
-                    <div className="flex items-center justify-between py-2 px-4 rounded-lg bg-muted/50">
+                    {/* Publish toggle */}
+                    <div className="flex items-center justify-between px-6 py-4">
                         <div className="flex items-center gap-3">
-                            {isPublished ? (
-                                <Eye className="h-4 w-4 text-emerald-500" />
-                            ) : (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            {isPublished
+                                ? <Eye className="h-4 w-4 text-emerald-500" />
+                                : <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            }
                             <div>
                                 <p className="text-sm font-medium">Published</p>
                                 <p className="text-xs text-muted-foreground">
@@ -263,117 +263,96 @@ export function CourseEditor({ course }: CourseEditorProps) {
                                 </p>
                             </div>
                         </div>
-                        <Switch
-                            checked={isPublished}
-                            onCheckedChange={setIsPublished}
-                        />
+                        <Switch checked={isPublished} onCheckedChange={setIsPublished} />
                     </div>
+
+                    {/* Unsaved changes banner */}
+                    {hasChanges && (
+                        <div className="flex items-center justify-between px-6 py-3 border-l-2 border-l-amber-500 bg-amber-500/5">
+                            <p className="text-xs text-amber-600">You have unsaved changes</p>
+                            <Button
+                                onClick={handleSaveDetails}
+                                disabled={savingDetails}
+                                size="sm"
+                                className="rounded-none h-7 text-xs gap-1.5"
+                            >
+                                {savingDetails ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : detailsSaved ? (
+                                    <><Check className="h-3 w-3" />Saved</>
+                                ) : (
+                                    <><Save className="h-3 w-3" />Save</>
+                                )}
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
-                {hasChanges && (
-                    <div className="border-t px-5 py-3 bg-muted/30 rounded-b-xl flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">You have unsaved changes</p>
+                {/* Right Column — Chapters */}
+                <div className="min-w-0 xl:col-span-2 divide-y divide-border">
+                    {/* Section label + add button */}
+                    <div className="flex items-center justify-between px-6 py-3 bg-muted/30 border-b">
+                        <div className="flex items-center gap-2">
+                            <Video className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                Chapters ({chapters.length})
+                            </span>
+                        </div>
                         <Button
-                            onClick={handleSaveDetails}
-                            disabled={savingDetails}
+                            variant="ghost"
                             size="sm"
+                            onClick={() => setShowNewChapterInput(true)}
+                            className="rounded-none h-7 text-xs gap-1.5 text-primary"
                         >
-                            {savingDetails ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : detailsSaved ? (
-                                <>
-                                    <Check className="h-4 w-4 mr-2" />
-                                    Saved
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="h-4 w-4 mr-2" />
-                                    Save Changes
-                                </>
-                            )}
+                            <PlusCircle className="h-3.5 w-3.5" />
+                            Add Chapter
                         </Button>
                     </div>
-                )}
-            </section>
 
-            {/* Chapters Section */}
-            <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                        <Video className="h-4 w-4" />
-                        Chapters ({chapters.length})
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowNewChapterInput(true)}
-                        className="text-primary"
-                    >
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Add Chapter
-                    </Button>
-                </div>
-
-                <div className="rounded-xl border bg-card overflow-hidden">
+                    {/* New chapter input */}
                     {showNewChapterInput && (
-                        <div className="p-4 border-b bg-muted/30 flex items-center gap-3">
+                        <div className="flex items-center gap-3 px-6 py-3 bg-muted/20">
                             <Input
                                 value={newChapterTitle}
                                 onChange={(e) => setNewChapterTitle(e.target.value)}
                                 placeholder="Chapter title..."
-                                className="flex-1 bg-background"
+                                className="flex-1 rounded-none"
                                 autoFocus
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") handleCreateChapter();
-                                    if (e.key === "Escape") {
-                                        setShowNewChapterInput(false);
-                                        setNewChapterTitle("");
-                                    }
+                                    if (e.key === "Escape") { setShowNewChapterInput(false); setNewChapterTitle(""); }
                                 }}
                             />
                             <Button
                                 onClick={handleCreateChapter}
                                 disabled={creatingChapter || !newChapterTitle.trim()}
                                 size="sm"
+                                className="rounded-none"
                             >
-                                {creatingChapter ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    "Create"
-                                )}
+                                {creatingChapter ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                    setShowNewChapterInput(false);
-                                    setNewChapterTitle("");
-                                }}
+                                onClick={() => { setShowNewChapterInput(false); setNewChapterTitle(""); }}
+                                className="rounded-none"
                             >
                                 Cancel
                             </Button>
                         </div>
                     )}
 
+                    {/* Chapters list */}
                     {chapters.length === 0 ? (
-                        <div className="p-8 text-center">
-                            <Video className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                            <p className="text-muted-foreground">No chapters yet</p>
-                            <p className="text-sm text-muted-foreground/70 mt-1">
-                                Add your first chapter to get started
-                            </p>
+                        <div className="flex flex-col items-center justify-center p-16 text-center gap-2">
+                            <Video className="h-8 w-8 text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">No chapters yet</p>
+                            <p className="text-xs text-muted-foreground/70">Add your first chapter to get started</p>
                         </div>
                     ) : (
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <SortableContext
-                                items={chapters.map(c => c.id)}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                <div className="divide-y">
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <SortableContext items={chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                                <div className="divide-y divide-border">
                                     {chapters.map((chapter, index) => (
                                         <ChapterRow
                                             key={chapter.id}
@@ -381,9 +360,9 @@ export function CourseEditor({ course }: CourseEditorProps) {
                                             index={index}
                                             courseId={course.id}
                                             isExpanded={expandedChapterId === chapter.id}
-                                            onToggleExpand={() => setExpandedChapterId(
-                                                expandedChapterId === chapter.id ? null : chapter.id
-                                            )}
+                                            onToggleExpand={() =>
+                                                setExpandedChapterId(expandedChapterId === chapter.id ? null : chapter.id)
+                                            }
                                         />
                                     ))}
                                 </div>
@@ -391,15 +370,13 @@ export function CourseEditor({ course }: CourseEditorProps) {
                         </DndContext>
                     )}
                 </div>
-            </section >
-        </div >
+            </div>
+        </div>
     );
 }
 
 interface ChapterRowProps {
-    chapter: Chapter & {
-        reflectionPoints: ReflectionPoint[];
-    };
+    chapter: Chapter & { reflectionPoints: ReflectionPoint[] };
     index: number;
     courseId: string;
     isExpanded: boolean;
@@ -407,49 +384,38 @@ interface ChapterRowProps {
 }
 
 function ChapterRow({ chapter, index, courseId, isExpanded, onToggleExpand }: ChapterRowProps) {
-    // const router = useRouter(); // Removed unused router
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: chapter.id });
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chapter.id });
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
+    const style = { transform: CSS.Transform.toString(transform), transition };
 
     return (
         <div
             ref={setNodeRef}
             style={style}
             className={cn(
-                "group bg-card transition-colors hover:bg-muted/30",
-                isExpanded ? "flex flex-col" : "flex items-center gap-3 px-4 py-3",
-                isDragging && "opacity-50 bg-muted shadow-lg z-50"
+                "group bg-card transition-colors",
+                isExpanded ? "flex flex-col" : "flex items-center gap-3 px-5 py-3 hover:bg-muted/30",
+                isDragging && "opacity-50 bg-muted z-50"
             )}
         >
-            <div className={cn("flex items-center gap-3 w-full", isExpanded && "px-4 py-3")}>
+            <div className={cn("flex items-center gap-3 w-full", isExpanded && "px-5 py-3 border-b border-border")}>
                 <button
                     {...attributes}
                     {...listeners}
-                    className="p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing text-muted-foreground shrink-0"
+                    className="p-1 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing shrink-0 transition-colors"
                 >
                     <GripVertical className="h-4 w-4" />
                 </button>
 
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium shrink-0">
+                <span className="flex items-center justify-center w-5 h-5 border border-border text-[10px] font-medium shrink-0 text-muted-foreground">
                     {index + 1}
                 </span>
 
                 <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{chapter.title}</p>
+                    <p className="text-sm font-medium truncate">{chapter.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                         {chapter.isFree && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0">
                                 Free
                             </Badge>
                         )}
@@ -465,7 +431,7 @@ function ChapterRow({ chapter, index, courseId, isExpanded, onToggleExpand }: Ch
                 <Badge
                     variant={chapter.isPublished ? "default" : "secondary"}
                     className={cn(
-                        "text-xs shrink-0",
+                        "text-xs shrink-0 rounded-none",
                         chapter.isPublished && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                     )}
                 >
@@ -477,18 +443,11 @@ function ChapterRow({ chapter, index, courseId, isExpanded, onToggleExpand }: Ch
                     size="sm"
                     onClick={onToggleExpand}
                     className={cn(
-                        "transition-all",
+                        "rounded-none transition-all",
                         !isExpanded && "opacity-0 group-hover:opacity-100"
                     )}
                 >
-                    {isExpanded ? (
-                        "Close"
-                    ) : (
-                        <>
-                            <Pencil className="h-4 w-4 mr-1" />
-                            Edit
-                        </>
-                    )}
+                    {isExpanded ? "Close" : <><Pencil className="h-3.5 w-3.5 mr-1" />Edit</>}
                 </Button>
             </div>
 

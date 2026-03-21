@@ -24,9 +24,6 @@ interface AssignmentFeedProps {
     className?: string
 }
 
-const FEED_SHELL_CLASS = "flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
-const FEED_HEIGHT_CLASS = "min-h-[560px] xl:h-[560px]"
-
 export function AssignmentFeed({ className }: AssignmentFeedProps) {
     const { data: assignments = [], isLoading } = useAssignments()
     const [filter, setFilter] = useState<'ALL' | string>('ALL')
@@ -38,20 +35,20 @@ export function AssignmentFeed({ className }: AssignmentFeedProps) {
 
     if (isLoading) {
         return (
-            <div className={cn(FEED_SHELL_CLASS, FEED_HEIGHT_CLASS, className)}>
-                <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-background/80 to-transparent backdrop-blur-sm">
-                    <Skeleton className="h-6 w-32" />
+            <div className={cn("flex flex-col overflow-hidden bg-background", className)}>
+                <div className="flex items-center justify-between p-4 border-b">
+                    <Skeleton className="h-5 w-32" />
                     <div className="flex gap-2">
-                        <Skeleton className="h-7 w-16 rounded-full" />
-                        <Skeleton className="h-7 w-20 rounded-full" />
+                        <Skeleton className="h-6 w-16 rounded-none" />
+                        <Skeleton className="h-6 w-20 rounded-none" />
                     </div>
                 </div>
-                <div className="flex-1 p-4 space-y-4">
+                <div className="flex-1 p-4 space-y-3">
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="space-y-3 rounded-xl border border-border/60 bg-card p-5">
-                            <Skeleton className="h-5 w-24 rounded-full" />
-                            <Skeleton className="h-6 w-3/4" />
-                            <Skeleton className="h-16 w-full rounded-lg" />
+                        <div key={i} className="border border-border bg-background p-4 space-y-3">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-14 w-full" />
                         </div>
                     ))}
                 </div>
@@ -64,26 +61,21 @@ export function AssignmentFeed({ className }: AssignmentFeedProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className={cn(FEED_SHELL_CLASS, FEED_HEIGHT_CLASS, className)}
+            className={cn("flex flex-col overflow-hidden bg-background", className)}
         >
             {/* Header with course filters */}
-            <div className="flex flex-col gap-3 p-4 border-b bg-gradient-to-r from-background/80 to-transparent backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 px-5 py-4 border-b sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/10 flex items-center justify-center">
-                        <FileText className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <h3 className="font-semibold text-lg">Assignments</h3>
-                    <Badge variant="secondary" className="ml-1">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <h3 className="font-medium text-sm">Assignments</h3>
+                    <Badge variant="secondary" className="ml-1 rounded-none">
                         {filtered.length}
                     </Badge>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar sm:max-w-[55%]">
                     <Badge
                         variant={filter === 'ALL' ? "default" : "outline"}
-                        className={cn(
-                            "cursor-pointer whitespace-nowrap transition-all hover:scale-105",
-                            filter === 'ALL' && "bg-gradient-to-r from-primary to-primary/80"
-                        )}
+                        className="cursor-pointer whitespace-nowrap rounded-none"
                         onClick={() => setFilter('ALL')}
                     >
                         All
@@ -92,10 +84,7 @@ export function AssignmentFeed({ className }: AssignmentFeedProps) {
                         <Badge
                             key={c}
                             variant={filter === c ? "default" : "outline"}
-                            className={cn(
-                                "cursor-pointer whitespace-nowrap transition-all hover:scale-105",
-                                filter === c && "bg-gradient-to-r from-primary to-primary/80"
-                            )}
+                            className="cursor-pointer whitespace-nowrap rounded-none"
                             onClick={() => setFilter(c)}
                         >
                             {c}
@@ -106,23 +95,23 @@ export function AssignmentFeed({ className }: AssignmentFeedProps) {
 
             {/* Assignment list */}
             <ScrollArea className="flex-1 p-4">
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                     <AnimatePresence mode="popLayout">
                         {filtered.length === 0 ? (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-xl border-2 border-dashed py-16 text-center bg-gradient-to-br from-background to-muted/30"
+                                className="flex h-full min-h-[320px] flex-col items-center justify-center border border-dashed py-16 text-center"
                             >
-                                <div className="rounded-full bg-blue-500/10 p-4 mb-4">
+                                <div className="bg-blue-500/10 p-4 mb-4">
                                     <CheckCircle2 className="h-8 w-8 text-blue-500" />
                                 </div>
                                 <h3 className="font-semibold text-lg mb-1">All Caught Up!</h3>
                                 <p className="text-sm text-muted-foreground max-w-xs">
                                     No active assignments right now. Check back later for new work.
                                 </p>
-                                <Button variant="outline" size="sm" asChild className="mt-4 gap-2">
+                                <Button variant="outline" size="sm" asChild className="mt-4 gap-2 rounded-none">
                                     <Link href="/dashboard/assignments">
                                         View All Assignments
                                         <ArrowRight className="h-4 w-4" />
@@ -174,20 +163,18 @@ function AssignmentCard({ assignment, index }: { assignment: Assignment; index: 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
-            whileHover={{ y: -2 }}
             className={cn(
-                "group relative flex min-h-[220px] flex-col gap-3 rounded-xl border border-border/60 p-5 text-card-foreground shadow-sm",
-                "transition-all duration-300 hover:shadow-lg bg-gradient-to-br from-card to-background",
+                "group relative flex min-h-[220px] flex-col gap-3 border p-5 bg-background transition-colors",
+                "hover:bg-muted/30",
                 isApproved && "border-l-4 border-l-emerald-500",
                 isRejected && "border-l-4 border-l-red-500",
                 isPending && "border-l-4 border-l-amber-500",
-                !isSubmitted && "hover:border-primary/30"
             )}
         >
             {/* Due date badge */}
             {dueStatus && (
                 <div className={cn(
-                    "absolute top-4 right-4 text-xs flex items-center gap-1 px-2 py-1 rounded-full",
+                    "absolute top-4 right-4 text-xs flex items-center gap-1 px-2 py-1",
                     dueStatus.bgColor, dueStatus.color
                 )}>
                     <Clock className="w-3 h-3" />
@@ -197,10 +184,10 @@ function AssignmentCard({ assignment, index }: { assignment: Assignment; index: 
 
             {/* Course + Title */}
             <div className="flex flex-col gap-1 pr-24">
-                <Badge variant="outline" className="w-fit mb-1 border-primary/20 text-primary bg-primary/5">
+                <Badge variant="outline" className="w-fit mb-1 rounded-none">
                     {assignment.course.title}
                 </Badge>
-                <h3 className="font-semibold text-lg leading-tight tracking-tight group-hover:text-primary transition-colors">
+                <h3 className="font-semibold text-lg leading-tight tracking-tight">
                     {assignment.title}
                 </h3>
             </div>
@@ -213,7 +200,7 @@ function AssignmentCard({ assignment, index }: { assignment: Assignment; index: 
             {/* Submission status */}
             {isSubmitted && (
                 <div className={cn(
-                    "flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full w-fit",
+                    "flex items-center gap-2 text-xs font-medium px-3 py-1.5 w-fit",
                     isApproved && "bg-emerald-500/10 text-emerald-600",
                     isRejected && "bg-red-500/10 text-red-600",
                     isPending && "bg-amber-500/10 text-amber-600"
@@ -233,26 +220,26 @@ function AssignmentCard({ assignment, index }: { assignment: Assignment; index: 
                     href={assignment.attachmentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 mt-1 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors group-hover:border-primary/20"
+                    className="flex items-center gap-3 p-3 mt-1 bg-muted/40 border hover:bg-muted/60 transition-colors"
                 >
-                    <div className="h-8 w-8 rounded bg-background flex items-center justify-center shadow-sm">
+                    <div className="h-8 w-8 bg-background border flex items-center justify-center">
                         <FileIcon className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">Attached Resource</p>
                     </div>
-                    <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
                 </a>
             )}
 
             {/* Footer */}
-            <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-2 text-xs text-muted-foreground">
+            <div className="mt-auto flex items-center justify-between border-t pt-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>Posted {new Date(assignment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                 </div>
                 {!isSubmitted && !isApproved && (
-                    <Button variant="ghost" size="sm" asChild className="h-7 text-xs gap-1 hover:text-primary">
+                    <Button variant="ghost" size="sm" asChild className="h-7 text-xs gap-1 rounded-none">
                         <Link href="/dashboard/assignments">
                             Submit
                             <ArrowRight className="h-3 w-3" />

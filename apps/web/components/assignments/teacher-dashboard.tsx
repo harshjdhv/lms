@@ -8,7 +8,6 @@ import {
     FileText,
     Clock,
     Plus,
-    BarChart3,
     Sparkles,
     Eye,
     PauseCircle,
@@ -26,9 +25,6 @@ import { Badge } from "@workspace/ui/components/badge"
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
 } from "@workspace/ui/components/card"
 import {
     Table,
@@ -99,29 +95,29 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
     }
 
     return (
-        <div className="flex flex-col gap-8 animate-in fade-in-50 duration-500">
+        <div className="flex flex-col animate-in fade-in-50 duration-500">
             {/* Welcome Header */}
             <motion.div
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b"
+                transition={{ duration: 0.4 }}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b px-6 py-5"
             >
                 <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/60 bg-clip-text">
+                    <div className="flex items-center gap-2.5">
+                        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
                             Welcome back, {teacherName.split(' ')[0]}
                         </h1>
-                        <Sparkles className="h-6 w-6 text-amber-500 animate-pulse" />
+                        <Sparkles className="h-4 w-4 text-amber-500" />
                     </div>
-                    <p className="text-muted-foreground text-lg">
+                    <p className="text-sm text-muted-foreground">
                         Manage your courses, track submissions, and engage with your students.
                     </p>
                 </div>
             </motion.div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Stats Row — grid cells divided by lines */}
+            <div className="grid grid-cols-2 border-b lg:grid-cols-4 divide-x divide-border">
                 {isLoadingAssignments ? (
                     [...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)
                 ) : (
@@ -166,44 +162,86 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
                 )}
             </div>
 
-            {/* Dashboard Content Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                {/* Left Column: Recent Activity */}
-                <div className="xl:col-span-2 space-y-8">
-                    {/* Recent Assignments */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-                                <FileText className="h-5 w-5 text-primary" />
-                                Recent Assignments
-                            </h2>
-                            <Button variant="ghost" size="sm" asChild className="gap-1">
-                                <Link href="/dashboard/assignments">
-                                    View All <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            </Button>
-                        </div>
-                        <AssignmentTable
-                            assignments={assignments.slice(0, 5)}
-                            isLoading={isLoadingAssignments}
-                            onUpdateStatus={onUpdateStatus}
-                            onCreateAssignment={() => router.push("/dashboard/create-assignments")}
-                        />
-                    </div>
+            {/* Hatched divider */}
+            <div
+                className="h-4 w-full border-b shrink-0"
+                style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+                    backgroundSize: "6px 6px",
+                }}
+            />
 
-                    {/* Recent Announcements */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-                                <Megaphone className="h-5 w-5 text-orange-500" />
-                                Recent Announcements
-                            </h2>
-                            <Button variant="ghost" size="sm" asChild className="gap-1">
-                                <Link href="/dashboard/create-announcements">
-                                    Manage <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            </Button>
-                        </div>
+            {/* Row 1: Recent Assignments + Quick Actions */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 border-b border-border">
+                {/* Left: Recent Assignments */}
+                <div className="xl:col-span-2 xl:border-r border-b xl:border-b-0 border-border">
+                    <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <h2 className="text-sm font-medium flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            Recent Assignments
+                        </h2>
+                        <Button variant="ghost" size="sm" asChild className="gap-1 text-xs h-7 rounded-none">
+                            <Link href="/dashboard/assignments">
+                                View All <ArrowRight className="h-3 w-3" />
+                            </Link>
+                        </Button>
+                    </div>
+                    <AssignmentTable
+                        assignments={assignments.slice(0, 5)}
+                        isLoading={isLoadingAssignments}
+                        onUpdateStatus={onUpdateStatus}
+                        onCreateAssignment={() => router.push("/dashboard/create-assignments")}
+                    />
+                </div>
+
+                {/* Right: Quick Actions */}
+                <div>
+                    <div className="px-6 py-4 border-b">
+                        <h2 className="text-sm font-medium">Quick Actions</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">Common tasks</p>
+                    </div>
+                    <div className="p-4 space-y-2">
+                        <Button className="w-full justify-start gap-3 rounded-none h-11" asChild>
+                            <Link href="/dashboard/create-assignments">
+                                <Plus className="h-4 w-4" />
+                                <span className="text-sm font-medium">Create Assignment</span>
+                            </Link>
+                        </Button>
+                        <Button className="w-full justify-start gap-3 rounded-none h-11" variant="outline" asChild>
+                            <Link href="/dashboard/create-announcements">
+                                <Megaphone className="h-4 w-4" />
+                                <span className="text-sm font-medium">Post Announcement</span>
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Hatched divider */}
+            <div
+                className="h-4 w-full border-b shrink-0"
+                style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+                    backgroundSize: "6px 6px",
+                }}
+            />
+
+            {/* Row 2: Recent Announcements + Your Courses */}
+            <div className="grid grid-cols-1 xl:grid-cols-3">
+                {/* Left: Recent Announcements */}
+                <div className="xl:col-span-2 xl:border-r border-border">
+                    <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <h2 className="text-sm font-medium flex items-center gap-2">
+                            <Megaphone className="h-4 w-4 text-muted-foreground" />
+                            Recent Announcements
+                        </h2>
+                        <Button variant="ghost" size="sm" asChild className="gap-1 text-xs h-7 rounded-none">
+                            <Link href="/dashboard/create-announcements">
+                                Manage <ArrowRight className="h-3 w-3" />
+                            </Link>
+                        </Button>
+                    </div>
+                    <div className="p-6">
                         <TeacherAnnouncementList
                             announcements={announcements.slice(0, 3)}
                             isLoading={isLoadingAnnouncements}
@@ -211,74 +249,36 @@ export function TeacherDashboard({ courses, teacherName = "Teacher" }: TeacherDa
                     </div>
                 </div>
 
-                {/* Right Column: Quick Actions & Courses */}
-                <div className="space-y-8">
-                    {/* Quick Actions */}
-                    <Card className="border-none shadow-md bg-linear-to-b from-primary/5 to-transparent">
-                        <CardHeader>
-                            <CardTitle>Quick Actions</CardTitle>
-                            <CardDescription>Common tasks you might need to do</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <Button className="w-full justify-start h-auto py-3 px-4" asChild>
-                                <Link href="/dashboard/create-assignments">
-                                    <div className="bg-primary/20 p-2 rounded-full mr-3">
-                                        <Plus className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div className="flex flex-col items-start">
-                                        <span className="font-medium">Create Assignment</span>
-                                        <span className="text-xs text-muted-foreground font-normal">Task for students</span>
-                                    </div>
-                                </Link>
-                            </Button>
-                            <Button className="w-full justify-start h-auto py-3 px-4" variant="outline" asChild>
-                                <Link href="/dashboard/create-announcements">
-                                    <div className="bg-orange-500/10 p-2 rounded-full mr-3">
-                                        <Megaphone className="h-4 w-4 text-orange-600" />
-                                    </div>
-                                    <div className="flex flex-col items-start">
-                                        <span className="font-medium">Post Announcement</span>
-                                        <span className="text-xs text-muted-foreground font-normal">Update for class</span>
-                                    </div>
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* Your Courses Summary */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center justify-between">
-                                <span>Your Courses</span>
-                                <Badge variant="secondary">{courses.length}</Badge>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {courses.slice(0, 4).map((course) => (
-                                <div key={course.id} className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                            <BookOpen className="h-4 w-4" />
-                                        </div>
-                                        <span className="font-medium truncate max-w-[150px]">{course.title}</span>
-                                    </div>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
-                                        <Link href={`/dashboard/courses/${course.id}`}>
-                                            <ArrowRight className="h-3 w-3" />
-                                        </Link>
-                                    </Button>
+                {/* Right: Your Courses */}
+                <div>
+                    <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <h2 className="text-sm font-medium">Your Courses</h2>
+                        <Badge variant="secondary" className="text-xs rounded-none">{courses.length}</Badge>
+                    </div>
+                    <div className="divide-y divide-border">
+                        {courses.slice(0, 4).map((course) => (
+                            <div key={course.id} className="flex items-center justify-between px-6 py-3 group hover:bg-muted/40 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm truncate max-w-40">{course.title}</span>
                                 </div>
-                            ))}
-                            {courses.length > 4 && (
-                                <Button variant="link" className="w-full h-auto p-0 pt-2 text-muted-foreground text-xs" asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity rounded-none" asChild>
+                                    <Link href={`/dashboard/courses/${course.id}`}>
+                                        <ArrowRight className="h-3 w-3" />
+                                    </Link>
+                                </Button>
+                            </div>
+                        ))}
+                        {courses.length > 4 && (
+                            <div className="px-6 py-3">
+                                <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground rounded-none h-7" asChild>
                                     <Link href="/dashboard/courses/my">View all courses</Link>
                                 </Button>
-                            )}
-                        </CardContent>
-                    </Card>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-
         </div>
     )
 }
@@ -318,20 +318,11 @@ export function AssignmentTable({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.3 }}
         >
-            <Card className="overflow-hidden border shadow-lg">
-                <CardHeader className="bg-linear-to-r from-muted/50 to-transparent border-b py-4">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-primary" />
-                        Assignment Overview
-                    </CardTitle>
-                    <CardDescription>
-                        Manage and review all your course assignments
-                    </CardDescription>
-                </CardHeader>
+            <Card className="overflow-hidden border-0 rounded-none shadow-none">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -471,26 +462,18 @@ function StatusBadge({ status }: { status: string }) {
 
 function AssignmentTableSkeleton() {
     return (
-        <Card className="overflow-hidden border shadow-lg">
-            <CardHeader className="bg-linear-to-r from-muted/50 to-transparent border-b py-4">
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-64 mt-2" />
-            </CardHeader>
-            <CardContent className="p-0">
-                <div className="p-4 space-y-4">
-                    {[...Array(5)].map((_, i) => (
-                        <div key={i} className="flex items-center gap-4">
-                            <Skeleton className="h-10 w-10 rounded-lg" />
-                            <div className="flex-1 space-y-2">
-                                <Skeleton className="h-4 w-48" />
-                                <Skeleton className="h-3 w-32" />
-                            </div>
-                            <Skeleton className="h-6 w-16 rounded-full" />
-                            <Skeleton className="h-6 w-20" />
-                        </div>
-                    ))}
+        <div className="divide-y divide-border">
+            {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-3">
+                    <Skeleton className="h-8 w-8 rounded-none" />
+                    <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-3.5 w-48" />
+                        <Skeleton className="h-3 w-32" />
+                    </div>
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-20" />
                 </div>
-            </CardContent>
-        </Card>
+            ))}
+        </div>
     )
 }

@@ -1,6 +1,6 @@
 /**
  * @file components/ui/stats-card.tsx
- * @description Unified stats card component with gradient backgrounds and animations
+ * @description Flat stats cell component with grid-line style
  * @module Apps/Web/Components/UI
  */
 
@@ -36,53 +36,34 @@ export function StatsCard({
     icon: Icon,
     description,
     trend = "neutral",
-    gradient,
     iconColor,
     index = 0,
     className,
 }: StatsCardProps) {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.3, delay: index * 0.06 }}
             className={cn("group", className)}
         >
-            <div
-                className={cn(
-                    "relative h-full min-h-[156px] overflow-hidden rounded-xl border border-border/50 p-6 shadow-sm",
-                    "transition-all duration-300 hover:shadow-xl",
-                    `bg-linear-to-br ${gradient}`
-                )}
-            >
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/5 blur-2xl" />
-
+            <div className="relative h-full p-5 bg-background">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-muted-foreground">
+                <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
                         {title}
                     </span>
-                    <div
-                        className={cn(
-                            "p-2 rounded-lg bg-background/80 backdrop-blur-sm shadow-sm",
-                            "transition-transform duration-300 group-hover:scale-110",
-                            iconColor
-                        )}
-                    >
-                        <Icon className="h-4 w-4" />
-                    </div>
+                    <Icon className={cn("h-4 w-4", iconColor)} />
                 </div>
 
                 {/* Value */}
-                <div className="text-3xl font-bold tracking-tight">
-                    {typeof value === 'number' ? value.toLocaleString() : value}
+                <div className="text-4xl font-bold tracking-tight tabular-nums">
+                    {typeof value === "number" ? value.toLocaleString() : value}
                 </div>
 
                 {/* Description */}
                 {description && (
-                    <p className={cn("text-xs mt-1", trendColors[trend])}>
+                    <p className={cn("text-xs mt-2", trendColors[trend])}>
                         {description}
                     </p>
                 )}
@@ -91,7 +72,7 @@ export function StatsCard({
     );
 }
 
-// Preset gradient configurations for easy use
+// Preset gradient configurations — kept for API compat, gradient unused in flat style
 export const gradientPresets = {
     blue: {
         gradient: "from-blue-500/10 to-cyan-500/10",
@@ -122,13 +103,13 @@ export const gradientPresets = {
 // Stats card skeleton for loading states
 export function StatsCardSkeleton() {
     return (
-        <div className="relative h-full min-h-[156px] overflow-hidden rounded-xl border border-border/50 bg-muted/20 p-6 shadow-sm animate-pulse">
-            <div className="flex items-center justify-between mb-3">
-                <div className="h-4 w-24 bg-muted/50 rounded" />
-                <div className="h-8 w-8 bg-muted/50 rounded-lg" />
+        <div className="relative h-full p-5 bg-background animate-pulse">
+            <div className="flex items-center justify-between mb-4">
+                <div className="h-3 w-20 bg-muted rounded" />
+                <div className="h-4 w-4 bg-muted rounded" />
             </div>
-            <div className="h-8 w-16 bg-muted/50 rounded mb-2" />
-            <div className="h-3 w-20 bg-muted/50 rounded" />
+            <div className="h-9 w-12 bg-muted rounded mb-2" />
+            <div className="h-3 w-16 bg-muted rounded" />
         </div>
     );
 }

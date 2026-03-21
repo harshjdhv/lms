@@ -28,9 +28,7 @@ export default async function MyCoursesLayout({
 
   return (
     <UserStoreProvider user={userState}>
-      <div className="min-h-screen bg-background">
-        <main>{children}</main>
-      </div>
+      {children}
     </UserStoreProvider>
   );
 }
