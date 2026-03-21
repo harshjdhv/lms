@@ -4,6 +4,47 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import ScrollStack, { ScrollStackItem } from "@/components/ui/scroll-stack";
 
+// ─── ConnectX Logo Mark ────────────────────────────────────────────────────────
+function ConnectXMark({ size = 30, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="430 310 345 275"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path
+        d="
+          M 430 505
+          Q 430 585 450 585
+          L 515 585
+          Q 530 585 540 570
+          L 615 475
+          Q 622 465 632 470
+          Q 642 475 645 490
+          L 660 560
+          Q 665 585 690 585
+          L 755 585
+          Q 775 585 775 565
+          L 775 455
+          Q 775 435 755 435
+          L 690 435
+          Q 665 435 662 410
+          L 650 330
+          Q 648 310 630 310
+          L 585 310
+          Q 565 310 552 330
+          L 445 480
+          Q 430 495 430 505
+          Z
+        "
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 const WORDS = [
   "AI", "pair", "programming,", "real-time", "collaboration,", "3D",
   "visualizations,", "IoT", "simulations", "—", "the", "engineering",
@@ -177,11 +218,9 @@ export default function Home() {
 
         {/* Navbar */}
         <header className="relative z-10 flex items-center justify-between px-8 py-5 max-w-7xl mx-auto w-full">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-black flex items-center justify-center">
-              <span className="text-white text-xs font-bold">C</span>
-            </div>
-            <span className="font-semibold text-[15px] text-black tracking-tight">ConnectX</span>
+          <div className="flex items-center gap-1">
+            <ConnectXMark size={24} className="text-black" />
+            <span className="font-black text-lg text-black tracking-tight leading-none">ConnectX</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-7 text-sm text-neutral-600">
@@ -478,6 +517,9 @@ export default function Home() {
       <footer className="w-full" style={{ backgroundColor: "#FBFBFB" }}>
         <div className="max-w-7xl mx-auto px-8 pt-20 pb-10">
 
+          {/* Logo mark */}
+          <ConnectXMark size={48} className="text-black mb-6" />
+
           {/* Big wordmark */}
           <p
             className="font-semibold leading-none tracking-tighter text-black select-none"
@@ -504,7 +546,10 @@ export default function Home() {
 
           {/* Bottom strip */}
           <div className="mt-12 pt-6 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-neutral-400">© {new Date().getFullYear()} ConnectX. All rights reserved.</p>
+            <div className="flex items-center gap-2.5">
+              <ConnectXMark size={18} className="text-neutral-400" />
+              <p className="text-xs text-neutral-400">© {new Date().getFullYear()} ConnectX. All rights reserved.</p>
+            </div>
             <div className="flex items-center gap-6">
               {["Features", "Pricing", "Privacy", "Terms"].map((item) => (
                 <Link key={item} href="#" className="text-xs text-neutral-400 hover:text-black transition-colors">
