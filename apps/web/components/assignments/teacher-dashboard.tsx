@@ -322,11 +322,11 @@ export function AssignmentTable({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
         >
-            <Card className="overflow-hidden border-0 rounded-none shadow-none">
+            <Card className="overflow-hidden border-0 rounded-none shadow-none bg-transparent">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableRow className="hover:bg-transparent">
                                 <TableHead className="w-[300px]">Assignment</TableHead>
                                 <TableHead>Course</TableHead>
                                 <TableHead>Status</TableHead>

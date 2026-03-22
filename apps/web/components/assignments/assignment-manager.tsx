@@ -49,25 +49,36 @@ const AssignmentManager = ({ courses }: AssignmentManagerProps) => {
     }
 
     return (
-        <div>
-            <div className="space-y-6 animate-in fade-in-50">
-                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input placeholder="Search assignments..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
-                    </div>
-                    <Button onClick={() => setShowCreate(!showCreate)}>
-                        {showCreate ? "Cancel" : "Create new"}
-                    </Button>
+        <div className="flex flex-col animate-in fade-in-50">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between px-6 py-4 border-b">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Search assignments..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-none h-9" />
                 </div>
-                {/* Creation Section (Toggleable) */}
-                {showCreate && (
-                    <div className="border-b pb-6">
-                        <CreateAssignmentSection courses={courses} onCreated={handleCreated} />
-                    </div>
-                )}
+                <Button onClick={() => setShowCreate(!showCreate)} className="rounded-none shrink-0">
+                    {showCreate ? "Cancel" : "Create new"}
+                </Button>
+            </div>
 
-                {/* List Section */}
+            {/* Creation Section (Toggleable) */}
+            {showCreate && (
+                <div className="border-b px-6 py-6">
+                    <CreateAssignmentSection courses={courses} onCreated={handleCreated} />
+                </div>
+            )}
+
+            {/* Hatched divider */}
+            <div
+                className="h-4 w-full border-b shrink-0"
+                style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+                    backgroundSize: "6px 6px",
+                }}
+            />
+
+            {/* List Section */}
+            <div className="overflow-hidden border-y">
                 <AssignmentTable
                     assignments={filteredAssignments}
                     isLoading={isLoading}

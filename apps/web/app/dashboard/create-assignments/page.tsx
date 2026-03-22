@@ -20,18 +20,15 @@ const CreateAssignmentsPage = async () => {
   })
 
   return (
-    <>
-      <div className="p-6  ">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight pb-1.5">Assignments</h1>
-          <p className="text-muted-foreground pb-1.5">Manage existing assignments or create new ones for your students.</p>
+    <div className="flex flex-1 w-full min-w-0 flex-col">
+      <div className="flex items-center justify-between gap-4 border-b bg-background px-6 py-5 shrink-0">
+        <div className="min-w-0 space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Assignments</h1>
+          <p className="text-sm text-muted-foreground">Manage existing assignments or create new ones for your students.</p>
         </div>
-
-        {/* Pass the courses we fetched */}
-        <AssignmentManager courses={courses} />
       </div>
-
-    </>
+      <AssignmentManager courses={courses} />
+    </div>
   )
 }
 

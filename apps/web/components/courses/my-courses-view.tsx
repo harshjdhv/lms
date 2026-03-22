@@ -84,15 +84,13 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                         <StatsCardSkeleton />
                     </div>
                 )}
-                <div className="h-4 w-full border-b shrink-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }} />
-                <div className="px-6 py-6">
-                    <div className="border border-border" style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-1.5 p-1.5">
-                            {[...Array(10)].map((_, i) => (
-                                <div key={i} className="h-52 bg-muted/60 animate-pulse" />
-                            ))}
-                        </div>
-                    </div>
+                <div
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3 border-t border-border"
+                    style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }}
+                >
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="h-72 bg-card animate-pulse" />
+                    ))}
                 </div>
             </div>
         );
@@ -148,15 +146,6 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                 </div>
             )}
 
-            {/* Hatched Divider */}
-            <div
-                className="h-4 w-full border-b shrink-0"
-                style={{
-                    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
-                    backgroundSize: "6px 6px",
-                }}
-            />
-
             {/* Courses Grid */}
             {!hasCourses ? (
                 <div className="flex flex-1 items-center justify-center px-6 py-12">
@@ -186,40 +175,30 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.1 }}
-                    className="px-6 py-6"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3 border-t border-border"
+                    style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }}
                 >
-                    {/* Hatched-gap grid: cards float on shader background, gaps show the hatched pattern */}
-                    <div
-                        className="border border-border"
-                        style={{
-                            backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
-                            backgroundSize: "6px 6px",
-                        }}
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-1.5 p-1.5">
-                            <AnimatePresence>
-                                {filteredCourses.map((course, index) => (
-                                    <motion.div
-                                        key={course.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.25, delay: index * 0.04 }}
-                                    >
-                                        <CourseBorderedItem
-                                            id={course.id}
-                                            title={course.title}
-                                            description={course.description}
-                                            teacherName={isTeacher ? "You" : course.teacher?.name}
-                                            chapterCount={course._count?.chapters || 0}
-                                            isTeacher={isTeacher}
-                                            imageUrl={course.imageUrl}
-                                            isPublished={course.isPublished}
-                                        />
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                        </div>
-                    </div>
+                        <AnimatePresence>
+                            {filteredCourses.map((course, index) => (
+                                <motion.div
+                                    key={course.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.25, delay: index * 0.04 }}
+                                >
+                                    <CourseBorderedItem
+                                        id={course.id}
+                                        title={course.title}
+                                        description={course.description}
+                                        teacherName={isTeacher ? "You" : course.teacher?.name}
+                                        chapterCount={course._count?.chapters || 0}
+                                        isTeacher={isTeacher}
+                                        imageUrl={course.imageUrl}
+                                        isPublished={course.isPublished}
+                                    />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                 </motion.div>
             )}
         </div>
@@ -242,9 +221,9 @@ function CourseBorderedItem({ id, title, description, teacherName, chapterCount,
     const initial = (isTeacher ? "T" : (teacherName || title || "C")).trim().charAt(0).toUpperCase();
 
     return (
-        <Link href={`/dashboard/courses/${id}`} className="group flex flex-col h-full bg-card hover:bg-muted/40 transition-colors">
+        <Link href={`/dashboard/courses/${id}`} className="group flex flex-col h-full bg-card border border-border hover:border-foreground/20 hover:shadow-md transition-all duration-200">
             {/* Image / Gradient header */}
-            <div className={cn("relative h-28 overflow-hidden bg-linear-to-r border-b border-border", gradient)}>
+            <div className={cn("relative h-44 overflow-hidden bg-linear-to-r border-b border-border", gradient)}>
                 {imageUrl ? (
                     <img src={imageUrl} alt={title} className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
@@ -253,7 +232,7 @@ function CourseBorderedItem({ id, title, description, teacherName, chapterCount,
                     </div>
                 )}
                 <div className="absolute inset-0 bg-black/20" />
-                <div className="absolute bottom-2.5 right-3 flex h-7 w-7 items-center justify-center border-2 border-background bg-white font-semibold text-foreground text-xs shadow-sm rounded-full">
+                <div className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center border-2 border-background bg-white font-semibold text-gray-900 text-sm shadow-sm rounded-full">
                     {initial}
                 </div>
                 {isTeacher && (
@@ -271,25 +250,25 @@ function CourseBorderedItem({ id, title, description, teacherName, chapterCount,
             </div>
 
             {/* Content */}
-            <div className="flex flex-1 flex-col p-3.5 gap-2">
+            <div className="flex flex-1 flex-col p-4 gap-3">
                 <div>
-                    <h3 className="font-semibold text-sm truncate leading-snug">{title}</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                    <h3 className="font-semibold text-base truncate leading-snug">{title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {isTeacher ? "Your class" : (teacherName || "Course")}
                     </p>
                 </div>
-                <p className="text-[11px] text-muted-foreground line-clamp-2 flex-1 leading-relaxed">
+                <p className="text-xs text-muted-foreground line-clamp-3 flex-1 leading-relaxed">
                     {description || (isTeacher ? "Manage this class content and updates." : "Continue learning from the latest class material.")}
                 </p>
-                <div className="flex items-center justify-between pt-1 border-t border-border">
-                    <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0.5">
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <Badge variant="secondary" className="rounded-none text-xs px-2 py-0.5">
                         {chapterCount} {chapterCount === 1 ? "topic" : "topics"}
                     </Badge>
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="flex items-center gap-1 text-xs font-medium text-primary">
                         {isTeacher ? (
-                            <><Edit className="h-3 w-3" />Manage</>
+                            <><Edit className="h-3.5 w-3.5" />Manage</>
                         ) : (
-                            <><PlayCircle className="h-3 w-3" />Open</>
+                            <><PlayCircle className="h-3.5 w-3.5" />Open</>
                         )}
                     </span>
                 </div>

@@ -59,7 +59,7 @@ export function UserListSidebar({
     }
 
     return (
-        <div className="flex flex-col w-80 border-r bg-muted/30 min-h-0 shrink-0">
+        <div className="flex flex-col w-80 bg-muted/30 min-h-0 shrink-0">
             <div className="flex items-center justify-between p-4 border-b shrink-0">
                 <div className="flex items-center gap-2">
                     <UsersIcon className="h-5 w-5 text-muted-foreground" />

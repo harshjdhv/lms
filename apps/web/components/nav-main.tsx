@@ -8,7 +8,8 @@
 "use client"
 
 import Link from "next/link"
-import { ChevronRight, type LucideIcon } from "lucide-react"
+import { ChevronRight } from "lucide-react"
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react"
 
 import {
   Collapsible,
@@ -33,7 +34,7 @@ export function NavMain({
   items: {
     title: string
     url: string
-    icon: LucideIcon
+    icon: PhosphorIcon
     isActive?: boolean
     items?: {
       title: string
@@ -50,7 +51,7 @@ export function NavMain({
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={item.title}>
                 <Link href={item.url}>
-                  <item.icon />
+                  <item.icon weight="duotone" size={20} />
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>

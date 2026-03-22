@@ -9,16 +9,54 @@
 
 import Link from "next/link";
 import * as React from "react";
+function ConnectXMark({ size = 30, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="430 310 345 275"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path
+        d="
+          M 430 505
+          Q 430 585 450 585
+          L 515 585
+          Q 530 585 540 570
+          L 615 475
+          Q 622 465 632 470
+          Q 642 475 645 490
+          L 660 560
+          Q 665 585 690 585
+          L 755 585
+          Q 775 585 775 565
+          L 775 455
+          Q 775 435 755 435
+          L 690 435
+          Q 665 435 662 410
+          L 650 330
+          Q 648 310 630 310
+          L 585 310
+          Q 565 310 552 330
+          L 445 480
+          Q 430 495 430 505
+          Z
+        "
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 import {
   BookOpen,
-  Command,
-  File,
-  FileText,
-  Heart,
-  LayoutDashboard,
-  UserCog,
-  Users,
-} from "lucide-react";
+  ClipboardText,
+  ChatCircleDots,
+  HandHeart,
+  UserGear,
+  Megaphone,
+  SquaresFour,
+} from "@phosphor-icons/react";
 
 import { NavMain } from "@/components/nav-main";
 
@@ -62,7 +100,7 @@ export function AppSidebar({
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: LayoutDashboard,
+      icon: SquaresFour,
       isActive: pathname === "/dashboard",
     },
     {
@@ -74,38 +112,38 @@ export function AppSidebar({
     {
       title: "Assignments",
       url: "/dashboard/assignments",
-      icon: FileText,
+      icon: ClipboardText,
       isActive: pathname.startsWith("/dashboard/assignments"),
     },
     {
       title: "Community",
       url: "/dashboard/community",
-      icon: Users,
+      icon: ChatCircleDots,
       isActive: pathname.startsWith("/dashboard/community"),
     },
     {
       title: user.role === "TEACHER" ? "Mentees" : "My Mentor",
       url: "/dashboard/mentorship",
-      icon: Heart,
+      icon: HandHeart,
       isActive: pathname.startsWith("/dashboard/mentorship"),
     },
     {
       title: "Account",
       url: "/dashboard/account",
-      icon: UserCog,
+      icon: UserGear,
       isActive: pathname.startsWith("/dashboard/account"),
     },
     ...user.role === "TEACHER" ? [
       {
         title: "Create Assignments",
         url: "/dashboard/create-assignments",
-        icon: FileText,
+        icon: ClipboardText,
         isActive: pathname.startsWith("/dashboard/create-assignments"),
       },
       {
         title: "Create Announcements",
         url: "/dashboard/create-announcements",
-        icon: File,
+        icon: Megaphone,
         isActive: pathname.startsWith("/dashboard/create-announcements"),
       }
     ] : []
@@ -143,11 +181,9 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
-                </div>
+                <ConnectXMark size={22} className="text-sidebar-foreground shrink-0" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">ConnectX</span>
+                  <span className="truncate font-black tracking-tight">ConnectX</span>
                   <div className="flex items-center gap-1">
                     {getRoleBadge()}
                   </div>
