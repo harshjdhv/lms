@@ -24,15 +24,7 @@ export default async function AssignmentsPage() {
             select: { id: true, title: true },
         })
 
-        return (
-            <div className="p-6">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight pb-1.5">Assignments</h1>
-                    <p className="text-muted-foreground pb-1.5">Manage existing assignments or create new ones for your students.</p>
-                </div>
-                <AssignmentManager courses={courses} />
-            </div>
-        )
+        return <AssignmentManager courses={courses} />
     }
 
     return <StudentAssignmentsView />

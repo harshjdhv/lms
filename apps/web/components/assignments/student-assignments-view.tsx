@@ -191,47 +191,45 @@ export function StudentAssignmentsView() {
             </div>
 
             {/* Tab content */}
-            <div className="p-6">
-                {activeTab === "todo" && (
-                    isLoading ? (
-                        <div className="grid border divide-border md:grid-cols-2 lg:grid-cols-3">
-                            {[1, 2, 3, 4, 5, 6].map((i) => (
-                                <AssignmentCardSkeleton key={i} />
+            {activeTab === "todo" && (
+                isLoading ? (
+                    <div className="grid border-b divide-border md:grid-cols-2 lg:grid-cols-3">
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <AssignmentCardSkeleton key={i} />
+                        ))}
+                    </div>
+                ) : todoAssignments.length === 0 ? (
+                    <EmptyState title="All caught up!" description="No pending assignments." />
+                ) : (
+                    <div className="grid border-b divide-y divide-border md:grid-cols-2 md:divide-y-0 md:divide-x lg:grid-cols-3">
+                        <AnimatePresence>
+                            {todoAssignments.map((assignment, index) => (
+                                <AssignmentCard key={assignment.id} assignment={assignment} index={index} />
                             ))}
-                        </div>
-                    ) : todoAssignments.length === 0 ? (
-                        <EmptyState title="All caught up!" description="No pending assignments." />
-                    ) : (
-                        <div className="grid border divide-y divide-border md:grid-cols-2 md:divide-y-0 md:divide-x lg:grid-cols-3">
-                            <AnimatePresence>
-                                {todoAssignments.map((assignment, index) => (
-                                    <AssignmentCard key={assignment.id} assignment={assignment} index={index} />
-                                ))}
-                            </AnimatePresence>
-                        </div>
-                    )
-                )}
+                        </AnimatePresence>
+                    </div>
+                )
+            )}
 
-                {activeTab === "done" && (
-                    isLoading ? (
-                        <div className="grid border divide-border md:grid-cols-2 lg:grid-cols-3">
-                            {[1, 2, 3].map((i) => (
-                                <AssignmentCardSkeleton key={i} />
+            {activeTab === "done" && (
+                isLoading ? (
+                    <div className="grid border-b divide-border md:grid-cols-2 lg:grid-cols-3">
+                        {[1, 2, 3].map((i) => (
+                            <AssignmentCardSkeleton key={i} />
+                        ))}
+                    </div>
+                ) : doneAssignments.length === 0 ? (
+                    <EmptyState title="No history" description="Completed assignments will show here." />
+                ) : (
+                    <div className="grid border-b divide-y divide-border md:grid-cols-2 md:divide-y-0 md:divide-x lg:grid-cols-3">
+                        <AnimatePresence>
+                            {doneAssignments.map((assignment, index) => (
+                                <AssignmentCard key={assignment.id} assignment={assignment} index={index} isHistory />
                             ))}
-                        </div>
-                    ) : doneAssignments.length === 0 ? (
-                        <EmptyState title="No history" description="Completed assignments will show here." />
-                    ) : (
-                        <div className="grid border divide-border md:grid-cols-2 lg:grid-cols-3">
-                            <AnimatePresence>
-                                {doneAssignments.map((assignment, index) => (
-                                    <AssignmentCard key={assignment.id} assignment={assignment} index={index} isHistory />
-                                ))}
-                            </AnimatePresence>
-                        </div>
-                    )
-                )}
-            </div>
+                        </AnimatePresence>
+                    </div>
+                )
+            )}
         </div>
     )
 }
@@ -477,9 +475,9 @@ function AssignmentCardSkeleton() {
 
 function EmptyState({ title, description }: { title: string, description: string }) {
     return (
-        <div className="flex flex-col items-center justify-center py-16 text-center bg-muted/10 border-2 border-dashed rounded-xl border-muted-foreground/20">
-            <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground/50" />
+        <div className="flex flex-col items-center justify-center py-24 text-center border-b">
+            <div className="h-12 w-12 bg-muted flex items-center justify-center mb-4">
+                <FileText className="h-6 w-6 text-muted-foreground/50" />
             </div>
             <h3 className="text-lg font-semibold">{title}</h3>
             <p className="text-muted-foreground mt-1 max-w-sm">{description}</p>

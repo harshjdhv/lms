@@ -49,7 +49,15 @@ const AssignmentManager = ({ courses }: AssignmentManagerProps) => {
     }
 
     return (
-        <div className="flex flex-col animate-in fade-in-50">
+        <div className="flex w-full min-w-0 flex-col animate-in fade-in-50">
+            {/* Header */}
+            <div className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center">
+                <div className="min-w-0 space-y-1">
+                    <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Assignments</h1>
+                    <p className="text-sm text-muted-foreground">Manage existing assignments or create new ones for your students.</p>
+                </div>
+            </div>
+
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between px-6 py-4 border-b">
                 <div className="relative flex-1 max-w-md">

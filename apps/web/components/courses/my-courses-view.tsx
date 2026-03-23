@@ -144,12 +144,16 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                     />
                 </div>
             ) : (
+                <>
+                    <div
+                        className="h-4 w-full border-b shrink-0"
+                        style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }}
+                    />
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.1 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3 border-t border-border"
-                    style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6"
                 >
                         <AnimatePresence>
                             {filteredCourses.map((course, index) => (
@@ -173,6 +177,7 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                             ))}
                         </AnimatePresence>
                 </motion.div>
+                </>
             )}
         </div>
     );
