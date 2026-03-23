@@ -121,6 +121,14 @@ export function AppSidebar({
       icon: ChatCircleDots,
       isActive: pathname.startsWith("/dashboard/community"),
     },
+    ...user.role === "STUDENT" ? [
+      {
+        title: "Announcements",
+        url: "/dashboard/announcements",
+        icon: Megaphone,
+        isActive: pathname.startsWith("/dashboard/announcements"),
+      }
+    ] : [],
     {
       title: user.role === "TEACHER" ? "Mentees" : "My Mentor",
       url: "/dashboard/mentorship",

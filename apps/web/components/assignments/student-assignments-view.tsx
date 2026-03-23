@@ -37,12 +37,7 @@ import {
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger
-} from "@workspace/ui/components/tabs"
+import { cn } from "@/lib/utils"
 import {
     Select,
     SelectContent,
@@ -59,6 +54,7 @@ export function StudentAssignmentsView() {
     const { data: assignments = [], isLoading, refetch, isFetching } = useAssignments()
     const [searchQuery, setSearchQuery] = useState("")
     const [filterCourse, setFilterCourse] = useState("all")
+    const [activeTab, setActiveTab] = useState<"todo" | "done">("todo")
 
     const courses = Array.from(new Set(assignments.map(a => a.course.title)))
 
@@ -82,39 +78,36 @@ export function StudentAssignmentsView() {
     })
 
     return (
-        <div className="flex flex-col gap-8 p-6 animate-in fade-in-50 duration-500">
-            {/* Enhanced Header */}
+        <div className="flex w-full min-w-0 flex-col overflow-x-hidden animate-in fade-in-50 duration-500">
+            {/* Header */}
             <motion.div
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-6 border-b"
+                transition={{ duration: 0.4 }}
+                className="flex flex-col justify-between gap-4 border-b bg-background px-6 py-5 lg:flex-row lg:items-center"
             >
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
-                        My Assignments
-                    </h1>
-                    <p className="text-muted-foreground text-lg">
+                <div className="min-w-0 space-y-1">
+                    <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">My Assignments</h1>
+                    <p className="text-sm text-muted-foreground">
                         Track your progress, submit work, and review feedback.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-nowrap">
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         onClick={() => refetch()}
                         disabled={isFetching}
-                        title="Refresh Assignments"
-                        className="transition-transform hover:scale-105"
+                        className="shrink-0"
                     >
                         <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                     </Button>
-                    <div className="relative w-full md:w-72">
+                    <div className="relative flex-1 sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
                             placeholder="Search..."
-                            className="pl-9 bg-background"
+                            className="pl-9 rounded-none"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -122,55 +115,86 @@ export function StudentAssignmentsView() {
                 </div>
             </motion.div>
 
-            {/* Stats Overview - Clean Styling */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <StatsCard
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 border-b divide-x divide-border">
+                <FlatStatsCell
                     label="To Do"
                     value={todoAssignments.length}
                     icon={Clock}
-                    color="blue"
+                    iconColor="text-blue-500"
+                    index={0}
                 />
-                <StatsCard
+                <FlatStatsCell
                     label="Completed"
                     value={doneAssignments.filter(a => a.submissions?.[0]?.status === 'APPROVED').length}
                     icon={CheckCircle2}
-                    color="emerald"
+                    iconColor="text-emerald-500"
+                    index={1}
                 />
-                <StatsCard
+                <FlatStatsCell
                     label="Active Courses"
                     value={courses.length}
                     icon={BookOpen}
-                    color="indigo"
+                    iconColor="text-purple-500"
+                    index={2}
                 />
             </div>
 
-            <Tabs defaultValue="todo" className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
-                        <TabsTrigger value="todo">To Do</TabsTrigger>
-                        <TabsTrigger value="done">Past & Completed</TabsTrigger>
-                    </TabsList>
+            {/* Hatched divider */}
+            <div
+                className="h-4 w-full border-b shrink-0"
+                style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+                    backgroundSize: "6px 6px",
+                }}
+            />
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Filter className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">Filter:</span>
-                        <Select value={filterCourse} onValueChange={setFilterCourse}>
-                            <SelectTrigger className="w-full sm:w-[200px]">
-                                <SelectValue placeholder="All Courses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Courses</SelectItem>
-                                {courses.map(course => (
-                                    <SelectItem key={course} value={course}>{course}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+            {/* Tab nav + Filter */}
+            <div className="flex flex-col sm:flex-row border-b divide-y sm:divide-y-0 sm:divide-x divide-border">
+                <div className="flex divide-x divide-border">
+                    {([
+                        { id: "todo", label: "To Do", count: todoAssignments.length },
+                        { id: "done", label: "Past & Completed", count: doneAssignments.length },
+                    ] as const).map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-3 text-sm transition-colors",
+                                activeTab === tab.id
+                                    ? "bg-background font-medium border-b-2 border-b-foreground -mb-px"
+                                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                            )}
+                        >
+                            {tab.label}
+                            <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0">
+                                {tab.count}
+                            </Badge>
+                        </button>
+                    ))}
                 </div>
 
-                <TabsContent value="todo" className="space-y-4">
-                    {isLoading ? (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="flex items-center gap-2 px-4 py-2.5 sm:ml-auto">
+                    <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Select value={filterCourse} onValueChange={setFilterCourse}>
+                        <SelectTrigger className="w-full sm:w-[200px] rounded-none h-8 text-sm">
+                            <SelectValue placeholder="All Courses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Courses</SelectItem>
+                            {courses.map(course => (
+                                <SelectItem key={course} value={course}>{course}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            {/* Tab content */}
+            <div className="p-6">
+                {activeTab === "todo" && (
+                    isLoading ? (
+                        <div className="grid border divide-border md:grid-cols-2 lg:grid-cols-3">
                             {[1, 2, 3, 4, 5, 6].map((i) => (
                                 <AssignmentCardSkeleton key={i} />
                             ))}
@@ -178,19 +202,19 @@ export function StudentAssignmentsView() {
                     ) : todoAssignments.length === 0 ? (
                         <EmptyState title="All caught up!" description="No pending assignments." />
                     ) : (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid border divide-y divide-border md:grid-cols-2 md:divide-y-0 md:divide-x lg:grid-cols-3">
                             <AnimatePresence>
                                 {todoAssignments.map((assignment, index) => (
                                     <AssignmentCard key={assignment.id} assignment={assignment} index={index} />
                                 ))}
                             </AnimatePresence>
                         </div>
-                    )}
-                </TabsContent>
+                    )
+                )}
 
-                <TabsContent value="done" className="space-y-4">
-                    {isLoading ? (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {activeTab === "done" && (
+                    isLoading ? (
+                        <div className="grid border divide-border md:grid-cols-2 lg:grid-cols-3">
                             {[1, 2, 3].map((i) => (
                                 <AssignmentCardSkeleton key={i} />
                             ))}
@@ -198,44 +222,34 @@ export function StudentAssignmentsView() {
                     ) : doneAssignments.length === 0 ? (
                         <EmptyState title="No history" description="Completed assignments will show here." />
                     ) : (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid border divide-border md:grid-cols-2 lg:grid-cols-3">
                             <AnimatePresence>
                                 {doneAssignments.map((assignment, index) => (
                                     <AssignmentCard key={assignment.id} assignment={assignment} index={index} isHistory />
                                 ))}
                             </AnimatePresence>
                         </div>
-                    )}
-                </TabsContent>
-            </Tabs>
-        </div >
+                    )
+                )}
+            </div>
+        </div>
     )
 }
 
-function StatsCard({ label, value, icon: Icon, color }: { label: string, value: number, icon: React.ElementType, color: string }) {
-    const colors: Record<string, string> = {
-        blue: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50",
-        emerald: "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50",
-        indigo: "bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/50",
-    }
-    const iconColors: Record<string, string> = {
-        blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/40",
-        emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40",
-        indigo: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40",
-    }
-
+function FlatStatsCell({ label, value, icon: Icon, iconColor, index }: { label: string, value: number, icon: React.ElementType, iconColor: string, index: number }) {
     return (
-        <Card className={`border shadow-sm ${colors[color]}`}>
-            <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium opacity-80">{label}</p>
-                    <h2 className="text-3xl font-bold">{value}</h2>
-                </div>
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${iconColors[color]}`}>
-                    <Icon className="h-6 w-6" />
-                </div>
-            </CardContent>
-        </Card>
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.06 }}
+            className="relative h-full p-5 bg-background"
+        >
+            <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{label}</span>
+                <Icon className={`h-4 w-4 ${iconColor}`} />
+            </div>
+            <div className="text-4xl font-bold tracking-tight tabular-nums">{value}</div>
+        </motion.div>
     )
 }
 
@@ -253,7 +267,7 @@ function AssignmentCard({ assignment, index, isHistory = false }: { assignment: 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
         >
-            <Card className={`h-full flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md border bg-card text-card-foreground ${isRejected ? 'border-red-500/50 shadow-red-100 dark:shadow-red-900/10' : 'border-muted'}`}>
+            <Card className={`h-full flex flex-col overflow-hidden transition-colors duration-200 rounded-none shadow-none border-0 bg-card text-card-foreground hover:bg-muted/20 ${isRejected ? 'border-l-2 border-l-red-500' : ''}`}>
                 <CardHeader className="pb-3 space-y-3">
                     <div className="flex justify-between items-start">
                         <Badge variant="outline" className="font-normal text-muted-foreground">
@@ -433,7 +447,7 @@ function SubmissionDialog({ assignment, submission }: { assignment: Assignment, 
 
 function AssignmentCardSkeleton() {
     return (
-        <Card className="h-full flex flex-col overflow-hidden border bg-card">
+        <Card className="h-full flex flex-col overflow-hidden border-0 rounded-none shadow-none bg-card">
             <CardHeader className="pb-3 space-y-3">
                 <div className="flex justify-between items-start">
                     <Skeleton className="h-5 w-24 rounded-full" />
