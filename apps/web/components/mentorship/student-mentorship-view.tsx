@@ -15,6 +15,9 @@ import {
     Award,
     XCircle,
     FileUp,
+    FolderOpen,
+    Folder,
+    ChevronRight,
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
@@ -30,13 +33,6 @@ const HATCH = {
     backgroundSize: "6px 6px",
 };
 
-const TABS = [
-    { id: "required", label: "Required Documents" },
-    { id: "optional", label: "Optional Documents" },
-] as const;
-
-type Tab = typeof TABS[number]["id"];
-
 interface StudentMentorshipViewProps {
     userName: string;
 }
@@ -45,7 +41,7 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     const { data, isLoading, error } = useMentorshipData();
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [selectedRequirement, setSelectedRequirement] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<Tab>("required");
+    const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
     if (isLoading) {
         return (
@@ -90,10 +86,9 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     const requirements = data?.requirements || [];
     const submissions = data?.submissions || [];
     const stats = data?.stats || { pendingDocuments: 0, completedDocuments: 0 };
+    const folders = data?.folders || [];
 
     const getSubmissionForRequirement = (reqId: string) => submissions.find(s => s.requirementId === reqId);
-    const requiredDocs = requirements.filter(r => r.isRequired);
-    const optionalDocs = requirements.filter(r => !r.isRequired);
     const approvedCount = submissions.filter(s => s.status === "APPROVED").length;
     const progressPercent = requirements.length > 0 ? Math.round((approvedCount / requirements.length) * 100) : 0;
 
@@ -132,7 +127,19 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     }
 
     const mentorInitials = mentor.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "M";
-    const activeDocs = activeTab === "required" ? requiredDocs : optionalDocs;
+
+    // Folder-based document filtering
+    const unfolderedRequirements = requirements.filter(r => !r.folderId);
+    const currentFolderRequirements = selectedFolderId
+        ? requirements.filter(r => r.folderId === selectedFolderId)
+        : unfolderedRequirements;
+    const currentFolder = selectedFolderId
+        ? folders.find(f => f.id === selectedFolderId)
+        : null;
+
+    // Show "All Documents" view if no folders exist
+    const hasFolders = folders.length > 0;
+    const allDocs = hasFolders ? currentFolderRequirements : requirements;
 
     return (
         <div className="flex w-full min-w-0 flex-col">
@@ -213,49 +220,101 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                     </div>
                 </div>
 
-                {/* Right — Documents */}
-                <div className="min-w-0 xl:col-span-3 divide-y divide-border">
-                    {/* Tab nav */}
-                    <div className="flex divide-x divide-border">
-                        {TABS.map(tab => (
+                {/* Right — Documents with folder navigation */}
+                <div className="min-w-0 xl:col-span-3 flex">
+                    {/* Folder sidebar (only show if folders exist) */}
+                    {hasFolders && (
+                        <div className="w-48 shrink-0 border-r divide-y divide-border bg-muted/10">
+                            {/* Uncategorized */}
                             <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => setSelectedFolderId(null)}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-3 text-sm transition-colors",
-                                    activeTab === tab.id
-                                        ? "bg-background font-medium border-b-2 border-b-foreground -mb-px"
+                                    "flex items-center gap-2 w-full px-4 py-3 text-sm transition-colors text-left",
+                                    selectedFolderId === null
+                                        ? "bg-background font-medium border-r-2 border-r-foreground -mr-px"
                                         : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                                 )}
                             >
-                                {tab.label}
-                                <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0">
-                                    {tab.id === "required" ? requiredDocs.length : optionalDocs.length}
+                                <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate flex-1">Uncategorized</span>
+                                <Badge variant="secondary" className="rounded-none text-[10px] px-1 py-0 h-4 min-w-4 shrink-0">
+                                    {unfolderedRequirements.length}
                                 </Badge>
                             </button>
-                        ))}
-                    </div>
 
-                    {/* Document list */}
-                    {activeDocs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                            <FileText className="h-8 w-8 text-muted-foreground/40" />
-                            <p className="text-sm text-muted-foreground">
-                                No {activeTab} documents yet
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-border">
-                            {activeDocs.map(req => (
-                                <DocumentRow
-                                    key={req.id}
-                                    requirement={req}
-                                    submission={getSubmissionForRequirement(req.id)}
-                                    onUpload={() => handleUpload(req)}
-                                />
-                            ))}
+                            {/* Folder list */}
+                            {folders.map(folder => {
+                                const folderReqs = requirements.filter(r => r.folderId === folder.id);
+                                const folderSubmitted = folderReqs.filter(r => getSubmissionForRequirement(r.id)).length;
+                                return (
+                                    <button
+                                        key={folder.id}
+                                        onClick={() => setSelectedFolderId(folder.id)}
+                                        className={cn(
+                                            "flex items-center gap-2 w-full px-4 py-3 text-sm transition-colors text-left",
+                                            selectedFolderId === folder.id
+                                                ? "bg-background font-medium border-r-2 border-r-foreground -mr-px"
+                                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                                        )}
+                                    >
+                                        <div
+                                            className="h-3 w-3 rounded-sm shrink-0 flex items-center justify-center"
+                                            style={{ backgroundColor: (folder.color || "#64748B") + "20", border: `1.5px solid ${folder.color || "#64748B"}` }}
+                                        >
+                                            <Folder className="h-2 w-2" style={{ color: folder.color || "#64748B" }} />
+                                        </div>
+                                        <span className="truncate flex-1">{folder.name}</span>
+                                        <span className="text-[10px] text-muted-foreground shrink-0">
+                                            {folderSubmitted}/{folderReqs.length}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
+
+                    {/* Document list */}
+                    <div className="flex-1 min-w-0 divide-y divide-border">
+                        {/* Breadcrumb header */}
+                        {hasFolders && (
+                            <div className="flex items-center gap-2 px-6 py-2.5 bg-muted/20 text-sm">
+                                <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-muted-foreground">Documents</span>
+                                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                {currentFolder ? (
+                                    <span className="font-medium flex items-center gap-1.5 truncate">
+                                        <div
+                                            className="h-2 w-2 rounded-full shrink-0"
+                                            style={{ backgroundColor: currentFolder.color || "#64748B" }}
+                                        />
+                                        {currentFolder.name}
+                                    </span>
+                                ) : (
+                                    <span className="font-medium truncate">Uncategorized</span>
+                                )}
+                            </div>
+                        )}
+
+                        {allDocs.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                                <FileText className="h-8 w-8 text-muted-foreground/40" />
+                                <p className="text-sm text-muted-foreground">
+                                    {currentFolder ? `No documents in "${currentFolder.name}"` : "No documents yet"}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-border">
+                                {allDocs.map(req => (
+                                    <DocumentRow
+                                        key={req.id}
+                                        requirement={req}
+                                        submission={getSubmissionForRequirement(req.id)}
+                                        onUpload={() => handleUpload(req)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -300,8 +359,20 @@ function DocumentRow({ requirement, submission, onUpload }: { requirement: any; 
             <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium">{requirement.title}</p>
+                    {requirement.isRequired && (
+                        <Badge variant="destructive" className="rounded-none text-[10px] px-1.5 py-0">Required</Badge>
+                    )}
                     {requirement.category && (
                         <Badge variant="outline" className="rounded-none text-[10px] px-1.5 py-0">{requirement.category}</Badge>
+                    )}
+                    {requirement.folder && (
+                        <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0 gap-1">
+                            <div
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{ backgroundColor: requirement.folder.color || "#64748B" }}
+                            />
+                            {requirement.folder.name}
+                        </Badge>
                     )}
                 </div>
                 {requirement.description && (

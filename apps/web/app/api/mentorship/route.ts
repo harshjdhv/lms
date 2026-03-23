@@ -26,7 +26,7 @@ export async function GET() {
     }
 
     if (user.role === "TEACHER") {
-      const [mentees, requirements, submissions] = await Promise.all([
+      const [mentees, requirements, submissions, folders] = await Promise.all([
         prisma.mentorship.findMany({
           where: { mentorId: user.id },
           include: {
@@ -48,6 +48,7 @@ export async function GET() {
           where: { mentorId: user.id },
           include: {
             _count: { select: { submissions: true } },
+            folder: { select: { id: true, name: true, color: true, icon: true } },
           },
           orderBy: { createdAt: "desc" },
         }),
@@ -57,13 +58,20 @@ export async function GET() {
           },
           include: {
             requirement: {
-              select: { id: true, title: true, category: true },
+              select: { id: true, title: true, category: true, folderId: true },
             },
             student: {
               select: { id: true, name: true, email: true, avatar: true },
             },
           },
           orderBy: { submittedAt: "desc" },
+        }),
+        prisma.documentFolder.findMany({
+          where: { mentorId: user.id },
+          include: {
+            _count: { select: { requirements: true } },
+          },
+          orderBy: { position: "asc" },
         }),
       ]);
 
@@ -82,6 +90,7 @@ export async function GET() {
           mentees,
           requirements,
           submissions,
+          folders,
           stats: {
             totalMentees: mentees.length,
             activeMentees,
@@ -110,10 +119,13 @@ export async function GET() {
       });
 
       // Get requirements from their mentor
-      const [requirements, submissions] = await Promise.all([
+      const [requirements, submissions, folders] = await Promise.all([
         mentorship
           ? prisma.documentRequirement.findMany({
               where: { mentorId: mentorship.mentorId },
+              include: {
+                folder: { select: { id: true, name: true, color: true, icon: true } },
+              },
               orderBy: [{ isRequired: "desc" }, { dueDate: "asc" }],
             })
           : Promise.resolve([]),
@@ -121,11 +133,20 @@ export async function GET() {
           where: { studentId: user.id },
           include: {
             requirement: {
-              select: { id: true, title: true, category: true, dueDate: true },
+              select: { id: true, title: true, category: true, dueDate: true, folderId: true },
             },
           },
           orderBy: { submittedAt: "desc" },
         }),
+        mentorship
+          ? prisma.documentFolder.findMany({
+              where: { mentorId: mentorship.mentorId },
+              include: {
+                _count: { select: { requirements: true } },
+              },
+              orderBy: { position: "asc" },
+            })
+          : Promise.resolve([]),
       ]);
 
       // Calculate stats
@@ -143,6 +164,7 @@ export async function GET() {
           mentees: [],
           requirements,
           submissions,
+          folders,
           stats: {
             totalMentees: 0,
             activeMentees: 0,

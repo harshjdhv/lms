@@ -1,7 +1,7 @@
 /**
  * @file use-mentorship.ts
  * @description React Query hooks for mentorship system - managing mentor-mentee relationships,
- * document requirements, and document submissions.
+ * document requirements, document submissions, and document folders.
  * @module Apps/Web/Hooks/Queries/Mentorship
  */
 
@@ -48,6 +48,24 @@ export interface Mentorship {
   mentee?: MenteeUser;
 }
 
+export interface DocumentFolder {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  position: number;
+  mentorId: string;
+  createdAt: string;
+  _count?: {
+    requirements: number;
+  };
+  stats?: {
+    totalRequirements: number;
+    totalSubmissions: number;
+  };
+}
+
 export interface DocumentRequirement {
   id: string;
   title: string;
@@ -56,7 +74,14 @@ export interface DocumentRequirement {
   isRequired: boolean;
   category: string | null;
   mentorId: string;
+  folderId: string | null;
   createdAt: string;
+  folder?: {
+    id: string;
+    name: string;
+    color: string | null;
+    icon: string | null;
+  } | null;
   _count?: {
     submissions: number;
   };
@@ -83,6 +108,7 @@ export interface MentorshipData {
   mentees: (Mentorship & { mentee: MenteeUser })[];
   requirements: DocumentRequirement[];
   submissions: DocumentSubmission[];
+  folders: DocumentFolder[];
   stats: {
     totalMentees: number;
     activeMentees: number;
@@ -101,6 +127,8 @@ export const mentorshipKeys = {
   mentees: () => [...mentorshipKeys.all, "mentees"] as const,
   availableStudents: () =>
     [...mentorshipKeys.all, "available-students"] as const,
+  folders: () => [...mentorshipKeys.all, "folders"] as const,
+  folder: (id: string) => [...mentorshipKeys.folders(), id] as const,
   requirements: () => [...mentorshipKeys.all, "requirements"] as const,
   requirement: (id: string) => [...mentorshipKeys.requirements(), id] as const,
   submissions: () => [...mentorshipKeys.all, "submissions"] as const,
@@ -123,6 +151,12 @@ async function fetchMentorshipData(): Promise<MentorshipData> {
 async function fetchAvailableStudents(): Promise<MenteeUser[]> {
   const res = await fetch("/api/mentorship/available-students");
   if (!res.ok) throw new Error("Failed to fetch available students");
+  return res.json();
+}
+
+async function fetchFolders(): Promise<DocumentFolder[]> {
+  const res = await fetch("/api/documents/folders");
+  if (!res.ok) throw new Error("Failed to fetch folders");
   return res.json();
 }
 
@@ -155,6 +189,14 @@ export function useAvailableStudents() {
     queryKey: mentorshipKeys.availableStudents(),
     queryFn: fetchAvailableStudents,
     staleTime: 1 * 60 * 1000, // 1 minute - students can be assigned quickly
+  });
+}
+
+export function useDocumentFolders() {
+  return useQuery({
+    queryKey: mentorshipKeys.folders(),
+    queryFn: fetchFolders,
+    staleTime: 3 * 60 * 1000,
   });
 }
 
@@ -239,6 +281,87 @@ export function useUpdateMentorshipNotes() {
   });
 }
 
+// ==========================================
+// FOLDER MUTATIONS
+// ==========================================
+
+// Create document folder
+export function useCreateFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      name: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+    }) => {
+      const res = await fetch("/api/documents/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to create folder");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mentorshipKeys.all });
+    },
+  });
+}
+
+// Update document folder
+export function useUpdateFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      name?: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+      position?: number;
+    }) => {
+      const res = await fetch(`/api/documents/folders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update folder");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mentorshipKeys.all });
+    },
+  });
+}
+
+// Delete document folder
+export function useDeleteFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/documents/folders/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete folder");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mentorshipKeys.all });
+    },
+  });
+}
+
+// ==========================================
+// REQUIREMENT MUTATIONS
+// ==========================================
+
 // Create document requirement
 export function useCreateRequirement() {
   const queryClient = useQueryClient();
@@ -250,6 +373,7 @@ export function useCreateRequirement() {
       dueDate?: string;
       isRequired?: boolean;
       category?: string;
+      folderId?: string;
     }) => {
       const res = await fetch("/api/documents/requirements", {
         method: "POST",
@@ -280,6 +404,7 @@ export function useUpdateRequirement() {
       dueDate?: string;
       isRequired?: boolean;
       category?: string;
+      folderId?: string | null;
     }) => {
       const res = await fetch(`/api/documents/requirements/${id}`, {
         method: "PATCH",

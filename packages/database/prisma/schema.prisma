@@ -49,6 +49,7 @@ model User {
   // Mentorship relations
   mentees              Mentorship[]          @relation("MentorRelation")
   mentors              Mentorship[]          @relation("MenteeRelation")
+  documentFolders      DocumentFolder[]      @relation("MentorFolders")
   documentRequirements DocumentRequirement[] @relation("MentorDocuments")
   documentSubmissions  DocumentSubmission[]  @relation("StudentDocuments")
 
@@ -340,6 +341,26 @@ model Mentorship {
   @@index([menteeId])
 }
 
+model DocumentFolder {
+  id          String  @id @default(uuid())
+  name        String // e.g., "Semester 1", "Semester 2", "Projects"
+  description String?
+  color       String? // Hex color for visual distinction
+  icon        String? // Icon name for display
+  position    Int     @default(0) // For ordering
+
+  mentorId String // Created by this teacher
+  mentor   User   @relation("MentorFolders", fields: [mentorId], references: [id], onDelete: Cascade)
+
+  requirements DocumentRequirement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([mentorId])
+  @@index([position])
+}
+
 model DocumentRequirement {
   id          String    @id @default(uuid())
   title       String
@@ -348,8 +369,10 @@ model DocumentRequirement {
   isRequired  Boolean   @default(true)
   category    String? // e.g., "Academic", "Administrative", "Project"
   mentorId    String // Created by this teacher
+  folderId    String? // Optional folder grouping
 
   mentor      User                 @relation("MentorDocuments", fields: [mentorId], references: [id], onDelete: Cascade)
+  folder      DocumentFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
   submissions DocumentSubmission[]
 
   createdAt DateTime @default(now())
@@ -357,6 +380,7 @@ model DocumentRequirement {
 
   @@index([mentorId])
   @@index([dueDate])
+  @@index([folderId])
 }
 
 model DocumentSubmission {

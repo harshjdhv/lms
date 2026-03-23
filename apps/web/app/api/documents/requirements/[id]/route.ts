@@ -46,7 +46,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, dueDate, isRequired, category } = body;
+    const { title, description, dueDate, isRequired, category, folderId } = body;
 
     const updated = await prisma.documentRequirement.update({
       where: { id },
@@ -58,6 +58,10 @@ export async function PATCH(
         }),
         ...(isRequired !== undefined && { isRequired }),
         ...(category !== undefined && { category }),
+        ...(folderId !== undefined && { folderId: folderId || null }),
+      },
+      include: {
+        folder: { select: { id: true, name: true, color: true, icon: true } },
       },
     });
 

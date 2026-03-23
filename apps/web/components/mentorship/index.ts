@@ -8,5 +8,6 @@ export * from "./teacher-mentorship-view";
 export * from "./student-mentorship-view";
 export * from "./add-mentee-dialog";
 export * from "./create-requirement-dialog";
+export * from "./create-folder-dialog";
 export * from "./document-upload-dialog";
 export * from "./submission-review-panel";

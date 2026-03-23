@@ -28,6 +28,7 @@ export async function GET() {
         where: { mentorId: user.id },
         include: {
           _count: { select: { submissions: true } },
+          folder: { select: { id: true, name: true, color: true, icon: true } },
           submissions: {
             select: {
               id: true,
@@ -52,6 +53,9 @@ export async function GET() {
 
       const requirements = await prisma.documentRequirement.findMany({
         where: { mentorId: mentorship.mentorId },
+        include: {
+          folder: { select: { id: true, name: true, color: true, icon: true } },
+        },
         orderBy: [{ isRequired: "desc" }, { dueDate: "asc" }],
       });
 
@@ -86,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, description, dueDate, isRequired, category } = body;
+    const { title, description, dueDate, isRequired, category, folderId } = body;
 
     if (!title) {
       return NextResponse.json(
@@ -102,7 +106,11 @@ export async function POST(request: Request) {
         dueDate: dueDate ? new Date(dueDate) : null,
         isRequired: isRequired ?? true,
         category: category || null,
+        folderId: folderId || null,
         mentorId: user.id,
+      },
+      include: {
+        folder: { select: { id: true, name: true, color: true, icon: true } },
       },
     });
 

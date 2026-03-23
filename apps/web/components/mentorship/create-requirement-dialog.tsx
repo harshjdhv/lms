@@ -1,13 +1,13 @@
 /**
  * @file components/mentorship/create-requirement-dialog.tsx
- * @description Dialog for teachers to create document requirements
+ * @description Dialog for teachers to create document requirements with folder assignment
  * @module Apps/Web/Components/Mentorship
  */
 
 "use client";
 
 import { useState } from "react";
-import { FileText, Loader2, Calendar } from "lucide-react";
+import { FileText, Loader2, Calendar, FolderOpen } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
@@ -28,12 +28,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@workspace/ui/components/select";
-import { useCreateRequirement } from "@/hooks/queries/use-mentorship";
+import { useCreateRequirement, DocumentFolder } from "@/hooks/queries/use-mentorship";
 import { toast } from "sonner";
 
 interface CreateRequirementDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    folders?: DocumentFolder[];
+    defaultFolderId?: string | null;
 }
 
 const CATEGORIES = [
@@ -48,12 +50,15 @@ const CATEGORIES = [
 export function CreateRequirementDialog({
     open,
     onOpenChange,
+    folders = [],
+    defaultFolderId = null,
 }: CreateRequirementDialogProps) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [category, setCategory] = useState("");
     const [isRequired, setIsRequired] = useState(true);
+    const [folderId, setFolderId] = useState<string>(defaultFolderId || "__none__");
 
     const createRequirement = useCreateRequirement();
 
@@ -63,6 +68,7 @@ export function CreateRequirementDialog({
         setDueDate("");
         setCategory("");
         setIsRequired(true);
+        setFolderId(defaultFolderId || "__none__");
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -80,6 +86,7 @@ export function CreateRequirementDialog({
                 dueDate: dueDate || undefined,
                 category: category || undefined,
                 isRequired,
+                folderId: folderId === "__none__" ? undefined : folderId,
             });
             toast.success("Document requirement created!");
             resetForm();
@@ -129,6 +136,37 @@ export function CreateRequirementDialog({
                                 rows={3}
                             />
                         </div>
+
+                        {/* Folder Selection */}
+                        {folders.length > 0 && (
+                            <div className="space-y-2">
+                                <Label htmlFor="folder" className="flex items-center gap-1.5">
+                                    <FolderOpen className="h-3.5 w-3.5" />
+                                    Folder
+                                </Label>
+                                <Select value={folderId} onValueChange={setFolderId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a folder" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="__none__">
+                                            <span className="text-muted-foreground">No folder (Uncategorized)</span>
+                                        </SelectItem>
+                                        {folders.map((folder) => (
+                                            <SelectItem key={folder.id} value={folder.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <div
+                                                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                                                        style={{ backgroundColor: folder.color || "#64748B" }}
+                                                    />
+                                                    {folder.name}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         {/* Category and Due Date */}
                         <div className="grid grid-cols-2 gap-4">
