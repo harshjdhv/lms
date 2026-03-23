@@ -2,25 +2,62 @@
 
 import { AuthForm } from "@/components/auth-form";
 import { AuroraBackground } from "@/components/ui/aurora-background";
-import { Command } from "lucide-react";
+
+function ConnectXMark({ size = 30, className = "" }: { size?: number; className?: string }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="430 310 345 275"
+            xmlns="http://www.w3.org/2000/svg"
+            className={className}
+        >
+            <path
+                d="
+          M 430 505
+          Q 430 585 450 585
+          L 515 585
+          Q 530 585 540 570
+          L 615 475
+          Q 622 465 632 470
+          Q 642 475 645 490
+          L 660 560
+          Q 665 585 690 585
+          L 755 585
+          Q 775 585 775 565
+          L 775 455
+          Q 775 435 755 435
+          L 690 435
+          Q 665 435 662 410
+          L 650 330
+          Q 648 310 630 310
+          L 585 310
+          Q 565 310 552 330
+          L 445 480
+          Q 430 495 430 505
+          Z
+        "
+                fill="currentColor"
+            />
+        </svg>
+    );
+}
 
 export default function AuthPage() {
     return (
         <div className="grid min-h-screen lg:grid-cols-2 bg-white dark:bg-zinc-950">
             {/* Left Side - Aurora & Branding (Floating Panel) */}
             <div className="hidden lg:block p-3 h-screen sticky top-0">
-                <div className="relative h-full w-full flex-col justify-between overflow-hidden rounded-[2rem] bg-zinc-900 flex">
+                <div className="relative h-full w-full flex-col justify-between overflow-hidden rounded-4xl bg-zinc-900 flex">
                     {/* Background Layer */}
                     <div className="absolute inset-0 z-0">
                         <AuroraBackground className="h-full w-full bg-zinc-900!" showRadial={true} />
                     </div>
 
                     {/* Branding Top Left */}
-                    <div className="relative z-20 flex items-center text-lg font-medium tracking-tight text-white p-10">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white text-zinc-950 mr-2">
-                            <Command className="h-5 w-5" />
-                        </div>
-                        ConnectX Inc
+                    <div className="relative z-20 flex items-center gap-1 p-10">
+                        <ConnectXMark size={28} className="text-white" />
+                        <span className="font-black text-lg text-white tracking-tight leading-none">ConnectX</span>
                     </div>
 
                     {/* Quote Bottom Left */}
