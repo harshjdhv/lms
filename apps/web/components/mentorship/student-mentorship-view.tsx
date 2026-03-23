@@ -22,6 +22,13 @@ import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Progress } from "@workspace/ui/components/progress";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@workspace/ui/components/dialog";
 import { useMentorshipData } from "@/hooks/queries/use-mentorship";
 import { DocumentUploadDialog } from "./document-upload-dialog";
 import { StatsCard, StatsCardSkeleton, gradientPresets } from "@/components/ui/stats-card";
@@ -36,6 +43,7 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [selectedRequirement, setSelectedRequirement] = useState<string | null>(null);
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+    const [mentorProfileOpen, setMentorProfileOpen] = useState(false);
 
     if (isLoading) {
         return (
@@ -178,9 +186,14 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                         </div>
                         <Progress value={progressPercent} className="h-1.5" />
                         <div className="flex items-center gap-2 pt-1">
-                            <Button variant="outline" className="flex-1 rounded-none gap-2 text-xs h-8" size="sm">
-                                <Mail className="h-3.5 w-3.5" />
-                                Contact Mentor
+                            <Button
+                                variant="outline"
+                                className="flex-1 rounded-none gap-2 text-xs h-8"
+                                size="sm"
+                                onClick={() => setMentorProfileOpen(true)}
+                            >
+                                <User className="h-3.5 w-3.5" />
+                                View Mentor Profile
                             </Button>
                         </div>
                     </div>
@@ -316,6 +329,44 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                 onOpenChange={setUploadDialogOpen}
                 requirement={selectedReq}
             />
+            <Dialog open={mentorProfileOpen} onOpenChange={setMentorProfileOpen}>
+                <DialogContent className="sm:max-w-md rounded-none">
+                    <DialogHeader>
+                        <DialogTitle>Mentor Profile</DialogTitle>
+                        <DialogDescription>Mentor details and contact</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12 border border-border">
+                                <AvatarImage src={mentor?.avatar || undefined} alt={mentor?.name || "Mentor"} />
+                                <AvatarFallback className="text-sm font-semibold">{mentorInitials}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                                <p className="font-medium truncate">{mentor?.name || "Mentor"}</p>
+                                {mentor?.title && <p className="text-xs text-muted-foreground truncate">{mentor.title}</p>}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-2 text-sm">
+                            <div className="rounded-sm border border-border p-2">
+                                <p className="text-xs text-muted-foreground">Email</p>
+                                <a
+                                    href={`mailto:${mentor?.email}`}
+                                    className="font-medium hover:underline inline-flex items-center gap-1.5"
+                                >
+                                    <Mail className="h-3.5 w-3.5" />
+                                    {mentor?.email}
+                                </a>
+                            </div>
+                            <div className="rounded-sm border border-border p-2">
+                                <p className="text-xs text-muted-foreground">Expertise</p>
+                                <p className="font-medium">{mentor?.expertise || "-"}</p>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

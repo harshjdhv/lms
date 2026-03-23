@@ -6,6 +6,9 @@ import {
     FileText,
     Clock,
     CheckCircle2,
+    XCircle,
+    RefreshCw,
+    ExternalLink,
     Plus,
     Search,
     Eye,
@@ -32,7 +35,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Progress } from "@workspace/ui/components/progress";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@workspace/ui/components/dialog";
+import {
     useMentorshipData,
+    DocumentFolder,
+    DocumentRequirement,
+    DocumentSubmission,
+    MenteeUser,
     useDeleteFolder,
 } from "@/hooks/queries/use-mentorship";
 import { AddMenteeDialog } from "./add-mentee-dialog";
@@ -68,6 +82,8 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
     const [createFolderOpen, setCreateFolderOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>("mentees");
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+    const [selectedMenteeId, setSelectedMenteeId] = useState<string | null>(null);
+    const [selectedProfileMenteeId, setSelectedProfileMenteeId] = useState<string | null>(null);
 
     const deleteFolder = useDeleteFolder();
 
@@ -130,6 +146,11 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
     const currentFolder = selectedFolderId
         ? folders.find(f => f.id === selectedFolderId)
         : null;
+    const selectedMentee = mentees.find(m => m.mentee.id === selectedMenteeId)?.mentee ?? null;
+    const selectedMenteeSubmissions = selectedMenteeId
+        ? submissions.filter(s => s.studentId === selectedMenteeId)
+        : [];
+    const selectedProfileMentee = mentees.find(m => m.mentee.id === selectedProfileMenteeId)?.mentee ?? null;
 
     const handleDeleteFolder = async (folderId: string) => {
         try {
@@ -238,7 +259,17 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                     ) : (
                         <div className="divide-y divide-border">
                             {filteredMentees.map(mentorship => (
-                                <MenteeRow key={mentorship.id} mentorship={mentorship} />
+                                <MenteeRow
+                                    key={mentorship.id}
+                                    mentorship={mentorship}
+                                    onViewProfile={() => {
+                                        window.setTimeout(() => setSelectedProfileMenteeId(mentorship.mentee.id), 0);
+                                    }}
+                                    onViewDocuments={() => {
+                                        // Wait for dropdown close animation/event cycle before opening dialog.
+                                        window.setTimeout(() => setSelectedMenteeId(mentorship.mentee.id), 0);
+                                    }}
+                                />
                             ))}
                         </div>
                     )}
@@ -405,11 +436,36 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                 defaultFolderId={selectedFolderId}
             />
             <CreateFolderDialog open={createFolderOpen} onOpenChange={setCreateFolderOpen} />
+            <MenteeProfileDialog
+                open={selectedProfileMenteeId !== null}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedProfileMenteeId(null);
+                }}
+                mentee={selectedProfileMentee}
+            />
+            <MenteeDocumentsDialog
+                open={selectedMenteeId !== null}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedMenteeId(null);
+                }}
+                mentee={selectedMentee}
+                folders={folders}
+                requirements={requirements}
+                submissions={selectedMenteeSubmissions}
+            />
         </div>
     );
 }
 
-function MenteeRow({ mentorship }: { mentorship: any }) {
+function MenteeRow({
+    mentorship,
+    onViewProfile,
+    onViewDocuments,
+}: {
+    mentorship: any;
+    onViewProfile: () => void;
+    onViewDocuments: () => void;
+}) {
     const mentee = mentorship.mentee;
     const initials = mentee?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
@@ -451,8 +507,14 @@ function MenteeRow({ mentorship }: { mentorship: any }) {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-none">
-                    <DropdownMenuItem><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
-                    <DropdownMenuItem><FileText className="h-4 w-4 mr-2" />View Documents</DropdownMenuItem>
+                    <DropdownMenuItem onClick={onViewProfile}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onViewDocuments}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Documents
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive focus:text-destructive">
                         <Trash2 className="h-4 w-4 mr-2" />Remove Mentee
@@ -526,5 +588,189 @@ function RequirementRow({ requirement, menteeCount }: { requirement: any; mentee
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
+    );
+}
+
+function MenteeDocumentsDialog({
+    open,
+    onOpenChange,
+    mentee,
+    folders,
+    requirements,
+    submissions,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    mentee: MenteeUser | null;
+    folders: DocumentFolder[];
+    requirements: DocumentRequirement[];
+    submissions: DocumentSubmission[];
+}) {
+    const getSubmission = (requirementId: string) =>
+        submissions.find((submission) => submission.requirementId === requirementId);
+
+    const getStatus = (submission?: DocumentSubmission) => {
+        if (!submission) {
+            return { label: "Not Submitted", icon: FileText, color: "text-muted-foreground" };
+        }
+        switch (submission.status) {
+            case "APPROVED":
+                return { label: "Approved", icon: CheckCircle2, color: "text-emerald-600" };
+            case "REJECTED":
+                return { label: "Rejected", icon: XCircle, color: "text-destructive" };
+            case "REVISION_REQUESTED":
+                return { label: "Revision Needed", icon: RefreshCw, color: "text-amber-600" };
+            default:
+                return { label: "Pending Review", icon: Clock, color: "text-amber-600" };
+        }
+    };
+
+    const uncategorizedRequirements = requirements.filter((requirement) => !requirement.folderId);
+    const sections = [
+        {
+            id: "uncategorized",
+            name: "Uncategorized",
+            color: "#64748B",
+            requirements: uncategorizedRequirements,
+        },
+        ...folders.map((folder) => ({
+            id: folder.id,
+            name: folder.name,
+            color: folder.color || "#64748B",
+            requirements: requirements.filter((requirement) => requirement.folderId === folder.id),
+        })),
+    ].filter((section) => section.requirements.length > 0);
+
+    const totalSubmitted = requirements.filter((requirement) => getSubmission(requirement.id)).length;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden rounded-none p-0 gap-0">
+                <DialogHeader className="px-6 py-4 border-b border-border">
+                    <DialogTitle className="text-base">
+                        {mentee?.name || "Mentee"} - Documents
+                    </DialogTitle>
+                    <DialogDescription>
+                        {totalSubmitted}/{requirements.length} requirements submitted
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="overflow-y-auto">
+                    {sections.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                            <FileText className="h-8 w-8 text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">No document requirements yet</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-border">
+                            {sections.map((section) => (
+                                <div key={section.id}>
+                                    <div className="flex items-center gap-2 px-6 py-2.5 border-b border-border bg-muted/20 text-sm">
+                                        <span
+                                            className="h-2 w-2 rounded-full shrink-0 inline-block"
+                                            style={{ backgroundColor: section.color }}
+                                        />
+                                        <span className="font-medium">{section.name}</span>
+                                        <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0 h-4 ml-1">
+                                            {section.requirements.filter((requirement) => getSubmission(requirement.id)).length}/{section.requirements.length}
+                                        </Badge>
+                                    </div>
+
+                                    <div className="divide-y divide-border">
+                                        {section.requirements.map((requirement) => {
+                                            const submission = getSubmission(requirement.id);
+                                            const status = getStatus(submission);
+                                            const StatusIcon = status.icon;
+
+                                            return (
+                                                <div key={requirement.id} className="flex items-start gap-4 px-6 py-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className="text-sm font-medium">{requirement.title}</p>
+                                                            {requirement.isRequired && (
+                                                                <Badge variant="destructive" className="rounded-none text-[10px] px-1.5 py-0">
+                                                                    Required
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        {requirement.description && (
+                                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{requirement.description}</p>
+                                                        )}
+                                                        <div className={cn("text-xs flex items-center gap-1 mt-1.5", status.color)}>
+                                                            <StatusIcon className="h-3 w-3" />
+                                                            {status.label}
+                                                        </div>
+                                                    </div>
+
+                                                    {submission && (
+                                                        <Button variant="outline" size="sm" className="rounded-none h-7 text-xs gap-1.5 shrink-0" asChild>
+                                                            <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                                <ExternalLink className="h-3 w-3" />
+                                                                View
+                                                            </a>
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function MenteeProfileDialog({
+    open,
+    onOpenChange,
+    mentee,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    mentee: MenteeUser | null;
+}) {
+    const initials = mentee?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md rounded-none">
+                <DialogHeader>
+                    <DialogTitle>Mentee Profile</DialogTitle>
+                    <DialogDescription>Basic student details</DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 border border-border">
+                            <AvatarImage src={mentee?.avatar || undefined} alt={mentee?.name || "Mentee"} />
+                            <AvatarFallback>{initials}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                            <p className="font-medium truncate">{mentee?.name || "Unknown"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{mentee?.email || "-"}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="rounded-sm border border-border p-2">
+                            <p className="text-xs text-muted-foreground">Student ID</p>
+                            <p className="font-medium">{mentee?.studentId || "-"}</p>
+                        </div>
+                        <div className="rounded-sm border border-border p-2">
+                            <p className="text-xs text-muted-foreground">Semester</p>
+                            <p className="font-medium">{mentee?.semester || "-"}</p>
+                        </div>
+                        <div className="rounded-sm border border-border p-2 col-span-2">
+                            <p className="text-xs text-muted-foreground">Grade</p>
+                            <p className="font-medium">{mentee?.grade || "-"}</p>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }
