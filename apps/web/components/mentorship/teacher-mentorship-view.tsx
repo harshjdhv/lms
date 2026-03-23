@@ -248,84 +248,87 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
             {activeTab === "documents" && (
                 <div className="flex min-h-0">
                     {/* Folder sidebar */}
-                    <div className="w-60 shrink-0 border-r divide-y divide-border bg-muted/10">
-                        {/* All / Uncategorized */}
-                        <button
-                            onClick={() => setSelectedFolderId(null)}
-                            className={cn(
-                                "flex items-center gap-2.5 w-full px-4 py-3 text-sm transition-colors text-left",
-                                selectedFolderId === null
-                                    ? "bg-background font-medium border-r-2 border-r-foreground -mr-px"
-                                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                            )}
-                        >
-                            <FolderOpen className="h-4 w-4 shrink-0" />
-                            <span className="truncate flex-1">Uncategorized</span>
-                            <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0 h-4 min-w-4 shrink-0">
-                                {unfolderedRequirements.length}
-                            </Badge>
-                        </button>
+                    <div className="w-60 shrink-0 border-r border-border">
+                        <div className="px-3 py-2">
+                            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest px-2 py-1.5">Folders</p>
+                        </div>
+                        <div className="px-2 pb-2 space-y-0.5">
+                            {/* Uncategorized */}
+                            <button
+                                onClick={() => setSelectedFolderId(null)}
+                                className={cn(
+                                    "flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors text-left rounded-sm",
+                                    selectedFolderId === null
+                                        ? "bg-muted font-medium text-foreground"
+                                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                )}
+                            >
+                                <FolderOpen className="h-4 w-4 shrink-0" />
+                                <span className="truncate flex-1">Uncategorized</span>
+                                <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                                    {unfolderedRequirements.length}
+                                </span>
+                            </button>
 
-                        {/* Folder list */}
-                        {folders.map(folder => {
-                            const folderReqs = requirements.filter(r => r.folderId === folder.id);
-                            return (
-                                <div key={folder.id} className="group relative">
-                                    <button
-                                        onClick={() => setSelectedFolderId(folder.id)}
-                                        className={cn(
-                                            "flex items-center gap-2.5 w-full px-4 py-3 text-sm transition-colors text-left",
-                                            selectedFolderId === folder.id
-                                                ? "bg-background font-medium border-r-2 border-r-foreground -mr-px"
-                                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                                        )}
-                                    >
-                                        <div
-                                            className="h-3.5 w-3.5 rounded-sm shrink-0 flex items-center justify-center"
-                                            style={{ backgroundColor: (folder.color || "#64748B") + "20", border: `1.5px solid ${folder.color || "#64748B"}` }}
+                            {/* Folder list */}
+                            {folders.map(folder => {
+                                const folderReqs = requirements.filter(r => r.folderId === folder.id);
+                                return (
+                                    <div key={folder.id} className="group relative">
+                                        <button
+                                            onClick={() => setSelectedFolderId(folder.id)}
+                                            className={cn(
+                                                "flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors text-left rounded-sm",
+                                                selectedFolderId === folder.id
+                                                    ? "bg-muted font-medium text-foreground"
+                                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                            )}
                                         >
-                                            <Folder className="h-2 w-2" style={{ color: folder.color || "#64748B" }} />
+                                            <div
+                                                className="h-2.5 w-2.5 rounded-full shrink-0"
+                                                style={{ backgroundColor: folder.color || "#64748B" }}
+                                            />
+                                            <span className="truncate flex-1">{folder.name}</span>
+                                            <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                                                {folderReqs.length}
+                                            </span>
+                                        </button>
+                                        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 rounded-none">
+                                                        <MoreHorizontal className="h-3 w-3" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="rounded-none">
+                                                    <DropdownMenuItem>
+                                                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                                                        Rename
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:text-destructive"
+                                                        onClick={() => handleDeleteFolder(folder.id)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                                        Delete Folder
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
-                                        <span className="truncate flex-1">{folder.name}</span>
-                                        <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0 h-4 min-w-4 shrink-0">
-                                            {folderReqs.length}
-                                        </Badge>
-                                    </button>
-                                    <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-none">
-                                                    <MoreHorizontal className="h-3 w-3" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="rounded-none">
-                                                <DropdownMenuItem>
-                                                    <Pencil className="h-3.5 w-3.5 mr-2" />
-                                                    Rename
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive"
-                                                    onClick={() => handleDeleteFolder(folder.id)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                                    Delete Folder
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
 
-                        {/* Add folder button */}
-                        <button
-                            onClick={() => setCreateFolderOpen(true)}
-                            className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors text-left"
-                        >
-                            <FolderPlus className="h-4 w-4 shrink-0" />
-                            <span className="truncate">New Folder</span>
-                        </button>
+                            {/* Add folder button */}
+                            <button
+                                onClick={() => setCreateFolderOpen(true)}
+                                className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors text-left rounded-sm"
+                            >
+                                <FolderPlus className="h-4 w-4 shrink-0" />
+                                <span className="truncate">New Folder</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Document content */}
