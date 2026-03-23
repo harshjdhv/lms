@@ -1,9 +1,3 @@
-/**
- * @file components/mentorship/submission-review-panel.tsx
- * @description Panel for teachers to review document submissions
- * @module Apps/Web/Components/Mentorship
- */
-
 "use client";
 
 import { useState } from "react";
@@ -15,22 +9,11 @@ import {
     ExternalLink,
     FileText,
     MessageSquare,
-    Filter,
     Loader2,
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Badge } from "@workspace/ui/components/badge";
-import {
-    Card,
-    CardContent,
-} from "@workspace/ui/components/card";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu";
 import {
     Dialog,
     DialogContent,
@@ -57,6 +40,14 @@ interface SubmissionReviewPanelProps {
 
 type FilterStatus = "all" | "PENDING" | "APPROVED" | "REJECTED" | "REVISION_REQUESTED";
 
+const FILTERS: { id: FilterStatus; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "PENDING", label: "Pending" },
+    { id: "APPROVED", label: "Approved" },
+    { id: "REJECTED", label: "Rejected" },
+    { id: "REVISION_REQUESTED", label: "Revision" },
+];
+
 export function SubmissionReviewPanel({ submissions }: SubmissionReviewPanelProps) {
     const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
     const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -72,81 +63,71 @@ export function SubmissionReviewPanel({ submissions }: SubmissionReviewPanelProp
         setReviewDialogOpen(true);
     };
 
-    const statusCounts = {
-        pending: submissions.filter((s) => s.status === "PENDING").length,
-        approved: submissions.filter((s) => s.status === "APPROVED").length,
-        rejected: submissions.filter((s) => s.status === "REJECTED").length,
-        revision: submissions.filter((s) => s.status === "REVISION_REQUESTED").length,
+    const statusCounts: Record<FilterStatus, number> = {
+        all: submissions.length,
+        PENDING: submissions.filter((s) => s.status === "PENDING").length,
+        APPROVED: submissions.filter((s) => s.status === "APPROVED").length,
+        REJECTED: submissions.filter((s) => s.status === "REJECTED").length,
+        REVISION_REQUESTED: submissions.filter((s) => s.status === "REVISION_REQUESTED").length,
     };
 
     if (submissions.length === 0) {
         return (
-            <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                    <div className="rounded-full bg-muted p-4 mb-4">
-                        <FileText className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">No Submissions Yet</h3>
-                    <p className="text-muted-foreground max-w-sm">
-                        Your mentees haven't submitted any documents yet. They'll appear here once they start submitting.
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground/40" />
+                <div>
+                    <p className="text-sm font-medium">No submissions yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Your mentees haven't submitted any documents yet.
                     </p>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         );
     }
 
     return (
-        <div className="space-y-4">
-            {/* Filter Bar */}
-            <div className="flex flex-wrap items-center gap-2">
-                <FilterButton
-                    label="All"
-                    count={submissions.length}
-                    isActive={filterStatus === "all"}
-                    onClick={() => setFilterStatus("all")}
-                />
-                <FilterButton
-                    label="Pending"
-                    count={statusCounts.pending}
-                    isActive={filterStatus === "PENDING"}
-                    onClick={() => setFilterStatus("PENDING")}
-                    color="amber"
-                />
-                <FilterButton
-                    label="Approved"
-                    count={statusCounts.approved}
-                    isActive={filterStatus === "APPROVED"}
-                    onClick={() => setFilterStatus("APPROVED")}
-                    color="emerald"
-                />
-                <FilterButton
-                    label="Rejected"
-                    count={statusCounts.rejected}
-                    isActive={filterStatus === "REJECTED"}
-                    onClick={() => setFilterStatus("REJECTED")}
-                    color="red"
-                />
-                <FilterButton
-                    label="Revision"
-                    count={statusCounts.revision}
-                    isActive={filterStatus === "REVISION_REQUESTED"}
-                    onClick={() => setFilterStatus("REVISION_REQUESTED")}
-                    color="blue"
-                />
-            </div>
-
-            {/* Submissions List */}
-            <div className="space-y-3">
-                {filteredSubmissions.map((submission) => (
-                    <SubmissionCard
-                        key={submission.id}
-                        submission={submission}
-                        onReview={() => openReviewDialog(submission)}
-                    />
+        <div className="flex flex-col">
+            {/* Hatch divider */}
+            <div className="h-4 w-full border-b shrink-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }} />
+            {/* Filter bar */}
+            <div className="flex items-center gap-0 border-b divide-x divide-border">
+                {FILTERS.map((f) => (
+                    <button
+                        key={f.id}
+                        onClick={() => setFilterStatus(f.id)}
+                        className={cn(
+                            "flex items-center gap-2 px-5 py-3 text-sm transition-colors",
+                            filterStatus === f.id
+                                ? "bg-background font-medium border-b-2 border-b-foreground -mb-px"
+                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                        )}
+                    >
+                        {f.label}
+                        <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0 h-4 min-w-4">
+                            {statusCounts[f.id]}
+                        </Badge>
+                    </button>
                 ))}
             </div>
 
-            {/* Review Dialog */}
+            {/* Rows */}
+            {filteredSubmissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                    <FileText className="h-8 w-8 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">No {filterStatus.toLowerCase()} submissions</p>
+                </div>
+            ) : (
+                <div className="divide-y divide-border">
+                    {filteredSubmissions.map((submission) => (
+                        <SubmissionRow
+                            key={submission.id}
+                            submission={submission}
+                            onReview={() => openReviewDialog(submission)}
+                        />
+                    ))}
+                </div>
+            )}
+
             <ReviewDialog
                 open={reviewDialogOpen}
                 onOpenChange={setReviewDialogOpen}
@@ -156,93 +137,21 @@ export function SubmissionReviewPanel({ submissions }: SubmissionReviewPanelProp
     );
 }
 
-function FilterButton({
-    label,
-    count,
-    isActive,
-    onClick,
-    color = "gray",
-}: {
-    label: string;
-    count: number;
-    isActive: boolean;
-    onClick: () => void;
-    color?: "gray" | "amber" | "emerald" | "red" | "blue";
-}) {
-    const colorClasses = {
-        gray: "bg-muted",
-        amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-        emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-        red: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-        blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    };
-
-    return (
-        <Button
-            variant={isActive ? "default" : "outline"}
-            size="sm"
-            onClick={onClick}
-            className="gap-2"
-        >
-            {label}
-            <Badge
-                variant="secondary"
-                className={cn(
-                    "min-w-5 h-5 px-1.5 text-xs",
-                    isActive ? "bg-primary-foreground/20 text-primary-foreground" : colorClasses[color]
-                )}
-            >
-                {count}
-            </Badge>
-        </Button>
-    );
-}
-
-function SubmissionCard({
-    submission,
-    onReview,
-}: {
-    submission: any;
-    onReview: () => void;
-}) {
+function SubmissionRow({ submission, onReview }: { submission: any; onReview: () => void }) {
     const student = submission.student;
     const requirement = submission.requirement;
-    const initials = student?.name
-        ?.split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase() || "?";
+    const initials = student?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
     const getStatusConfig = () => {
         switch (submission.status) {
             case "APPROVED":
-                return {
-                    label: "Approved",
-                    icon: CheckCircle2,
-                    color: "text-emerald-500",
-                    bg: "bg-emerald-50 dark:bg-emerald-950/30",
-                };
+                return { label: "Approved", icon: CheckCircle2, color: "text-emerald-600", border: "border-l-emerald-500" };
             case "REJECTED":
-                return {
-                    label: "Rejected",
-                    icon: XCircle,
-                    color: "text-red-500",
-                    bg: "bg-red-50 dark:bg-red-950/30",
-                };
+                return { label: "Rejected", icon: XCircle, color: "text-destructive", border: "border-l-destructive" };
             case "REVISION_REQUESTED":
-                return {
-                    label: "Revision Needed",
-                    icon: RefreshCw,
-                    color: "text-blue-500",
-                    bg: "bg-blue-50 dark:bg-blue-950/30",
-                };
+                return { label: "Revision Needed", icon: RefreshCw, color: "text-amber-600", border: "border-l-amber-500" };
             default:
-                return {
-                    label: "Pending Review",
-                    icon: Clock,
-                    color: "text-amber-500",
-                    bg: "bg-amber-50 dark:bg-amber-950/30",
-                };
+                return { label: "Pending Review", icon: Clock, color: "text-amber-600", border: "border-l-amber-500" };
         }
     };
 
@@ -250,58 +159,47 @@ function SubmissionCard({
     const StatusIcon = status.icon;
 
     return (
-        <Card className={cn("transition-all hover:shadow-md", status.bg)}>
-            <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                    {/* Student Info */}
-                    <Avatar className="h-12 w-12">
-                        <AvatarImage src={student?.avatar || undefined} alt={student?.name || "Student"} />
-                        <AvatarFallback className="bg-primary/10">{initials}</AvatarFallback>
-                    </Avatar>
+        <div className={cn("group flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors border-l-2", status.border)}>
+            <Avatar className="h-9 w-9 shrink-0 border border-border">
+                <AvatarImage src={student?.avatar || undefined} alt={student?.name || "Student"} />
+                <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
+            </Avatar>
 
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-semibold">{student?.name || "Unknown"}</h4>
-                            <Badge variant="outline" className="text-xs">
-                                {requirement?.title}
-                            </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                            {submission.fileName}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                            <span>
-                                Submitted {new Date(submission.submittedAt).toLocaleDateString()}
-                            </span>
-                            {submission.feedback && (
-                                <span className="flex items-center gap-1">
-                                    <MessageSquare className="h-3 w-3" />
-                                    Has feedback
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Status & Actions */}
-                    <div className="flex items-center gap-3">
-                        <div className={cn("flex items-center gap-1.5 text-sm font-medium", status.color)}>
-                            <StatusIcon className="h-4 w-4" />
-                            <span className="hidden sm:inline">{status.label}</span>
-                        </div>
-
-                        <Button variant="outline" size="sm" asChild>
-                            <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4" />
-                            </a>
-                        </Button>
-
-                        <Button size="sm" onClick={onReview}>
-                            Review
-                        </Button>
-                    </div>
+            <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{student?.name || "Unknown"}</p>
+                    {requirement?.title && (
+                        <Badge variant="outline" className="rounded-none text-[10px] px-1.5 py-0">{requirement.title}</Badge>
+                    )}
                 </div>
-            </CardContent>
-        </Card>
+                <p className="text-xs text-muted-foreground truncate">{submission.fileName}</p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                    <span>{new Date(submission.submittedAt).toLocaleDateString()}</span>
+                    {submission.feedback && (
+                        <span className="flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            Has feedback
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+                <span className={cn("text-xs items-center gap-1.5 font-medium hidden sm:inline-flex", status.color)}>
+                    <StatusIcon className="h-3.5 w-3.5" />
+                    {status.label}
+                </span>
+                <Button variant="outline" size="sm" className="rounded-none h-7 text-xs gap-1.5" asChild>
+                    <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3 w-3" />
+                        View
+                    </a>
+                </Button>
+                <Button size="sm" onClick={onReview} className="rounded-none h-7 text-xs">
+                    Review
+                </Button>
+            </div>
+        </div>
     );
 }
 
@@ -320,7 +218,6 @@ function ReviewDialog({
 
     const handleSubmit = async () => {
         if (!status || !submission) return;
-
         try {
             await reviewSubmission.mutateAsync({
                 id: submission.id,
@@ -340,7 +237,7 @@ function ReviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg rounded-none">
                 <DialogHeader>
                     <DialogTitle>Review Submission</DialogTitle>
                     <DialogDescription>
@@ -350,12 +247,12 @@ function ReviewDialog({
                 </DialogHeader>
 
                 <div className="space-y-4">
-                    {/* Preview Link */}
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-primary" />
-                            <div>
-                                <p className="font-medium text-sm">{submission.fileName}</p>
+                    {/* File preview */}
+                    <div className="flex items-center justify-between px-3 py-3 bg-muted/50 border border-border">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{submission.fileName}</p>
                                 <p className="text-xs text-muted-foreground">
                                     {submission.fileSize
                                         ? `${(submission.fileSize / 1024 / 1024).toFixed(2)} MB`
@@ -363,22 +260,22 @@ function ReviewDialog({
                                 </p>
                             </div>
                         </div>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" size="sm" className="rounded-none shrink-0" asChild>
                             <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4 mr-2" />
+                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                                 View
                             </a>
                         </Button>
                     </div>
 
-                    {/* Status Selection */}
+                    {/* Decision */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Decision</label>
                         <Select value={status} onValueChange={(v) => setStatus(v as DocumentStatus)}>
-                            <SelectTrigger>
+                            <SelectTrigger className="rounded-none">
                                 <SelectValue placeholder="Select your decision" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="rounded-none">
                                 <SelectItem value="APPROVED">
                                     <div className="flex items-center gap-2">
                                         <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -387,13 +284,13 @@ function ReviewDialog({
                                 </SelectItem>
                                 <SelectItem value="REJECTED">
                                     <div className="flex items-center gap-2">
-                                        <XCircle className="h-4 w-4 text-red-500" />
+                                        <XCircle className="h-4 w-4 text-destructive" />
                                         Reject
                                     </div>
                                 </SelectItem>
                                 <SelectItem value="REVISION_REQUESTED">
                                     <div className="flex items-center gap-2">
-                                        <RefreshCw className="h-4 w-4 text-blue-500" />
+                                        <RefreshCw className="h-4 w-4 text-amber-500" />
                                         Request Revision
                                     </div>
                                 </SelectItem>
@@ -404,23 +301,23 @@ function ReviewDialog({
                     {/* Feedback */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium">
-                            Feedback{" "}
-                            <span className="text-muted-foreground font-normal">(optional)</span>
+                            Feedback <span className="text-muted-foreground font-normal">(optional)</span>
                         </label>
                         <Textarea
                             placeholder="Provide feedback for the student..."
                             value={feedback}
                             onChange={(e) => setFeedback(e.target.value)}
                             rows={4}
+                            className="rounded-none"
                         />
                     </div>
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button variant="outline" className="rounded-none" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button onClick={handleSubmit} disabled={!status || reviewSubmission.isPending}>
+                    <Button className="rounded-none" onClick={handleSubmit} disabled={!status || reviewSubmission.isPending}>
                         {reviewSubmission.isPending ? (
                             <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

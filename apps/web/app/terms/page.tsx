@@ -123,8 +123,8 @@ export default function TermsPage() {
                     <Section title="12. Contact">
                         <p>
                             If you have any questions about these Terms, please contact us at{" "}
-                            <a href="mailto:legal@connectx.app" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                                legal@connectx.app
+                            <a href="mailto:marrowxhq@gmail.com" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+                                marrowxhq@gmail.com
                             </a>
                             .
                         </p>

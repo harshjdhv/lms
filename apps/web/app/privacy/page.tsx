@@ -96,8 +96,8 @@ export default function PrivacyPage() {
                         </p>
                         <p>
                             If you believe your account has been compromised, please contact us immediately at{" "}
-                            <a href="mailto:security@connectx.app" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                                security@connectx.app
+                            <a href="mailto:marrowxhq@gmail.com" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+                                marrowxhq@gmail.com
                             </a>
                             .
                         </p>
@@ -114,8 +114,8 @@ export default function PrivacyPage() {
                         </ul>
                         <p>
                             To exercise any of these rights, contact us at{" "}
-                            <a href="mailto:privacy@connectx.app" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                                privacy@connectx.app
+                            <a href="mailto:marrowxhq@gmail.com" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+                                marrowxhq@gmail.com
                             </a>
                             .
                         </p>
@@ -130,8 +130,8 @@ export default function PrivacyPage() {
                     <Section title="9. Children's Privacy">
                         <p>
                             ConnectX is not directed to children under the age of 13. We do not knowingly collect personal data from children under 13. If we learn that we have collected such data, we will delete it promptly. If you believe we may have data from a child under 13, please contact us at{" "}
-                            <a href="mailto:privacy@connectx.app" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                                privacy@connectx.app
+                            <a href="mailto:marrowxhq@gmail.com" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+                                marrowxhq@gmail.com
                             </a>
                             .
                         </p>
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
                             If you have any questions, concerns, or requests regarding this Privacy Policy or how we handle your data, please reach out:
                         </p>
                         <ul>
-                            <li>Email: <a href="mailto:privacy@connectx.app" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">privacy@connectx.app</a></li>
+                            <li>Email: <a href="mailto:marrowxhq@gmail.com" className="underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">marrowxhq@gmail.com</a></li>
                             <li>ConnectX Inc., Engineering Education Platform</li>
                         </ul>
                     </Section>

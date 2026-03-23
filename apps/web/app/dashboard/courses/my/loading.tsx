@@ -1,6 +1,6 @@
 
-import { CoursesLoading } from "@/components/courses/courses-loading";
+import { MyCoursesSkeleton } from "@/components/courses/my-courses-skeleton";
 
 export default function MyCoursesLoading() {
-    return <CoursesLoading />;
+    return <MyCoursesSkeleton />;
 }

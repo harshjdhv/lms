@@ -365,13 +365,7 @@ export default function CommunityPage() {
     }, [selectedChat?.otherUser?.id])
 
     return (
-        <div className="flex flex-1 w-full min-w-0 flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-4 border-b bg-background px-6 py-5 shrink-0">
-                <div className="min-w-0 space-y-1">
-                    <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Community</h1>
-                    <p className="text-sm text-muted-foreground">Direct messages with your peers and instructors</p>
-                </div>
-            </div>
+        <div className="flex w-full min-w-0 flex-col overflow-hidden h-[calc(100svh-4rem)]">
             <div className="flex min-h-0 flex-1 divide-x divide-border overflow-hidden">
                 <UserListSidebar
                     chats={chats}
@@ -379,6 +373,7 @@ export default function CommunityPage() {
                     onSelectChat={setSelectedChatId}
                     onAddUserClick={() => setIsAddUserDialogOpen(true)}
                     loading={loadingChats}
+                    mobileHidden={!!selectedChatId}
                 />
                 <ChatInterface
                     user={selectedOtherUser}
@@ -387,6 +382,7 @@ export default function CommunityPage() {
                     onSendMessage={handleSendMessage}
                     loading={selectedChatId ? loadingMessages[selectedChatId] ?? false : false}
                     sending={selectedChatId ? sendingMessages[selectedChatId] ?? false : false}
+                    onBack={() => setSelectedChatId(null)}
                 />
             </div>
             <AddUserDialog

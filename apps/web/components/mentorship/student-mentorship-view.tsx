@@ -56,7 +56,7 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                         <div className="h-4 w-80 bg-muted/50 rounded animate-pulse" />
                     </div>
                 </div>
-                <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+                <div className="grid grid-cols-4 border-b divide-x divide-border">
                     {[...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)}
                 </div>
                 <div className="h-4 w-full border-b shrink-0" style={HATCH} />
@@ -145,7 +145,7 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+            <div className="grid grid-cols-4 border-b divide-x divide-border">
                 <StatsCard title="Total Required" value={requirements.length} icon={FileText} description="Document requirements" index={0} {...gradientPresets.blue} />
                 <StatsCard title="Submitted" value={submissions.length} icon={Upload} description="Documents uploaded" index={1} {...gradientPresets.purple} />
                 <StatsCard title="Pending Review" value={stats.pendingDocuments} icon={Clock} description="Awaiting feedback" trend={stats.pendingDocuments > 0 ? "warning" : "neutral"} index={2} {...gradientPresets.amber} />

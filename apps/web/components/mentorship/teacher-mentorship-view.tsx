@@ -70,7 +70,7 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                         <div className="h-9 w-28 bg-muted rounded animate-pulse" />
                     </div>
                 </div>
-                <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+                <div className="grid grid-cols-4 border-b divide-x divide-border">
                     {[...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)}
                 </div>
                 <div className="h-4 w-full border-b shrink-0" style={HATCH} />
@@ -128,7 +128,7 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-2 border-b 2xl:grid-cols-4 divide-x divide-border">
+            <div className="grid grid-cols-4 border-b divide-x divide-border">
                 <StatsCard title="Total Mentees" value={stats.totalMentees} icon={Users} description={`${stats.activeMentees} active`} index={0} {...gradientPresets.blue} />
                 <StatsCard title="Requirements" value={requirements.length} icon={FileText} description="Document requirements" index={1} {...gradientPresets.purple} />
                 <StatsCard title="Pending Reviews" value={stats.pendingDocuments} icon={Clock} description="Awaiting review" trend={stats.pendingDocuments > 0 ? "warning" : "neutral"} index={2} {...gradientPresets.amber} />
@@ -225,9 +225,7 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
             )}
 
             {activeTab === "submissions" && (
-                <div className="px-6 py-6">
-                    <SubmissionReviewPanel submissions={submissions} />
-                </div>
+                <SubmissionReviewPanel submissions={submissions} />
             )}
 
             <AddMenteeDialog open={addMenteeOpen} onOpenChange={setAddMenteeOpen} />
