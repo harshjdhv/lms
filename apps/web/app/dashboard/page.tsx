@@ -38,22 +38,10 @@ export default async function Page() {
 
   const queryClient = new QueryClient()
 
-  // Prefetch Assignments
-  await queryClient.prefetchQuery({
+  const serialize = (data: any) => JSON.parse(JSON.stringify(data))
+  const prefetchAssignments = queryClient.prefetchQuery({
     queryKey: assignmentKeys.lists(),
     queryFn: async () => {
-      // Safe helper to deep copy and ensure serialization compatibility (Dates -> Strings)
-      const serialize = (data: any) => JSON.parse(JSON.stringify(data))
-
-      // Auto-expire assignments
-      await prisma.assignment.updateMany({
-        where: {
-          status: "ACTIVE",
-          dueDate: { lt: new Date() },
-        },
-        data: { status: "STOPPED" },
-      });
-
       if (dbUser.role === "TEACHER") {
         const assignments = await prisma.assignment.findMany({
           where: { course: { teacherId: dbUser.id } },
@@ -62,34 +50,31 @@ export default async function Page() {
             _count: { select: { submissions: true } },
           },
           orderBy: { createdAt: "desc" },
-        });
-        return serialize(assignments);
-      } else {
-        const courseIds = dbUser.enrollments.map((e) => e.courseId);
-        const assignments = await prisma.assignment.findMany({
-          where: {
-            courseId: { in: courseIds },
-          },
-          include: {
-            course: { select: { title: true } },
-            submissions: {
-              where: { studentId: dbUser.id },
-              take: 1,
-            },
-          },
-          orderBy: { createdAt: "desc" },
-        });
-        return serialize(assignments);
+        })
+        return serialize(assignments)
       }
-    }
+
+      const courseIds = dbUser.enrollments.map((e) => e.courseId)
+      const assignments = await prisma.assignment.findMany({
+        where: {
+          courseId: { in: courseIds },
+        },
+        include: {
+          course: { select: { title: true } },
+          submissions: {
+            where: { studentId: dbUser.id },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+      return serialize(assignments)
+    },
   })
 
-  // Prefetch Announcements
-  await queryClient.prefetchQuery({
+  const prefetchAnnouncements = queryClient.prefetchQuery({
     queryKey: announcementKeys.lists(),
     queryFn: async () => {
-      const serialize = (data: any) => JSON.parse(JSON.stringify(data))
-
       if (dbUser.role === "TEACHER") {
         const announcements = await prisma.announcement.findMany({
           where: { course: { teacherId: dbUser.id } },
@@ -97,31 +82,41 @@ export default async function Page() {
             course: { select: { title: true } },
           },
           orderBy: { createdAt: "desc" },
-        });
-        return serialize(announcements);
-      } else {
-        const courseIds = dbUser.enrollments.map((e) => e.courseId);
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-        const announcements = await prisma.announcement.findMany({
-          where: {
-            courseId: { in: courseIds },
-            createdAt: { gte: oneWeekAgo },
-          },
-          include: {
-            course: { select: { title: true } },
-          },
-          orderBy: { createdAt: "desc" },
-        });
-        return serialize(announcements);
+        })
+        return serialize(announcements)
       }
-    }
+
+      const courseIds = dbUser.enrollments.map((e) => e.courseId)
+      const oneWeekAgo = new Date()
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+
+      const announcements = await prisma.announcement.findMany({
+        where: {
+          courseId: { in: courseIds },
+          createdAt: { gte: oneWeekAgo },
+        },
+        include: {
+          course: { select: { title: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+      return serialize(announcements)
+    },
   })
 
-  const teacherCourses = dbUser.role === 'TEACHER'
-    ? await prisma.course.findMany({ where: { teacherId: dbUser.id }, select: { id: true, title: true } })
-    : []
+  const teacherCoursesPromise =
+    dbUser.role === "TEACHER"
+      ? prisma.course.findMany({
+          where: { teacherId: dbUser.id },
+          select: { id: true, title: true },
+        })
+      : Promise.resolve([])
+
+  const [, , teacherCourses] = await Promise.all([
+    prefetchAssignments,
+    prefetchAnnouncements,
+    teacherCoursesPromise,
+  ])
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

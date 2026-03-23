@@ -1,24 +1,24 @@
-/**
- * @file dashboard/announcements/page.tsx
- * @description Student announcements page.
- * @module Apps/Web/Dashboard/Announcements
- * @access Private
- */
+"use client"
 
-import { redirect } from "next/navigation"
-import { getCurrentUser } from "@/lib/get-current-user"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { StudentAnnouncementsView } from "@/components/announcements/student-announcements-view"
+import { useUserStore } from "@/providers/user-store-provider"
 
-export default async function AnnouncementsPage() {
-    const user = await getCurrentUser()
+export default function AnnouncementsPage() {
+    const router = useRouter()
+    const role = useUserStore((state) => state.role)
 
-    if (!user) {
-        redirect("/auth")
-    }
+    useEffect(() => {
+        if (role === "TEACHER") {
+            router.replace("/dashboard")
+        }
+    }, [role, router])
 
-    if (user.role === "TEACHER") {
-        redirect("/dashboard")
+    if (role === "TEACHER") {
+        return null
     }
 
     return <StudentAnnouncementsView />
 }
+

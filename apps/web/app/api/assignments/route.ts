@@ -59,13 +59,17 @@ export async function GET(req: Request) {
 
   if (!dbUser) return new NextResponse("User not found", { status: 404 });
 
-  // Auto-expire assignments
-  await prisma.assignment.updateMany({
-    where: {
-      status: "ACTIVE",
-      dueDate: { lt: new Date() },
-    },
-    data: { status: "STOPPED" },
+  const now = new Date();
+  const withComputedStatus = <T extends { status: string; dueDate: Date | null }>(
+    assignment: T,
+  ) => ({
+    ...assignment,
+    status:
+      assignment.status === "ACTIVE" &&
+      assignment.dueDate &&
+      assignment.dueDate < now
+        ? "STOPPED"
+        : assignment.status,
   });
 
   if (dbUser.role === "TEACHER") {
@@ -77,7 +81,7 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(assignments);
+    return NextResponse.json(assignments.map(withComputedStatus));
   } else {
     // For students, show all assignments (Active, Stopped) so they can see history
     // But maybe filter out "REVIEW" if that was a thing (not using it much yet)
@@ -95,6 +99,6 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(assignments);
+    return NextResponse.json(assignments.map(withComputedStatus));
   }
 }

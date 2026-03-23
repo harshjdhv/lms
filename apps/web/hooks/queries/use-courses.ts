@@ -59,7 +59,6 @@ export function useAvailableCourses(options?: { enabled?: boolean }) {
     queryKey: courseKeys.available(),
     queryFn: fetchAvailableCourses,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
     ...options,
   });
 }
@@ -69,7 +68,6 @@ export function useMyCourses() {
     queryKey: courseKeys.my(),
     queryFn: fetchMyCourses,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
   });
 }
 

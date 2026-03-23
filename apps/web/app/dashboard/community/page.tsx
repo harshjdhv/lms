@@ -8,118 +8,56 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { UserListSidebar } from "@/components/community/user-list-sidebar"
 import { ChatInterface } from "@/components/community/chat-interface"
 import { AddUserDialog } from "@/components/community/add-user-dialog"
-import { Message, Chat } from "@/components/community/types"
+import { Message } from "@/components/community/types"
 import { useChatRealtime } from "@/hooks/use-chat-realtime"
-import { toast } from "sonner"
+import { communityKeys, useChatMessages, useChats } from "@/hooks/queries/use-community"
 import { useUserStore } from "@/providers/user-store-provider"
 
-// Stable empty array constant to prevent creating new array references
 const EMPTY_MESSAGES: Message[] = []
 
 export default function CommunityPage() {
-    const [chats, setChats] = useState<Chat[]>([])
-    const [messages, setMessages] = useState<Record<string, Message[]>>({})
+    const queryClient = useQueryClient()
+
     const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
     const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
-    const [loadingChats, setLoadingChats] = useState(true)
-    const [loadingMessages, setLoadingMessages] = useState<Record<string, boolean>>({})
-    const [sendingMessages, setSendingMessages] = useState<Record<string, boolean>>({})
+    const [sendingChatId, setSendingChatId] = useState<string | null>(null)
 
     const currentUserId = useUserStore((state) => state.id)
     const currentUserName = useUserStore((state) => state.name || "You")
     const currentUserEmail = useUserStore((state) => state.email || "")
     const currentUserImage = useUserStore((state) => state.image)
 
-    // Subscribe to Realtime updates for selected chat
+    const { data: chats = [], isLoading: loadingChats } = useChats()
+    const { data: chatMessages, isLoading: loadingSelectedMessages } = useChatMessages(selectedChatId)
+
     const { newMessage, clearNewMessage } = useChatRealtime(selectedChatId)
-    
-    // Memoize selected chat for quick sender lookup
+
     const selectedChat = useMemo(() => {
         if (!selectedChatId) return null
-        return chats.find((c) => c.id === selectedChatId) ?? null
-    }, [selectedChatId, chats])
+        return chats.find((chat) => chat.id === selectedChatId) ?? null
+    }, [chats, selectedChatId])
 
-    // Fetch chats on mount
+    const selectedMessages = useMemo(() => {
+        if (!chatMessages) return EMPTY_MESSAGES
+        return chatMessages
+    }, [chatMessages])
+
     useEffect(() => {
-        const fetchChats = async () => {
-            try {
-                setLoadingChats(true)
-                const response = await fetch("/api/chat")
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}))
-                    throw new Error(errorData.error || "Failed to fetch chats")
-                }
-                const data = await response.json()
-                setChats(data.chats || [])
-            } catch (error: any) {
-                console.error("Fetch chats error:", error)
-                toast.error(error.message || "Failed to load chats")
-            } finally {
-                setLoadingChats(false)
-            }
-        }
+        if (!selectedChatId || !newMessage || !newMessage.id) return
 
-        fetchChats()
-    }, [])
-
-    // Fetch messages when a chat is selected
-    useEffect(() => {
-        if (!selectedChatId) {
-            return
-        }
-
-        const fetchMessages = async () => {
-            // Don't refetch if we already have messages for this chat
-            if (messages[selectedChatId]) {
-                return
-            }
-
-            try {
-                setLoadingMessages((prev) => ({ ...prev, [selectedChatId]: true }))
-                const response = await fetch(`/api/chat/${selectedChatId}/messages`)
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}))
-                    throw new Error(errorData.error || "Failed to fetch messages")
-                }
-                const data = await response.json()
-                setMessages((prev) => ({
-                    ...prev,
-                    [selectedChatId]: data.messages || [],
-                }))
-            } catch (error: any) {
-                console.error("Fetch messages error:", error)
-                toast.error(error.message || "Failed to load messages")
-            } finally {
-                setLoadingMessages((prev) => ({ ...prev, [selectedChatId]: false }))
-            }
-        }
-
-        fetchMessages()
-        // Only depend on selectedChatId, not messages to avoid infinite loops
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedChatId])
-
-    // Handle new messages from Realtime - display immediately for instant updates
-    useEffect(() => {
-        if (!newMessage || !selectedChatId || !newMessage.id) {
-            return
-        }
-
-        // Skip if this is an optimistic message (temp ID)
         if (newMessage.id.startsWith("temp-")) {
             clearNewMessage()
             return
         }
 
-        const messageId = newMessage.id
         const messageSenderId = newMessage.senderId
-
-        // Get sender info from the selected chat (we already have this data)
-        const senderInfo = selectedChat?.otherUser?.id === messageSenderId 
-            ? selectedChat.otherUser 
+        const senderInfo = selectedChat?.otherUser?.id === messageSenderId
+            ? selectedChat.otherUser
             : {
                 id: currentUserId,
                 name: currentUserName,
@@ -127,9 +65,8 @@ export default function CommunityPage() {
                 avatar: currentUserImage,
             }
 
-        // Create message object immediately from Realtime payload
         const realtimeMessage: Message = {
-            id: messageId,
+            id: newMessage.id,
             chatId: selectedChatId,
             senderId: messageSenderId,
             content: newMessage.content,
@@ -142,66 +79,60 @@ export default function CommunityPage() {
             },
         }
 
-        // Add message immediately - no API call needed!
-        setMessages((prev) => {
-            const existingMessages = prev[selectedChatId] || []
-            
-            // Remove optimistic messages from the same sender with same content
-            const filteredMessages = existingMessages.filter((m) => {
-                if (m.id.startsWith("temp-") && 
-                    m.senderId === messageSenderId &&
-                    m.content === newMessage.content) {
-                    return false
-                }
-                return true
-            })
-            
-            // Check if message already exists
-            const messageExists = filteredMessages.some((m) => m.id === messageId)
-            if (messageExists) {
-                return {
-                    ...prev,
-                    [selectedChatId]: filteredMessages,
-                }
-            }
-            
-            return {
-                ...prev,
-                [selectedChatId]: [...filteredMessages, realtimeMessage],
-            }
-        })
+        queryClient.setQueryData(
+            communityKeys.messages(selectedChatId),
+            (prev: Message[] | undefined) => {
+                const existing = prev || []
+                const withoutTemp = existing.filter(
+                    (message) =>
+                        !(
+                            message.id.startsWith("temp-") &&
+                            message.senderId === messageSenderId &&
+                            message.content === newMessage.content
+                        ),
+                )
 
-        // Update chat's last message immediately
-        setChats((prev) =>
-            prev.map((chat) =>
-                chat.id === selectedChatId
-                    ? {
-                          ...chat,
-                          lastMessage: {
-                              id: messageId,
-                              content: newMessage.content,
-                              senderId: messageSenderId,
-                              createdAt: newMessage.createdAt,
-                          },
-                          updatedAt: newMessage.createdAt,
-                      }
-                    : chat
-            )
+                if (withoutTemp.some((message) => message.id === newMessage.id)) {
+                    return withoutTemp
+                }
+
+                return [...withoutTemp, realtimeMessage]
+            },
         )
 
-        clearNewMessage()
-    }, [newMessage?.id, selectedChatId, selectedChat, currentUserId, currentUserName, currentUserEmail, currentUserImage, clearNewMessage])
+        queryClient.setQueryData(communityKeys.chats(), (prev: any[] | undefined) => {
+            const existing = prev || []
+            return existing.map((chat) =>
+                chat.id === selectedChatId
+                    ? {
+                        ...chat,
+                        lastMessage: {
+                            id: newMessage.id,
+                            content: newMessage.content,
+                            senderId: messageSenderId,
+                            createdAt: newMessage.createdAt,
+                        },
+                        updatedAt: newMessage.createdAt,
+                    }
+                    : chat,
+            )
+        })
 
-    const handleChatCreated = (chat: { id: string; otherUser: any }) => {
-        // Add new chat to the list
-        const newChat: Chat = {
-            id: chat.id,
-            otherUser: chat.otherUser,
-            lastMessage: null,
-            updatedAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-        }
-        setChats((prev) => [newChat, ...prev])
+        clearNewMessage()
+    }, [
+        clearNewMessage,
+        currentUserEmail,
+        currentUserId,
+        currentUserImage,
+        currentUserName,
+        newMessage,
+        queryClient,
+        selectedChat,
+        selectedChatId,
+    ])
+
+    const handleChatCreated = (chat: { id: string }) => {
+        queryClient.invalidateQueries({ queryKey: communityKeys.chats() })
         setSelectedChatId(chat.id)
         setIsAddUserDialogOpen(false)
     }
@@ -209,13 +140,15 @@ export default function CommunityPage() {
     const handleSendMessage = async (content: string) => {
         if (!selectedChatId || !currentUserId) return
 
-        // Create optimistic message immediately for instant UI feedback
+        const trimmed = content.trim()
+        if (!trimmed) return
+
         const tempId = `temp-${Date.now()}-${Math.random()}`
         const optimisticMessage: Message = {
             id: tempId,
             chatId: selectedChatId,
             senderId: currentUserId,
-            content: content.trim(),
+            content: trimmed,
             createdAt: new Date().toISOString(),
             sender: {
                 id: currentUserId,
@@ -225,34 +158,30 @@ export default function CommunityPage() {
             },
         }
 
-        // Add optimistic message immediately
-        setMessages((prev) => {
-            const existingMessages = prev[selectedChatId] || []
-            return {
-                ...prev,
-                [selectedChatId]: [...existingMessages, optimisticMessage],
-            }
-        })
-
-        // Update chat's last message optimistically
-        setChats((prev) =>
-            prev.map((chat) =>
-                chat.id === selectedChatId
-                    ? {
-                          ...chat,
-                          lastMessage: {
-                              id: tempId,
-                              content: content.trim(),
-                              senderId: currentUserId,
-                              createdAt: optimisticMessage.createdAt,
-                          },
-                          updatedAt: optimisticMessage.createdAt,
-                      }
-                    : chat
-            )
+        queryClient.setQueryData(
+            communityKeys.messages(selectedChatId),
+            (prev: Message[] | undefined) => [...(prev || []), optimisticMessage],
         )
 
-        setSendingMessages((prev) => ({ ...prev, [selectedChatId]: true }))
+        queryClient.setQueryData(communityKeys.chats(), (prev: any[] | undefined) => {
+            const existing = prev || []
+            return existing.map((chat) =>
+                chat.id === selectedChatId
+                    ? {
+                        ...chat,
+                        lastMessage: {
+                            id: tempId,
+                            content: trimmed,
+                            senderId: currentUserId,
+                            createdAt: optimisticMessage.createdAt,
+                        },
+                        updatedAt: optimisticMessage.createdAt,
+                    }
+                    : chat,
+            )
+        })
+
+        setSendingChatId(selectedChatId)
 
         try {
             const response = await fetch(`/api/chat/${selectedChatId}/messages`, {
@@ -260,109 +189,59 @@ export default function CommunityPage() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ content }),
+                body: JSON.stringify({ content: trimmed }),
             })
 
             if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.error || "Failed to send message")
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.error || "Failed to send message")
             }
 
             const data = await response.json()
+            const realMessage = data.message as Message
 
-            // Replace optimistic message with real message from server
-            setMessages((prev) => {
-                const existingMessages = prev[selectedChatId] || []
-                // Remove optimistic message and add real one
-                const filteredMessages = existingMessages.filter((m) => m.id !== tempId)
-                // Check if real message already exists (might have come via Realtime)
-                const messageExists = filteredMessages.some((m) => m.id === data.message.id)
-                if (messageExists) {
-                    return {
-                        ...prev,
-                        [selectedChatId]: filteredMessages,
+            queryClient.setQueryData(
+                communityKeys.messages(selectedChatId),
+                (prev: Message[] | undefined) => {
+                    const existing = (prev || []).filter((message) => message.id !== tempId)
+                    if (existing.some((message) => message.id === realMessage.id)) {
+                        return existing
                     }
-                }
-                return {
-                    ...prev,
-                    [selectedChatId]: [...filteredMessages, data.message],
-                }
-            })
+                    return [...existing, realMessage]
+                },
+            )
 
-            // Update chat's last message with real data
-            setChats((prev) =>
-                prev.map((chat) =>
+            queryClient.setQueryData(communityKeys.chats(), (prev: any[] | undefined) => {
+                const existing = prev || []
+                return existing.map((chat) =>
                     chat.id === selectedChatId
                         ? {
-                              ...chat,
-                              lastMessage: {
-                                  id: data.message.id,
-                                  content: data.message.content,
-                                  senderId: data.message.senderId,
-                                  createdAt: data.message.createdAt,
-                              },
-                              updatedAt: data.message.createdAt,
-                          }
-                        : chat
-                )
-            )
-        } catch (error: any) {
-            console.error("Send message error:", error)
-            
-            // Remove optimistic message on error
-            setMessages((prev) => {
-                const existingMessages = prev[selectedChatId] || []
-                return {
-                    ...prev,
-                    [selectedChatId]: existingMessages.filter((m) => m.id !== tempId),
-                }
-            })
-
-            // Revert chat's last message
-            setChats((prev) =>
-                prev.map((chat) => {
-                    if (chat.id === selectedChatId) {
-                        const previousMessages = messages[selectedChatId] || []
-                        const lastRealMessage = previousMessages
-                            .filter((m) => !m.id.startsWith("temp-"))
-                            .slice(-1)[0]
-                        return {
                             ...chat,
-                            lastMessage: lastRealMessage
-                                ? {
-                                      id: lastRealMessage.id,
-                                      content: lastRealMessage.content,
-                                      senderId: lastRealMessage.senderId,
-                                      createdAt: lastRealMessage.createdAt,
-                                  }
-                                : null,
-                            updatedAt: lastRealMessage?.createdAt || chat.updatedAt,
+                            lastMessage: {
+                                id: realMessage.id,
+                                content: realMessage.content,
+                                senderId: realMessage.senderId,
+                                createdAt: realMessage.createdAt,
+                            },
+                            updatedAt: realMessage.createdAt,
                         }
-                    }
-                    return chat
-                })
+                        : chat,
+                )
+            })
+        } catch (error: any) {
+            queryClient.setQueryData(
+                communityKeys.messages(selectedChatId),
+                (prev: Message[] | undefined) => (prev || []).filter((message) => message.id !== tempId),
             )
-
+            queryClient.invalidateQueries({ queryKey: communityKeys.chats() })
             toast.error(error.message || "Failed to send message")
         } finally {
-            setSendingMessages((prev) => ({ ...prev, [selectedChatId]: false }))
+            setSendingChatId(null)
         }
     }
 
-    // Get the messages for the selected chat - use a stable reference
-    const chatMessages = selectedChatId ? messages[selectedChatId] : undefined
-    
-    // Memoize messages array - only recreate when the actual messages change
-    // Use the first and last message IDs as stable identifiers
-    const selectedMessages = useMemo(() => {
-        if (!chatMessages) return EMPTY_MESSAGES
-        return chatMessages
-    }, [chatMessages, chatMessages?.length, chatMessages?.[0]?.id, chatMessages?.[chatMessages.length - 1]?.id])
-    
-    // Memoize otherUser - only recreate when the user ID changes
-    const selectedOtherUser = useMemo(() => {
-        return selectedChat?.otherUser ?? null
-    }, [selectedChat?.otherUser?.id])
+    const loadingMessages = selectedChatId ? loadingSelectedMessages : false
+    const isSending = selectedChatId ? sendingChatId === selectedChatId : false
 
     return (
         <div className="flex w-full min-w-0 flex-col overflow-hidden h-[calc(100svh-4rem)]">
@@ -376,12 +255,12 @@ export default function CommunityPage() {
                     mobileHidden={!!selectedChatId}
                 />
                 <ChatInterface
-                    user={selectedOtherUser}
+                    user={selectedChat?.otherUser ?? null}
                     chatId={selectedChatId}
                     messages={selectedMessages}
                     onSendMessage={handleSendMessage}
-                    loading={selectedChatId ? loadingMessages[selectedChatId] ?? false : false}
-                    sending={selectedChatId ? sendingMessages[selectedChatId] ?? false : false}
+                    loading={loadingMessages}
+                    sending={isSending}
                     onBack={() => setSelectedChatId(null)}
                 />
             </div>
@@ -393,3 +272,4 @@ export default function CommunityPage() {
         </div>
     )
 }
+

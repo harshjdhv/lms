@@ -29,7 +29,6 @@ export function useAnnouncements() {
     queryKey: announcementKeys.lists(),
     queryFn: fetchAnnouncements,
     staleTime: 5 * 60 * 1000, // 5 minutes - announcements don't change often
-    refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
 }

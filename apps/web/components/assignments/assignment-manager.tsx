@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 
 import { useAssignments, useUpdateAssignmentStatus } from "@/hooks/queries";
+import { useMyCourses } from "@/hooks/queries/use-courses";
 import { CreateAssignmentSection } from "./create-assignment-section";
 import { Search } from "lucide-react";
 import { Input } from "@workspace/ui/components/input";
@@ -15,7 +16,7 @@ interface Course {
 }
 
 interface AssignmentManagerProps {
-    courses: Course[];
+    courses?: Course[];
 }
 
 const AssignmentManager = ({ courses }: AssignmentManagerProps) => {
@@ -23,7 +24,17 @@ const AssignmentManager = ({ courses }: AssignmentManagerProps) => {
     const [showCreate, setShowCreate] = useState(false)
 
     const { data: assignments = [], isLoading, refetch } = useAssignments();
+    const { data: myCourses = [] } = useMyCourses();
     const updateStatusMutation = useUpdateAssignmentStatus();
+    const teacherCourses = useMemo(
+        () =>
+            courses ??
+            myCourses.map((course) => ({
+                id: course.id,
+                title: course.title,
+            })),
+        [courses, myCourses],
+    );
 
     const filteredAssignments = useMemo(() => {
         return assignments.filter(a =>
@@ -72,7 +83,7 @@ const AssignmentManager = ({ courses }: AssignmentManagerProps) => {
             {/* Creation Section (Toggleable) */}
             {showCreate && (
                 <div className="border-b px-6 py-6">
-                    <CreateAssignmentSection courses={courses} onCreated={handleCreated} />
+                    <CreateAssignmentSection courses={teacherCourses} onCreated={handleCreated} />
                 </div>
             )}
 

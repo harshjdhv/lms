@@ -193,19 +193,37 @@ function FeaturesSection() {
 export default function Home() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
+  const progressRef = useRef(0);
 
   useEffect(() => {
+    let rafId = 0;
+
     const onScroll = () => {
-      const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const p = (vh - rect.top) / (rect.height + vh);
-      setProgress(Math.max(0, Math.min(1, p)));
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        const el = sectionRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const p = (vh - rect.top) / (rect.height + vh);
+        const nextProgress = Math.max(0, Math.min(1, p));
+
+        // Prevent tiny scroll updates from forcing a full section rerender.
+        if (Math.abs(nextProgress - progressRef.current) < 0.01) {
+          return;
+        }
+
+        progressRef.current = nextProgress;
+        setProgress(nextProgress);
+      });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   return (

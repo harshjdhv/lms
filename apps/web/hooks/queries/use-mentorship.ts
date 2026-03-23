@@ -147,7 +147,6 @@ export function useMentorshipData() {
     queryKey: mentorshipKeys.data(),
     queryFn: fetchMentorshipData,
     staleTime: 3 * 60 * 1000, // 3 minutes
-    refetchOnWindowFocus: true,
   });
 }
 
@@ -156,7 +155,6 @@ export function useAvailableStudents() {
     queryKey: mentorshipKeys.availableStudents(),
     queryFn: fetchAvailableStudents,
     staleTime: 1 * 60 * 1000, // 1 minute - students can be assigned quickly
-    refetchOnWindowFocus: true,
   });
 }
 
@@ -165,7 +163,6 @@ export function useDocumentRequirements() {
     queryKey: mentorshipKeys.requirements(),
     queryFn: fetchRequirements,
     staleTime: 3 * 60 * 1000,
-    refetchOnWindowFocus: true,
   });
 }
 
@@ -174,7 +171,6 @@ export function useDocumentSubmissions() {
     queryKey: mentorshipKeys.submissions(),
     queryFn: fetchSubmissions,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
   });
 }
 

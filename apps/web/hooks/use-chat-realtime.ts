@@ -35,17 +35,9 @@ export function useChatRealtime(chatId: string | null) {
       return;
     }
 
-    // Create a unique channel for this chat
     const channelName = `chat:${chatId}:messages`;
     const channel = supabase.channel(channelName);
-
-    // Subscribe to INSERT events on messages table
-    // Strategy: Listen to all INSERTs and filter in code (more reliable than server-side filters)
     const tableName = "Message";
-
-    console.log(`🔍 Setting up Realtime subscription for chat ${chatId}`);
-    console.log(`   Table: ${tableName}`);
-    console.log(`   Listening to all INSERTs, filtering for chatId: ${chatId}`);
 
     channel
       .on<
@@ -58,11 +50,9 @@ export function useChatRealtime(chatId: string | null) {
           event: "INSERT",
           schema: "public",
           table: tableName,
-          // No filter - we'll filter in code for better reliability
+          filter: `chatId=eq.${chatId}`,
         },
         (payload) => {
-          console.log("📨 Realtime payload received:", payload);
-
           const messageData = (payload as any).new as {
             id: string;
             chatId: string;
@@ -71,20 +61,9 @@ export function useChatRealtime(chatId: string | null) {
             createdAt: string;
           };
 
-          // Filter in code - only process messages for this chat
           if (messageData.chatId !== chatId) {
-            console.log(
-              `⏭️ Message for different chat (${messageData.chatId}), ignoring`,
-            );
             return;
           }
-
-          console.log(
-            `✅ Processing Realtime message for chat ${chatId}:`,
-            messageData.id,
-          );
-
-          // Set the new message immediately - no API call needed!
           setNewMessage({
             id: messageData.id,
             chatId: messageData.chatId,
@@ -100,29 +79,11 @@ export function useChatRealtime(chatId: string | null) {
           });
         },
       )
-      .subscribe((status) => {
-        console.log(
-          `📡 Realtime subscription status for chat ${chatId}:`,
-          status,
-        );
-        if (status === "SUBSCRIBED") {
-          console.log(
-            `✅ Realtime subscribed successfully! Messages will appear instantly`,
-          );
-        } else if (status === "CHANNEL_ERROR") {
-          console.error(`❌ Realtime subscription error:`, status);
-        } else if (status === "TIMED_OUT") {
-          console.warn(`⏱️ Realtime subscription timed out`);
-        } else if (status === "CLOSED") {
-          console.log(`🔌 Realtime channel closed`);
-        }
-      });
+      .subscribe();
 
     channelRef.current = channel;
 
-    // Cleanup: unsubscribe when component unmounts or chatId changes
     return () => {
-      console.log(`🧹 Cleaning up Realtime subscription for chat ${chatId}`);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

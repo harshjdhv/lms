@@ -41,7 +41,6 @@ export function useAssignments() {
     queryKey: assignmentKeys.lists(),
     queryFn: fetchAssignments,
     staleTime: 2 * 60 * 1000, // 2 minutes - assignments can change frequently
-    refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
 }

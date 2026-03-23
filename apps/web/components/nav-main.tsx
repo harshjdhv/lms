@@ -9,6 +9,7 @@
 
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
+import { useRouter } from "next/navigation"
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react"
 
 import {
@@ -42,6 +43,8 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const router = useRouter()
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -50,7 +53,7 @@ export function NavMain({
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={item.title}>
-                <Link href={item.url}>
+                <Link href={item.url} onMouseEnter={() => router.prefetch(item.url)}>
                   <item.icon weight="duotone" size={20} />
                   <span>{item.title}</span>
                 </Link>
@@ -68,7 +71,7 @@ export function NavMain({
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton asChild>
-                            <Link href={subItem.url}>
+                            <Link href={subItem.url} onMouseEnter={() => router.prefetch(subItem.url)}>
                               <span>{subItem.title}</span>
                             </Link>
                           </SidebarMenuSubButton>

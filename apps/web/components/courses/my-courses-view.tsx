@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import Link from "next/link";
+import Image from "next/image";
 import {
     PlusCircle,
     BookOpen,
@@ -203,6 +204,7 @@ function CourseBorderedItem({ id, title, description, teacherName, chapterCount,
             {/* Image / Gradient header */}
             <div className={cn("relative h-44 overflow-hidden bg-linear-to-r border-b border-border", gradient)}>
                 {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={imageUrl} alt={title} className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
