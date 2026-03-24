@@ -8,6 +8,7 @@ export interface Announcement {
   createdAt: string;
   course: {
     title: string;
+    semester?: string | null;
   };
 }
 

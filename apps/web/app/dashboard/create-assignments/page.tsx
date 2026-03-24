@@ -16,6 +16,7 @@ const CreateAssignmentsPage = async () => {
     select: {
       id: true,
       title: true,
+      semester: true,
     }
   })
 

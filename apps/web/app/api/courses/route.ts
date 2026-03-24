@@ -33,6 +33,28 @@ export async function POST(req: Request) {
     },
   });
 
+  if (course.semester) {
+    const studentsInSemester = await prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        semester: course.semester,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (studentsInSemester.length > 0) {
+      await prisma.enrollment.createMany({
+        data: studentsInSemester.map((student) => ({
+          userId: student.id,
+          courseId: course.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
   return NextResponse.json(course);
 }
 

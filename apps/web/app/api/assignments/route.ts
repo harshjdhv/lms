@@ -19,25 +19,35 @@ export async function POST(req: Request) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  const { title, content, courseId, attachmentUrl, dueDate } = await req.json();
+  const { title, content, courseId, semester, attachmentUrl, dueDate } = await req.json();
 
-  if (!title || !content || !courseId) {
+  if (!title || !content || (!courseId && !semester)) {
     return new NextResponse("Missing fields", { status: 400 });
   }
 
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course || course.teacherId !== dbUser.id) {
-    return new NextResponse("Forbidden course access", { status: 403 });
+  const targetCourse = courseId
+    ? await prisma.course.findFirst({
+        where: { id: courseId, teacherId: dbUser.id },
+        select: { id: true },
+      })
+    : await prisma.course.findFirst({
+        where: { teacherId: dbUser.id, semester },
+        orderBy: { createdAt: "asc" },
+        select: { id: true },
+      });
+
+  if (!targetCourse) {
+    return new NextResponse("No matching courses found", { status: 404 });
   }
 
   const assignment = await prisma.assignment.create({
     data: {
       title,
       content,
-      courseId,
+      courseId: targetCourse.id,
       attachmentUrl,
       dueDate: dueDate ? new Date(dueDate) : null,
-      status: dueDate ? "ACTIVE" : "ACTIVE",
+      status: "ACTIVE",
     },
   });
 
@@ -83,15 +93,14 @@ export async function GET(req: Request) {
     });
     return NextResponse.json(assignments.map(withComputedStatus));
   } else {
-    // For students, show all assignments (Active, Stopped) so they can see history
-    // But maybe filter out "REVIEW" if that was a thing (not using it much yet)
-    const courseIds = dbUser.enrollments.map((e) => e.courseId);
     const assignments = await prisma.assignment.findMany({
       where: {
-        courseId: { in: courseIds },
+        ...(dbUser.semester
+          ? { course: { semester: dbUser.semester, isPublished: true } }
+          : { courseId: { in: dbUser.enrollments.map((e) => e.courseId) } }),
       },
       include: {
-        course: { select: { title: true } },
+        course: { select: { title: true, semester: true } },
         submissions: {
           where: { studentId: dbUser.id },
           take: 1,

@@ -30,26 +30,11 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
   } else {
-    // Fetch enrolled courses for students
+    // Fetch courses for student's semester only
     courses = await prisma.course.findMany({
       where: {
-        OR: [
-          {
-            enrollments: {
-              some: {
-                userId: dbUser.id,
-              },
-            },
-          },
-          ...(dbUser.semester
-            ? [
-                {
-                  semester: dbUser.semester,
-                  isPublished: true,
-                },
-              ]
-            : []),
-        ],
+        isPublished: true,
+        ...(dbUser.semester ? { semester: dbUser.semester } : {}),
       },
       include: {
         teacher: { select: { name: true } },

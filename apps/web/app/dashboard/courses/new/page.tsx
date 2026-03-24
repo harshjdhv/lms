@@ -13,6 +13,7 @@ import Link from "next/link";
 export default function CreateCoursePage() {
     const router = useRouter();
     const [title, setTitle] = useState("");
+    const [semester, setSemester] = useState("SEM-1");
     const [loading, setLoading] = useState(false);
 
     const handleCreate = async () => {
@@ -23,7 +24,7 @@ export default function CreateCoursePage() {
             const res = await fetch("/api/courses", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title }),
+                body: JSON.stringify({ title, semester }),
             });
 
             if (!res.ok) {
@@ -64,6 +65,19 @@ export default function CreateCoursePage() {
                                 onChange={(e) => setTitle(e.target.value)}
                                 autoFocus
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Target Semester</Label>
+                            <select
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                value={semester}
+                                onChange={(e) => setSemester(e.target.value)}
+                            >
+                                {Array.from({ length: 8 }, (_, i) => (
+                                    <option key={i + 1} value={`SEM-${i + 1}`}>Semester {i + 1}</option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-muted-foreground">Students in this semester will automatically see this course.</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <Button asChild variant="ghost">

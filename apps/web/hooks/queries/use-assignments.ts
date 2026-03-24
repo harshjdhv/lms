@@ -10,6 +10,7 @@ export interface Assignment {
   createdAt: string;
   course: {
     title: string;
+    semester?: string | null;
   };
   submissions?: {
     id: string;

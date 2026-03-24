@@ -32,13 +32,14 @@ export async function getAssignmentsForUser(user: UserWithOptionalEnrollments) {
     return serializeForHydration(assignments.map(withComputedStatus));
   }
 
-  const courseIds = (user.enrollments ?? []).map((enrollment) => enrollment.courseId);
   const assignments = await prisma.assignment.findMany({
     where: {
-      courseId: { in: courseIds },
+      ...(user.semester
+        ? { course: { semester: user.semester, isPublished: true } }
+        : { courseId: { in: (user.enrollments ?? []).map((enrollment) => enrollment.courseId) } }),
     },
     include: {
-      course: { select: { title: true } },
+      course: { select: { title: true, semester: true } },
       submissions: {
         where: { studentId: user.id },
         take: 1,
@@ -63,17 +64,18 @@ export async function getAnnouncementsForUser(user: UserWithOptionalEnrollments)
     return serializeForHydration(announcements);
   }
 
-  const courseIds = (user.enrollments ?? []).map((enrollment) => enrollment.courseId);
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   const announcements = await prisma.announcement.findMany({
     where: {
-      courseId: { in: courseIds },
+      ...(user.semester
+        ? { course: { semester: user.semester, isPublished: true } }
+        : { courseId: { in: (user.enrollments ?? []).map((enrollment) => enrollment.courseId) } }),
       createdAt: { gte: oneWeekAgo },
     },
     include: {
-      course: { select: { title: true } },
+      course: { select: { title: true, semester: true } },
     },
     orderBy: { createdAt: "desc" },
   });

@@ -18,15 +18,25 @@ export async function POST(req: Request) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  const { title, content, imageUrl, courseId } = await req.json();
+  const { title, content, imageUrl, courseId, semester } = await req.json();
 
-  if (!title || !courseId) {
-    return new NextResponse("Missing title or courseId", { status: 400 });
+  if (!title || (!courseId && !semester)) {
+    return new NextResponse("Missing title or target", { status: 400 });
   }
 
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course || course.teacherId !== dbUser.id) {
-    return new NextResponse("Forbidden course access", { status: 403 });
+  const targetCourse = courseId
+    ? await prisma.course.findFirst({
+        where: { id: courseId, teacherId: dbUser.id },
+        select: { id: true },
+      })
+    : await prisma.course.findFirst({
+        where: { teacherId: dbUser.id, semester },
+        orderBy: { createdAt: "asc" },
+        select: { id: true },
+      });
+
+  if (!targetCourse) {
+    return new NextResponse("No matching courses found", { status: 404 });
   }
 
   const announcement = await prisma.announcement.create({
@@ -34,7 +44,7 @@ export async function POST(req: Request) {
       title,
       content,
       imageUrl,
-      courseId,
+      courseId: targetCourse.id,
     },
   });
 
@@ -77,19 +87,18 @@ export async function GET() {
     });
     return NextResponse.json(announcements);
   } else {
-    // Students see announcements from enrolled courses, created within last 7 days.
-    const courseIds = dbUser.enrollments.map((e) => e.courseId);
-
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const announcements = await prisma.announcement.findMany({
       where: {
-        courseId: { in: courseIds },
+        ...(dbUser.semester
+          ? { course: { semester: dbUser.semester, isPublished: true } }
+          : { courseId: { in: dbUser.enrollments.map((e) => e.courseId) } }),
         createdAt: { gte: oneWeekAgo },
       },
       include: {
-        course: { select: { title: true } },
+        course: { select: { title: true, semester: true } },
       },
       orderBy: { createdAt: "desc" },
     });

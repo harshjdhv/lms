@@ -13,6 +13,7 @@ import { TeacherAnnouncementList } from "./teacher-announcement-list";
 interface Course {
     id: string;
     title: string;
+    semester: string | null;
 }
 
 interface AnnouncementManagerProps {

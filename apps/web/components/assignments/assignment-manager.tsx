@@ -13,6 +13,7 @@ import { AssignmentTable } from "./teacher-dashboard";
 interface Course {
     id: string;
     title: string;
+    semester: string | null;
 }
 
 interface AssignmentManagerProps {
@@ -32,6 +33,7 @@ const AssignmentManager = ({ courses }: AssignmentManagerProps) => {
             myCourses.map((course) => ({
                 id: course.id,
                 title: course.title,
+                semester: course.semester ?? null,
             })),
         [courses, myCourses],
     );

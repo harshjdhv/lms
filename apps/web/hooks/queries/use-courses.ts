@@ -6,6 +6,7 @@ export interface CourseWithMeta {
   description: string | null;
   imageUrl: string | null;
   isPublished: boolean;
+  semester?: string | null;
   teacherId: string;
   createdAt: Date | string;
   updatedAt: Date | string;

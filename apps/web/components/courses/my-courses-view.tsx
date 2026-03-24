@@ -175,6 +175,7 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                                         isTeacher={isTeacher}
                                         imageUrl={course.imageUrl}
                                         isPublished={course.isPublished}
+                                        semester={course.semester}
                                     />
                                 </motion.div>
                             ))}
@@ -195,9 +196,10 @@ interface CourseBorderedItemProps {
     isTeacher: boolean;
     imageUrl?: string | null;
     isPublished?: boolean;
+    semester?: string | null;
 }
 
-function CourseBorderedItem({ id, title, description, teacherName, chapterCount, isTeacher, imageUrl, isPublished }: CourseBorderedItemProps) {
+function CourseBorderedItem({ id, title, description, teacherName, chapterCount, isTeacher, imageUrl, isPublished, semester }: CourseBorderedItemProps) {
     const gradient = getCourseGradient(id);
     const initial = (isTeacher ? "T" : (teacherName || title || "C")).trim().charAt(0).toUpperCase();
 
@@ -243,9 +245,16 @@ function CourseBorderedItem({ id, title, description, teacherName, chapterCount,
                     {description || (isTeacher ? "Manage this class content and updates." : "Continue learning from the latest class material.")}
                 </p>
                 <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <Badge variant="secondary" className="rounded-none text-xs px-2 py-0.5">
-                        {chapterCount} {chapterCount === 1 ? "topic" : "topics"}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="rounded-none text-xs px-2 py-0.5">
+                            {chapterCount} {chapterCount === 1 ? "topic" : "topics"}
+                        </Badge>
+                        {semester && (
+                            <Badge variant="outline" className="rounded-none text-xs px-2 py-0.5 text-muted-foreground">
+                                {semester}
+                            </Badge>
+                        )}
+                    </div>
                     <span className="flex items-center gap-1 text-xs font-medium text-primary">
                         {isTeacher ? (
                             <><Edit className="h-3.5 w-3.5" />Manage</>

@@ -22,25 +22,33 @@ import { CreateCourseDialog } from "@/components/courses/create-course-dialog"
 interface Course {
     id: string
     title: string
+    semester: string | null
 }
 
 export function CreateAnnouncementSection({ courses, onCreated }: { courses: Course[], onCreated: () => void }) {
     const [title, setTitle] = useState("")
     const [content, setContent] = useState("")
-    const [courseId, setCourseId] = useState("")
+    const [semester, setSemester] = useState("")
     const [imageUrl, setImageUrl] = useState("")
     const [loading, setLoading] = useState(false)
+    const semesterOptions = Array.from({ length: 8 }, (_, index) => `SEM-${index + 1}`)
+    const courseCountBySemester = courses.reduce<Record<string, number>>((acc, course) => {
+        if (course.semester) {
+            acc[course.semester] = (acc[course.semester] ?? 0) + 1
+        }
+        return acc
+    }, {})
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!courseId) return toast.error("Select a course")
+        if (!semester) return toast.error("Select a semester")
 
         setLoading(true)
         try {
             const res = await fetch("/api/announcements", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, content, courseId, imageUrl }),
+                body: JSON.stringify({ title, content, semester, imageUrl }),
             })
 
             if (!res.ok) throw new Error("Failed")
@@ -73,22 +81,29 @@ export function CreateAnnouncementSection({ courses, onCreated }: { courses: Cou
             <CardContent>
                 <form id="create-announcement" onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <Label>Course</Label>
+                        <Label>Semester</Label>
                         {courses.length === 0 ? (
                             <div className="flex items-center justify-between text-sm text-muted-foreground border rounded-md p-2 bg-muted/50">
                                 <span>No courses found.</span>
                                 <CreateCourseDialog trigger={<Button variant="link" size="sm" className="h-auto p-0">Create one</Button>} />
                             </div>
                         ) : (
-                            <Select value={courseId || undefined} onValueChange={setCourseId}>
+                            <Select value={semester || undefined} onValueChange={setSemester}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select course..." />
+                                    <SelectValue placeholder="Select semester..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {courses.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+                                    {semesterOptions.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option} ({courseCountBySemester[option] ?? 0} courses)
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                            This announcement will be shown to students in the selected semester. If the count is 0, create a course for that semester first.
+                        </p>
                     </div>
 
                     <div className="space-y-2">
