@@ -156,8 +156,8 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
             {/* ─── Mentor Column (left) + 2×2 Stats Grid (right) ─── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 border-b">
                 {/* Left — Mentor card */}
-                <div className="border-r border-border flex flex-col">
-                    <div className="flex items-center gap-4 px-6 py-5">
+                <div className="border-b lg:border-b-0 lg:border-r border-border flex flex-col">
+                    <div className="flex items-center gap-4 px-4 sm:px-6 py-5">
                         <Avatar className="h-14 w-14 border-2 border-border shrink-0">
                             <AvatarImage src={mentor.avatar || undefined} alt={mentor.name || "Mentor"} />
                             <AvatarFallback className="text-base font-semibold">{mentorInitials}</AvatarFallback>
@@ -200,14 +200,14 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                 </div>
 
                 {/* Right — 2×2 Stats Grid */}
-                <div className="col-span-2 grid grid-cols-2">
-                    <div className="border-b border-r border-border">
+                <div className="lg:col-span-2 grid grid-cols-2 divide-x divide-border">
+                    <div className="border-b border-border">
                         <StatsCard title="Total Required" value={requirements.length} icon={FileText} description="Document requirements" index={0} {...gradientPresets.blue} />
                     </div>
                     <div className="border-b border-border">
                         <StatsCard title="Submitted" value={submissions.length} icon={Upload} description="Documents uploaded" index={1} {...gradientPresets.purple} />
                     </div>
-                    <div className="border-r border-border">
+                    <div>
                         <StatsCard title="Pending Review" value={stats.pendingDocuments} icon={Clock} description="Awaiting feedback" trend={stats.pendingDocuments > 0 ? "warning" : "neutral"} index={2} {...gradientPresets.amber} />
                     </div>
                     <div>
@@ -217,10 +217,49 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
             </div>
 
             {/* ─── Documents Section ─── */}
-            <div className="flex min-h-0 flex-1">
-                {/* Folder sidebar (only show if folders exist) */}
+            <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+                {/* Mobile: horizontal scrollable folder tabs */}
                 {hasFolders && (
-                    <div className="w-48 shrink-0 border-r border-border">
+                    <div className="md:hidden flex gap-1 px-3 py-2 border-b overflow-x-auto shrink-0">
+                        <button
+                            onClick={() => setSelectedFolderId(null)}
+                            className={cn(
+                                "flex items-center gap-1.5 shrink-0 px-3 py-1.5 text-xs rounded-sm transition-colors border",
+                                selectedFolderId === null
+                                    ? "bg-foreground text-background border-foreground font-medium"
+                                    : "text-muted-foreground border-border hover:bg-muted/50"
+                            )}
+                        >
+                            <FolderOpen className="h-3 w-3" />
+                            Uncategorized
+                            <span className="tabular-nums opacity-70">{unfolderedRequirements.length}</span>
+                        </button>
+                        {folders.map(folder => {
+                            const folderReqs = requirements.filter(r => r.folderId === folder.id);
+                            const folderSubmitted = folderReqs.filter(r => getSubmissionForRequirement(r.id)).length;
+                            return (
+                                <button
+                                    key={folder.id}
+                                    onClick={() => setSelectedFolderId(folder.id)}
+                                    className={cn(
+                                        "flex items-center gap-1.5 shrink-0 px-3 py-1.5 text-xs rounded-sm transition-colors border",
+                                        selectedFolderId === folder.id
+                                            ? "bg-foreground text-background border-foreground font-medium"
+                                            : "text-muted-foreground border-border hover:bg-muted/50"
+                                    )}
+                                >
+                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: folder.color || "#64748B" }} />
+                                    {folder.name}
+                                    <span className="tabular-nums opacity-70">{folderSubmitted}/{folderReqs.length}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Desktop: vertical folder sidebar */}
+                {hasFolders && (
+                    <div className="hidden md:flex md:flex-col w-48 shrink-0 border-r border-border">
                         <div className="px-3 py-2">
                             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest px-2 py-1.5">Folders</p>
                         </div>
@@ -274,10 +313,10 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                 <div className="flex-1 min-w-0">
                     {/* Breadcrumb header */}
                     {hasFolders && (
-                        <div className="flex items-center gap-2 px-6 py-2.5 border-b border-border bg-muted/20 text-sm">
+                        <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 border-b border-border bg-muted/20 text-sm">
                             <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <span className="text-muted-foreground">Documents</span>
-                            <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground hidden sm:inline">Documents</span>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0 hidden sm:inline" />
                             {currentFolder ? (
                                 <span className="font-medium flex items-center gap-1.5 truncate">
                                     <span
@@ -293,7 +332,7 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                     )}
 
                     {!hasFolders && (
-                        <div className="flex items-center gap-2 px-6 py-2.5 border-b border-border bg-muted/20 text-sm">
+                        <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 border-b border-border bg-muted/20 text-sm">
                             <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="font-medium">All Documents</span>
                             <Badge variant="secondary" className="rounded-none text-[10px] px-1.5 py-0 ml-1 h-4">
@@ -303,10 +342,10 @@ export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) 
                     )}
 
                     {allDocs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
                             <FileText className="h-8 w-8 text-muted-foreground/40" />
                             <p className="text-sm text-muted-foreground">
-                                {currentFolder ? `No documents in &ldquo;${currentFolder.name}&rdquo;` : "No documents yet"}
+                                {currentFolder ? `No documents in "${currentFolder.name}"` : "No documents yet"}
                             </p>
                         </div>
                     ) : (
@@ -391,7 +430,7 @@ function DocumentRow({ requirement, submission, onUpload }: { requirement: { id:
     const StatusIcon = status.icon;
 
     return (
-        <div className="flex items-start gap-4 px-6 py-4 hover:bg-muted/20 transition-colors">
+        <div className="flex items-start gap-3 px-4 sm:px-6 py-4 hover:bg-muted/20 transition-colors">
             <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium">{requirement.title}</p>
@@ -433,7 +472,7 @@ function DocumentRow({ requirement, submission, onUpload }: { requirement: { id:
                 )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 pt-0.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 pt-0.5">
                 {submission && (
                     <Button variant="outline" size="sm" className="rounded-none h-7 text-xs gap-1.5" asChild>
                         <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">

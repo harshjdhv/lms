@@ -90,13 +90,13 @@ export function SubmissionReviewPanel({ submissions }: SubmissionReviewPanelProp
             {/* Hatch divider */}
             <div className="h-4 w-full border-b shrink-0" style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)", backgroundSize: "6px 6px" }} />
             {/* Filter bar */}
-            <div className="flex items-center gap-0 border-b divide-x divide-border">
+            <div className="flex items-center gap-0 border-b divide-x divide-border overflow-x-auto">
                 {FILTERS.map((f) => (
                     <button
                         key={f.id}
                         onClick={() => setFilterStatus(f.id)}
                         className={cn(
-                            "flex items-center gap-2 px-5 py-3 text-sm transition-colors",
+                            "flex items-center gap-2 px-4 sm:px-5 py-3 text-sm transition-colors shrink-0",
                             filterStatus === f.id
                                 ? "bg-background font-medium border-b-2 border-b-foreground -mb-px"
                                 : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
@@ -159,8 +159,8 @@ function SubmissionRow({ submission, onReview }: { submission: any; onReview: ()
     const StatusIcon = status.icon;
 
     return (
-        <div className={cn("group flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors border-l-2", status.border)}>
-            <Avatar className="h-9 w-9 shrink-0 border border-border">
+        <div className={cn("group flex items-start gap-3 px-4 sm:px-6 py-4 hover:bg-muted/30 transition-colors border-l-2", status.border)}>
+            <Avatar className="h-9 w-9 shrink-0 border border-border mt-0.5">
                 <AvatarImage src={student?.avatar || undefined} alt={student?.name || "Student"} />
                 <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
             </Avatar>
@@ -174,6 +174,10 @@ function SubmissionRow({ submission, onReview }: { submission: any; onReview: ()
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{submission.fileName}</p>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                    <span className={cn("flex items-center gap-1 font-medium", status.color)}>
+                        <StatusIcon className="h-3 w-3" />
+                        {status.label}
+                    </span>
                     <span>{new Date(submission.submittedAt).toLocaleDateString()}</span>
                     {submission.feedback && (
                         <span className="flex items-center gap-1">
@@ -184,11 +188,7 @@ function SubmissionRow({ submission, onReview }: { submission: any; onReview: ()
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-                <span className={cn("text-xs items-center gap-1.5 font-medium hidden sm:inline-flex", status.color)}>
-                    <StatusIcon className="h-3.5 w-3.5" />
-                    {status.label}
-                </span>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 shrink-0">
                 <Button variant="outline" size="sm" className="rounded-none h-7 text-xs gap-1.5" asChild>
                     <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-3 w-3" />

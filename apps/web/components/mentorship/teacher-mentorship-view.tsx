@@ -100,12 +100,12 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                         <div className="h-9 w-28 bg-muted rounded animate-pulse" />
                     </div>
                 </div>
-                <div className="grid grid-cols-4 border-b divide-x divide-border">
+                <div className="grid grid-cols-2 sm:grid-cols-4 border-b divide-x divide-border">
                     {[...Array(4)].map((_, i) => <StatsCardSkeleton key={i} />)}
                 </div>
                 <div className="h-4 w-full border-b shrink-0" style={HATCH} />
-                <div className="flex border-b divide-x divide-border">
-                    {TABS.map(t => <div key={t.id} className="px-6 py-3 h-11 w-36 bg-muted/40 animate-pulse" />)}
+                <div className="flex border-b divide-x divide-border overflow-x-auto">
+                    {TABS.map(t => <div key={t.id} className="px-6 py-3 h-11 w-36 bg-muted/40 animate-pulse shrink-0" />)}
                 </div>
                 <div className="px-6 py-6 space-y-px">
                     {[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-muted/40 animate-pulse border-b border-border" />)}
@@ -172,18 +172,20 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                     <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Mentorship Dashboard</h1>
                     <p className="text-sm text-muted-foreground">Manage your mentees and track their document submissions.</p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     {activeTab === "documents" && (
-                        <Button variant="outline" onClick={() => setCreateFolderOpen(true)} className="rounded-none gap-2">
+                        <Button variant="outline" onClick={() => setCreateFolderOpen(true)} className="rounded-none gap-2 text-xs sm:text-sm">
                             <FolderPlus className="h-4 w-4" />
-                            New Folder
+                            <span className="hidden sm:inline">New Folder</span>
+                            <span className="sm:hidden">Folder</span>
                         </Button>
                     )}
-                    <Button variant="outline" onClick={() => setCreateRequirementOpen(true)} className="rounded-none gap-2">
+                    <Button variant="outline" onClick={() => setCreateRequirementOpen(true)} className="rounded-none gap-2 text-xs sm:text-sm">
                         <FileText className="h-4 w-4" />
-                        New Requirement
+                        <span className="hidden sm:inline">New Requirement</span>
+                        <span className="sm:hidden">Requirement</span>
                     </Button>
-                    <Button onClick={() => setAddMenteeOpen(true)} className="rounded-none gap-2">
+                    <Button onClick={() => setAddMenteeOpen(true)} className="rounded-none gap-2 text-xs sm:text-sm">
                         <Plus className="h-4 w-4" />
                         Add Mentee
                     </Button>
@@ -191,7 +193,7 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-4 border-b divide-x divide-border">
+            <div className="grid grid-cols-2 sm:grid-cols-4 border-b divide-x divide-border">
                 <StatsCard title="Total Mentees" value={stats.totalMentees} icon={Users} description={`${stats.activeMentees} active`} index={0} {...gradientPresets.blue} />
                 <StatsCard title="Folders" value={folders.length} icon={Folder} description={`${requirements.length} requirements`} index={1} {...gradientPresets.purple} />
                 <StatsCard title="Pending Reviews" value={stats.pendingDocuments} icon={Clock} description="Awaiting review" trend={stats.pendingDocuments > 0 ? "warning" : "neutral"} index={2} {...gradientPresets.amber} />
@@ -202,7 +204,7 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
             <div className="h-4 w-full border-b shrink-0" style={HATCH} />
 
             {/* Tab nav */}
-            <div className="flex border-b divide-x divide-border">
+            <div className="flex border-b divide-x divide-border overflow-x-auto">
                 {TABS.map(tab => (
                     <button
                         key={tab.id}
@@ -211,7 +213,7 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                             if (tab.id !== "documents") setSelectedFolderId(null);
                         }}
                         className={cn(
-                            "flex items-center gap-2 px-6 py-3 text-sm transition-colors",
+                            "flex items-center gap-2 px-6 py-3 text-sm transition-colors shrink-0",
                             activeTab === tab.id
                                 ? "bg-background font-medium border-b-2 border-b-foreground -mb-px"
                                 : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
@@ -277,9 +279,45 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
             )}
 
             {activeTab === "documents" && (
-                <div className="flex min-h-0">
-                    {/* Folder sidebar */}
-                    <div className="w-60 shrink-0 border-r border-border">
+                <div className="flex min-h-0 flex-col md:flex-row">
+                    {/* Mobile: horizontal scrollable folder tabs */}
+                    <div className="md:hidden flex gap-1 px-3 py-2 border-b overflow-x-auto shrink-0">
+                        <button
+                            onClick={() => setSelectedFolderId(null)}
+                            className={cn(
+                                "flex items-center gap-1.5 shrink-0 px-3 py-1.5 text-xs rounded-sm transition-colors border",
+                                selectedFolderId === null
+                                    ? "bg-foreground text-background border-foreground font-medium"
+                                    : "text-muted-foreground border-border hover:bg-muted/50"
+                            )}
+                        >
+                            <FolderOpen className="h-3 w-3" />
+                            Uncategorized
+                            <span className="tabular-nums opacity-70">{unfolderedRequirements.length}</span>
+                        </button>
+                        {folders.map(folder => {
+                            const folderReqs = requirements.filter(r => r.folderId === folder.id);
+                            return (
+                                <button
+                                    key={folder.id}
+                                    onClick={() => setSelectedFolderId(folder.id)}
+                                    className={cn(
+                                        "flex items-center gap-1.5 shrink-0 px-3 py-1.5 text-xs rounded-sm transition-colors border",
+                                        selectedFolderId === folder.id
+                                            ? "bg-foreground text-background border-foreground font-medium"
+                                            : "text-muted-foreground border-border hover:bg-muted/50"
+                                    )}
+                                >
+                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: folder.color || "#64748B" }} />
+                                    {folder.name}
+                                    <span className="tabular-nums opacity-70">{folderReqs.length}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Desktop: vertical folder sidebar */}
+                    <div className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-border">
                         <div className="px-3 py-2">
                             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest px-2 py-1.5">Folders</p>
                         </div>
@@ -365,11 +403,11 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                     {/* Document content */}
                     <div className="flex-1 min-w-0 flex flex-col">
                         {/* Breadcrumb / folder header */}
-                        <div className="flex items-center justify-between gap-3 px-6 py-3 border-b bg-muted/20">
+                        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b bg-muted/20">
                             <div className="flex items-center gap-2 text-sm min-w-0">
                                 <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-muted-foreground">Documents</span>
-                                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="text-muted-foreground hidden sm:inline">Documents</span>
+                                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0 hidden sm:inline" />
                                 {currentFolder ? (
                                     <span className="font-medium flex items-center gap-1.5 truncate">
                                         <div
@@ -392,13 +430,13 @@ export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) 
                                 onClick={() => setCreateRequirementOpen(true)}
                             >
                                 <Plus className="h-3 w-3" />
-                                Add Requirement
+                                <span className="hidden sm:inline">Add </span>Requirement
                             </Button>
                         </div>
 
                         {/* Requirements list */}
                         {currentFolderRequirements.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-6">
                                 <FileText className="h-8 w-8 text-muted-foreground/40" />
                                 <div>
                                     <p className="text-sm font-medium">
@@ -470,7 +508,7 @@ function MenteeRow({
     const initials = mentee?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
     return (
-        <div className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+        <div className="group flex items-center gap-3 px-4 sm:px-6 py-4 hover:bg-muted/30 transition-colors">
             <Avatar className="h-9 w-9 shrink-0 border border-border">
                 <AvatarImage src={mentee?.avatar || undefined} alt={mentee?.name || "Mentee"} />
                 <AvatarFallback className="text-xs font-medium">{initials}</AvatarFallback>
@@ -479,9 +517,22 @@ function MenteeRow({
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{mentee?.name || "Unknown"}</p>
                 <p className="text-xs text-muted-foreground truncate">{mentee?.email}</p>
+                {/* Mobile: show badges below name */}
+                <div className="flex items-center gap-1.5 mt-1 sm:hidden flex-wrap">
+                    {mentee?.studentId && (
+                        <Badge variant="outline" className="rounded-none text-[10px] px-1.5 py-0">{mentee.studentId}</Badge>
+                    )}
+                    <Badge
+                        variant={mentorship.status === "ACTIVE" ? "default" : "secondary"}
+                        className={cn("rounded-none text-[10px] px-1.5 py-0", mentorship.status === "ACTIVE" && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20")}
+                    >
+                        {mentorship.status}
+                    </Badge>
+                </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Desktop: badges in a row */}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
                 {mentee?.studentId && (
                     <Badge variant="outline" className="rounded-none text-xs">{mentee.studentId}</Badge>
                 )}
@@ -502,7 +553,7 @@ function MenteeRow({
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -531,7 +582,7 @@ function RequirementRow({ requirement, menteeCount }: { requirement: any; mentee
     const isOverdue = requirement.dueDate && new Date(requirement.dueDate) < new Date();
 
     return (
-        <div className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+        <div className="group flex items-center gap-3 px-4 sm:px-6 py-4 hover:bg-muted/30 transition-colors">
             <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium">{requirement.title}</p>
@@ -577,7 +628,7 @@ function RequirementRow({ requirement, menteeCount }: { requirement: any; mentee
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <Button variant="ghost" size="icon" className="rounded-none h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -645,7 +696,7 @@ function MenteeDocumentsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden rounded-none p-0 gap-0">
+            <DialogContent className="sm:max-w-3xl max-h-[90svh] sm:max-h-[85vh] overflow-hidden rounded-none p-0 gap-0">
                 <DialogHeader className="px-6 py-4 border-b border-border">
                     <DialogTitle className="text-base">
                         {mentee?.name || "Mentee"} - Documents
