@@ -14,6 +14,7 @@ import {
     Sparkles,
     Edit,
     PlayCircle,
+    RefreshCw,
 } from "lucide-react";
 import { Input } from "@workspace/ui/components/input";
 import { useMyCourses } from "@/hooks/queries/use-courses";
@@ -122,8 +123,9 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
 
             {/* Courses Grid */}
             {!hasCourses ? (
-                <div className="flex flex-1 items-center justify-center px-6 py-12">
+                <div className="flex flex-1 flex-col items-center justify-center min-h-[50vh] px-6 py-12">
                     <EmptyState
+                        className="border-none shadow-none bg-transparent w-full max-w-xl"
                         icon={BookOpen}
                         title={searchQuery ? "No courses found" : "No courses yet"}
                         description={
@@ -140,7 +142,7 @@ export function MyCoursesView({ isTeacher }: MyCoursesViewProps) {
                                 ? { label: "Clear Search", variant: "outline", onClick: () => setSearchQuery("") }
                                 : isTeacher
                                     ? { label: "Create Course", icon: PlusCircle, href: "/dashboard/courses/new" }
-                                    : { label: "Refresh", href: "/dashboard/courses/my", variant: "outline" }
+                                    : { label: "Refresh", href: "/dashboard/courses/my", variant: "outline", icon: RefreshCw }
                         }
                     />
                 </div>

@@ -1,75 +1,32 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
-import {
-    BookOpen,
-    Calendar,
-    FileText,
-    GraduationCap,
-    LayoutDashboard,
-    UserCog,
-    Users,
-} from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 
+import { getDashboardNavItems } from "@/lib/dashboard-nav"
+import { useUserStore } from "@/providers/user-store-provider"
 import { CommandMenu } from "@workspace/ui/components/ui/command-menu"
 
 export function DashboardCommandMenu() {
     const router = useRouter()
+    const pathname = usePathname()
+    const role = useUserStore((state) => state.role)
     const [open, setOpen] = React.useState(false)
+
+    const navItems = React.useMemo(
+        () => getDashboardNavItems({ role, pathname }),
+        [role, pathname]
+    )
 
     const groups = [
         {
-            title: "Pages",
-            items: [
-                {
-                    id: "dashboard",
-                    title: "Dashboard",
-                    icon: <LayoutDashboard className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard"),
-                },
-                {
-                    id: "courses",
-                    title: "Courses",
-                    icon: <BookOpen className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/courses/my"),
-                },
-                {
-                    id: "assignments",
-                    title: "Assignments",
-                    icon: <FileText className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/assignments"),
-                },
-                {
-                    id: "schedule",
-                    title: "Schedule",
-                    icon: <Calendar className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/schedule"),
-                },
-                {
-                    id: "grades",
-                    title: "Grades",
-                    icon: <GraduationCap className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/grades"),
-                },
-                {
-                    id: "community",
-                    title: "Community",
-                    icon: <Users className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/community"),
-                },
-            ],
-        },
-        {
-            title: "Account",
-            items: [
-                {
-                    id: "account",
-                    title: "Account",
-                    icon: <UserCog className="h-4 w-4" />,
-                    onSelect: () => router.push("/dashboard/account"),
-                },
-            ],
+            title: "Platform",
+            items: navItems.map((item) => ({
+                id: item.url,
+                title: item.title,
+                icon: <item.icon weight="duotone" size={18} />,
+                onSelect: () => router.push(item.url),
+            })),
         }
     ]
 
@@ -78,7 +35,7 @@ export function DashboardCommandMenu() {
             groups={groups}
             placeholder="Type a command or search..."
             brandName="LMS Platform"
-            triggerClassName="hidden md:flex w-56"
+            triggerClassName="hidden md:flex md:w-56"
             shortcutKey="K"
             open={open}
             onOpenChange={setOpen}

@@ -18,13 +18,6 @@ import {
 
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-} from "@workspace/ui/components/card"
 import { Progress } from "@workspace/ui/components/progress"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import Link from "next/link"
@@ -42,11 +35,6 @@ import { cn } from "@/lib/utils"
 interface StudentDashboardProps {
     studentName?: string
 }
-
-const PANEL_SHELL_CLASS = "overflow-hidden border bg-background rounded-none shadow-none"
-const PANEL_CARD_CLASS = `${PANEL_SHELL_CLASS} gap-0 py-0`
-const COMPACT_PANEL_HEIGHT = "min-h-[320px] xl:h-[320px]"
-const TALL_PANEL_HEIGHT = "min-h-[560px] xl:h-[560px]"
 
 export function StudentDashboard({ studentName = "Student" }: StudentDashboardProps) {
 
@@ -210,143 +198,124 @@ export function StudentDashboard({ studentName = "Student" }: StudentDashboardPr
                 }}
             />
 
-            {/* Main Content */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 divide-y xl:divide-y-0 xl:divide-x divide-border">
-                {/* Left Column - Assignments & Progress */}
-                <div className="min-w-0 xl:col-span-2 divide-y divide-border">
-                    {/* Progress Overview */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.1 }}
-                    >
-                        <Card className={cn(PANEL_CARD_CLASS, COMPACT_PANEL_HEIGHT)}>
-                            <CardHeader className="border-b px-5 py-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <Target className="h-4 w-4 text-muted-foreground" />
-                                        <div>
-                                            <CardTitle className="text-sm font-medium">Your Progress</CardTitle>
-                                            <CardDescription className="text-xs">Assignment completion overview</CardDescription>
-                                        </div>
-                                    </div>
-                                    <ProgressRing
-                                        progress={stats.completionRate}
-                                        size="sm"
-                                        color="primary"
-                                    />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex flex-1 items-center px-5 py-6">
-                                <div className="grid grid-cols-3 w-full divide-x divide-border">
-                                    <ProgressItem
-                                        label="Pending"
-                                        value={stats.pendingSubmissions}
-                                        total={stats.activeAssignments}
-                                        color="amber"
-                                        icon={Clock}
-                                    />
-                                    <ProgressItem
-                                        label="Completed"
-                                        value={stats.completedAssignments}
-                                        total={assignments.length}
-                                        color="emerald"
-                                        icon={CheckCircle2}
-                                    />
-                                    <ProgressItem
-                                        label="Courses"
-                                        value={stats.enrolledCourses}
-                                        total={stats.enrolledCourses}
-                                        color="blue"
-                                        icon={BookMarked}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Assignments Feed */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.15 }}
-                    >
-                        <AssignmentFeed className={TALL_PANEL_HEIGHT} />
-                    </motion.div>
+            {/* Row 1: Recent Assignments + Your Progress */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 border-b border-border">
+                {/* Left: Recent Assignments */}
+                <div className="xl:col-span-2 xl:border-r border-b xl:border-b-0 border-border">
+                    <AssignmentFeed className="h-[500px]" />
                 </div>
 
-                {/* Right Column - Deadlines & Announcements */}
-                <div className="min-w-0 divide-y divide-border">
-                    {/* Upcoming Deadlines */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.2 }}
-                    >
-                        <Card className={cn(PANEL_CARD_CLASS, COMPACT_PANEL_HEIGHT)}>
-                            <CardHeader className="border-b px-5 py-4">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                    <div>
-                                        <CardTitle className="text-sm font-medium">Upcoming Deadlines</CardTitle>
-                                        <CardDescription className="text-xs">Don&apos;t miss these</CardDescription>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex flex-1 flex-col p-0">
-                                {upcomingDeadlines.length === 0 ? (
-                                    <div className="flex flex-1 flex-col items-center justify-center text-center p-6 gap-2">
-                                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                                        <p className="text-sm font-medium text-emerald-600">All caught up!</p>
-                                        <p className="text-xs text-muted-foreground">No pending deadlines</p>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-1 flex-col divide-y divide-border">
-                                        {upcomingDeadlines.map((assignment, index) => (
-                                            <DeadlineItem
-                                                key={assignment.id}
-                                                assignment={assignment}
-                                                index={index}
-                                            />
-                                        ))}
-                                        {assignments.filter(a => a.dueDate && a.status === 'ACTIVE').length > 5 && (
-                                            <Button variant="ghost" size="sm" asChild className="rounded-none border-t w-full gap-2">
-                                                <Link href="/dashboard/assignments">
-                                                    View all deadlines
-                                                    <ArrowRight className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                        )}
+                {/* Right: Your Progress */}
+                <div>
+                    <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <h2 className="text-sm font-medium flex items-center gap-2">
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                            Your Progress
+                        </h2>
+                        <ProgressRing
+                            progress={stats.completionRate}
+                            size="sm"
+                            color="primary"
+                        />
+                    </div>
+                    <div className="p-6">
+                        <div className="flex flex-col gap-8 w-full items-center">
+                            <div className="w-full max-w-[200px]">
+                                <ProgressItem
+                                    label="Pending"
+                                    value={stats.pendingSubmissions}
+                                    total={stats.activeAssignments}
+                                    color="amber"
+                                    icon={Clock}
+                                />
+                            </div>
+                            <div className="w-full max-w-[200px]">
+                                <ProgressItem
+                                    label="Completed"
+                                    value={stats.completedAssignments}
+                                    total={assignments.length}
+                                    color="emerald"
+                                    icon={CheckCircle2}
+                                />
+                            </div>
+                            <div className="w-full max-w-[200px]">
+                                <ProgressItem
+                                    label="Courses"
+                                    value={stats.enrolledCourses}
+                                    total={stats.enrolledCourses}
+                                    color="blue"
+                                    icon={BookMarked}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Hatched divider */}
+            <div
+                className="h-4 w-full border-b shrink-0"
+                style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+                    backgroundSize: "6px 6px",
+                }}
+            />
+
+            {/* Row 2: Recent Announcements + Upcoming Deadlines */}
+            <div className="grid grid-cols-1 xl:grid-cols-3">
+                {/* Left: Recent Announcements */}
+                <div className="xl:col-span-2 xl:border-r border-border">
+                    <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <h2 className="text-sm font-medium flex items-center gap-2">
+                            <Megaphone className="h-4 w-4 text-muted-foreground" />
+                            Recent Announcements
+                        </h2>
+                        <Badge variant="secondary" className="text-xs rounded-none">
+                            {stats.recentAnnouncements}
+                        </Badge>
+                    </div>
+                    <div className="p-6">
+                        <StudentAnnouncementFeed />
+                    </div>
+                </div>
+
+                {/* Right: Upcoming Deadlines */}
+                <div>
+                    <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <h2 className="text-sm font-medium flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            Upcoming Deadlines
+                        </h2>
+                    </div>
+                    <div className="divide-y divide-border">
+                        {upcomingDeadlines.length === 0 ? (
+                            <div className="flex flex-1 flex-col items-center justify-center text-center p-6 gap-2">
+                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                <p className="text-sm font-medium text-emerald-600">All caught up!</p>
+                                <p className="text-xs text-muted-foreground">No pending deadlines</p>
+                            </div>
+                        ) : (
+                            <>
+                                {upcomingDeadlines.map((assignment, index) => (
+                                    <DeadlineItem
+                                        key={assignment.id}
+                                        assignment={assignment}
+                                        index={index}
+                                    />
+                                ))}
+                                {assignments.filter(a => a.dueDate && a.status === 'ACTIVE').length > 5 && (
+                                    <div className="p-4 border-t">
+                                        <Button variant="ghost" size="sm" asChild className="w-full text-xs gap-2 rounded-none">
+                                            <Link href="/dashboard/assignments">
+                                                View all deadlines
+                                                <ArrowRight className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Announcements */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.25 }}
-                    >
-                        <Card className={cn(PANEL_CARD_CLASS, TALL_PANEL_HEIGHT)}>
-                            <CardHeader className="border-b px-5 py-4">
-                                <div className="flex items-center gap-2">
-                                    <Megaphone className="h-4 w-4 text-muted-foreground" />
-                                    <div>
-                                        <CardTitle className="text-sm font-medium">Announcements</CardTitle>
-                                        <CardDescription className="text-xs">Recent updates from your courses</CardDescription>
-                                    </div>
-                                    <Badge variant="secondary" className="ml-auto text-xs rounded-none">
-                                        {stats.recentAnnouncements}
-                                    </Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex flex-1 p-4">
-                                <StudentAnnouncementFeed />
-                            </CardContent>
-                        </Card>
-                    </motion.div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -464,15 +433,32 @@ export function StudentDashboardSkeleton() {
                 ))}
             </div>
 
-            {/* Content Skeleton */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 divide-y xl:divide-y-0 xl:divide-x divide-border">
-                <div className="xl:col-span-2 divide-y divide-border">
-                    <Skeleton className={cn(COMPACT_PANEL_HEIGHT, "w-full")} />
-                    <Skeleton className={cn(TALL_PANEL_HEIGHT, "w-full")} />
+            {/* Row 1 Skeleton */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 border-b border-border">
+                <div className="xl:col-span-2 xl:border-r border-b xl:border-b-0 border-border p-6">
+                    <Skeleton className="h-[450px] w-full" />
                 </div>
-                <div className="divide-y divide-border">
-                    <Skeleton className={cn(COMPACT_PANEL_HEIGHT, "w-full")} />
-                    <Skeleton className={cn(TALL_PANEL_HEIGHT, "w-full")} />
+                <div className="p-6">
+                    <Skeleton className="h-[450px] w-full" />
+                </div>
+            </div>
+
+            {/* Hatched divider */}
+            <div
+                className="h-4 w-full border-b shrink-0"
+                style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, var(--color-border) 0, var(--color-border) 1px, transparent 0, transparent 50%)",
+                    backgroundSize: "6px 6px",
+                }}
+            />
+
+            {/* Row 2 Skeleton */}
+            <div className="grid grid-cols-1 xl:grid-cols-3">
+                <div className="xl:col-span-2 xl:border-r border-b xl:border-b-0 border-border p-6">
+                    <Skeleton className="h-[300px] w-full" />
+                </div>
+                <div className="p-6">
+                    <Skeleton className="h-[300px] w-full" />
                 </div>
             </div>
         </div>

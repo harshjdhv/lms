@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { toast } from "sonner"
-import { Loader2, GraduationCap, BookOpen, Command } from "lucide-react"
+import { Loader2, GraduationCap, BookOpen, Command, ArrowRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@workspace/ui/components/button"
@@ -169,40 +169,50 @@ export default function OnboardingPage() {
                                     </p>
                                 </div>
 
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="flex flex-col gap-4">
                                     <button
                                         onClick={() => setSelectedRole("STUDENT")}
-                                        className="group relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 p-8 shadow-lg border border-zinc-200 dark:border-zinc-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                                        className="group relative flex items-center w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-all duration-300 hover:border-blue-500/50 dark:hover:border-blue-500/50"
                                     >
-                                        <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <div className="relative">
-                                            <div className="mb-4 inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                                <GraduationCap className="w-8 h-8" />
+                                        <div className="absolute inset-0 bg-linear-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        <div className="relative flex items-center w-full gap-5 text-left">
+                                            <div className="flex-shrink-0 flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform duration-300">
+                                                <GraduationCap className="w-7 h-7" />
                                             </div>
-                                            <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
-                                                I&apos;m a Student
-                                            </h3>
-                                            <p className="text-zinc-500 dark:text-zinc-400">
-                                                Access courses, track your progress, and learn at your own pace
-                                            </p>
+                                            <div className="flex-1">
+                                                <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+                                                    I&apos;m a Student
+                                                </h3>
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                                                    Access courses, track your progress, and learn at your own pace
+                                                </p>
+                                            </div>
+                                            <div className="hidden sm:flex text-zinc-300 dark:text-zinc-700 group-hover:text-blue-500 transition-colors">
+                                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                            </div>
                                         </div>
                                     </button>
 
                                     <button
                                         onClick={() => setSelectedRole("TEACHER")}
-                                        className="group relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 p-8 shadow-lg border border-zinc-200 dark:border-zinc-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                                        className="group relative flex items-center w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-all duration-300 hover:border-emerald-500/50 dark:hover:border-emerald-500/50"
                                     >
-                                        <div className="absolute inset-0 bg-linear-to-br from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <div className="relative">
-                                            <div className="mb-4 inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                                                <BookOpen className="w-8 h-8" />
+                                        <div className="absolute inset-0 bg-linear-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        <div className="relative flex items-center w-full gap-5 text-left">
+                                            <div className="flex-shrink-0 flex items-center justify-center w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-300">
+                                                <BookOpen className="w-7 h-7" />
                                             </div>
-                                            <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
-                                                I&apos;m a Teacher
-                                            </h3>
-                                            <p className="text-zinc-500 dark:text-zinc-400">
-                                                Create courses, manage students, and share your knowledge
-                                            </p>
+                                            <div className="flex-1">
+                                                <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+                                                    I&apos;m a Teacher
+                                                </h3>
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                                                    Create courses, manage students, and share your knowledge
+                                                </p>
+                                            </div>
+                                            <div className="hidden sm:flex text-zinc-300 dark:text-zinc-700 group-hover:text-emerald-500 transition-colors">
+                                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                            </div>
                                         </div>
                                     </button>
                                 </div>
@@ -213,7 +223,7 @@ export default function OnboardingPage() {
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 p-8"
+                                className="w-full"
                             >
                                 <div className="mb-6 flex items-center justify-between">
                                     <div className="flex items-center gap-3">

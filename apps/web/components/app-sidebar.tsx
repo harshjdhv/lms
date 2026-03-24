@@ -9,6 +9,21 @@
 
 import Link from "next/link";
 import * as React from "react";
+import { usePathname } from "next/navigation";
+
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
+import { getDashboardNavItems } from "@/lib/dashboard-nav";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@workspace/ui/components/sidebar";
+
 function ConnectXMark({ size = 30, className = "" }: { size?: number; className?: string }) {
   return (
     <svg
@@ -48,28 +63,6 @@ function ConnectXMark({ size = 30, className = "" }: { size?: number; className?
     </svg>
   );
 }
-import {
-  BookOpen,
-  ClipboardText,
-  ChatCircleDots,
-  HandHeart,
-  UserGear,
-  Megaphone,
-  SquaresFour,
-} from "@phosphor-icons/react";
-
-import { NavMain } from "@/components/nav-main";
-
-import { NavUser } from "@/components/nav-user";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@workspace/ui/components/sidebar";
 
 type User = {
   id: string;
@@ -88,74 +81,15 @@ type User = {
   updatedAt: Date;
 };
 
-import { usePathname } from "next/navigation";
-
 export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: User }) {
   const pathname = usePathname();
-
-  const navMain = [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: SquaresFour,
-      isActive: pathname === "/dashboard",
-    },
-    {
-      title: "My Courses",
-      url: "/dashboard/courses/my",
-      icon: BookOpen,
-      isActive: pathname === "/dashboard/courses/my",
-    },
-    {
-      title: "Assignments",
-      url: "/dashboard/assignments",
-      icon: ClipboardText,
-      isActive: pathname.startsWith("/dashboard/assignments"),
-    },
-    {
-      title: "Community",
-      url: "/dashboard/community",
-      icon: ChatCircleDots,
-      isActive: pathname.startsWith("/dashboard/community"),
-    },
-    ...user.role === "STUDENT" ? [
-      {
-        title: "Announcements",
-        url: "/dashboard/announcements",
-        icon: Megaphone,
-        isActive: pathname.startsWith("/dashboard/announcements"),
-      }
-    ] : [],
-    {
-      title: user.role === "TEACHER" ? "Mentees" : "My Mentor",
-      url: "/dashboard/mentorship",
-      icon: HandHeart,
-      isActive: pathname.startsWith("/dashboard/mentorship"),
-    },
-    {
-      title: "Account",
-      url: "/dashboard/account",
-      icon: UserGear,
-      isActive: pathname.startsWith("/dashboard/account"),
-    },
-    ...user.role === "TEACHER" ? [
-      {
-        title: "Create Assignments",
-        url: "/dashboard/create-assignments",
-        icon: ClipboardText,
-        isActive: pathname.startsWith("/dashboard/create-assignments"),
-      },
-      {
-        title: "Create Announcements",
-        url: "/dashboard/create-announcements",
-        icon: Megaphone,
-        isActive: pathname.startsWith("/dashboard/create-announcements"),
-      }
-    ] : []
-  ];
+  const navMain = getDashboardNavItems({
+    role: user.role as "STUDENT" | "TEACHER" | null,
+    pathname,
+  });
 
   const getRoleBadge = () => {
     if (!user.role) return null;
