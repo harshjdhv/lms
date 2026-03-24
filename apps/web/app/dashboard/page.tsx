@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { QueryClient, HydrationBoundary, dehydrate } from "@tanstack/react-query"
 import { assignmentKeys } from "@/hooks/queries/use-assignments"
 import { announcementKeys } from "@/hooks/queries/use-announcements"
+import { getAnnouncementsForUser, getAssignmentsForUser } from "@/lib/dashboard-data"
 
 import { TeacherDashboard } from "@/components/assignments/teacher-dashboard"
 import { StudentDashboard } from "@/components/dashboard/student-dashboard"
@@ -37,71 +38,14 @@ export default async function Page() {
   }
 
   const queryClient = new QueryClient()
-
-  const serialize = (data: any) => JSON.parse(JSON.stringify(data))
   const prefetchAssignments = queryClient.prefetchQuery({
     queryKey: assignmentKeys.lists(),
-    queryFn: async () => {
-      if (dbUser.role === "TEACHER") {
-        const assignments = await prisma.assignment.findMany({
-          where: { course: { teacherId: dbUser.id } },
-          include: {
-            course: { select: { title: true } },
-            _count: { select: { submissions: true } },
-          },
-          orderBy: { createdAt: "desc" },
-        })
-        return serialize(assignments)
-      }
-
-      const courseIds = dbUser.enrollments.map((e) => e.courseId)
-      const assignments = await prisma.assignment.findMany({
-        where: {
-          courseId: { in: courseIds },
-        },
-        include: {
-          course: { select: { title: true } },
-          submissions: {
-            where: { studentId: dbUser.id },
-            take: 1,
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      })
-      return serialize(assignments)
-    },
+    queryFn: () => getAssignmentsForUser(dbUser),
   })
 
   const prefetchAnnouncements = queryClient.prefetchQuery({
     queryKey: announcementKeys.lists(),
-    queryFn: async () => {
-      if (dbUser.role === "TEACHER") {
-        const announcements = await prisma.announcement.findMany({
-          where: { course: { teacherId: dbUser.id } },
-          include: {
-            course: { select: { title: true } },
-          },
-          orderBy: { createdAt: "desc" },
-        })
-        return serialize(announcements)
-      }
-
-      const courseIds = dbUser.enrollments.map((e) => e.courseId)
-      const oneWeekAgo = new Date()
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
-      const announcements = await prisma.announcement.findMany({
-        where: {
-          courseId: { in: courseIds },
-          createdAt: { gte: oneWeekAgo },
-        },
-        include: {
-          course: { select: { title: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      })
-      return serialize(announcements)
-    },
+    queryFn: () => getAnnouncementsForUser(dbUser),
   })
 
   const teacherCoursesPromise =

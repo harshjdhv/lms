@@ -16,6 +16,7 @@ const fontMono = Geist_Mono({
 });
 
 export const metadata = {
+  metadataBase: new URL("https://lms.marrowx.in"),
   title: "ConnectX LMS - AI-Powered Learning Management System",
   description:
     "Transform engineering education with AI-driven collaboration, real-time coding, and immersive learning experiences.",
@@ -33,7 +34,7 @@ export const metadata = {
     title: "ConnectX LMS - AI-Powered Engineering Education",
     description:
       "Revolutionary LMS with AI pair programming, IoT simulations, and 3D algorithm visualizations for engineering students.",
-    url: "https://lms.harshjdhv.com", // Update this with your actual domain
+    url: "https://lms.marrowx.in",
     siteName: "ConnectX LMS",
     images: [
       {
