@@ -38,7 +38,7 @@ export const metadata = {
     siteName: "ConnectX LMS",
     images: [
       {
-        url: "/lms.harshjdhv.com_.png", // Your custom LMS preview image
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
         alt: "ConnectX LMS - AI-Powered Engineering Education Platform",
@@ -52,7 +52,7 @@ export const metadata = {
     title: "ConnectX LMS - AI-Powered Engineering Education",
     description:
       "Revolutionary LMS with AI pair programming, IoT simulations, and 3D algorithm visualizations.",
-    images: ["/lms.harshjdhv.com_.png"], // Same image for Twitter
+    images: ["/opengraph-image"],
     creator: "@connectx_lms", // Update with your Twitter handle
   },
   robots: {
