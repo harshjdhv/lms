@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       description,
       teacherId: dbUser.id,
       isPublished: true, // Auto-publish for now
-      semester: semester || "SEM-7", // Default fallback
+      semester: semester || null,
     },
   });
 

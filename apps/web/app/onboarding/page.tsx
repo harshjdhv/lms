@@ -355,8 +355,9 @@ export default function OnboardingPage() {
                                                         {...studentForm.register("semester")}
                                                     >
                                                         <option value="">Select Semester</option>
-                                                        <option value="SEM-7">Semester 7</option>
-                                                        <option value="SEM-8">Semester 8</option>
+                                                        {Array.from({ length: 8 }, (_, i) => (
+                                                            <option key={i + 1} value={`SEM-${i + 1}`}>Semester {i + 1}</option>
+                                                        ))}
                                                     </select>
                                                     {studentForm.formState.errors.semester && (
                                                         <p className="text-xs text-red-500 font-medium">

@@ -29,7 +29,7 @@ export function CreateCourseDialog({
     const [loading, setLoading] = useState(false)
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState("")
-    const [semester, setSemester] = useState("SEM-7")
+    const [semester, setSemester] = useState("SEM-1")
     const router = useRouter()
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -104,8 +104,9 @@ export function CreateCourseDialog({
                             value={semester}
                             name="semester"
                         >
-                            <option value="SEM-7">Semester 7</option>
-                            <option value="SEM-8">Semester 8</option>
+                            {Array.from({ length: 8 }, (_, i) => (
+                                <option key={i + 1} value={`SEM-${i + 1}`}>Semester {i + 1}</option>
+                            ))}
                         </select>
                         <p className="text-xs text-muted-foreground">Courses are automatically assigned to students in this semester.</p>
                     </div>
