@@ -32,6 +32,7 @@ import {
 import { useMentorshipData } from "@/hooks/queries/use-mentorship";
 import { DocumentUploadDialog } from "./document-upload-dialog";
 import { StatsCard, StatsCardSkeleton, gradientPresets } from "@/components/ui/stats-card";
+import { useMentorshipRealtime } from "@/hooks/use-mentorship-realtime";
 import { cn } from "@/lib/utils";
 
 interface StudentMentorshipViewProps {
@@ -40,6 +41,7 @@ interface StudentMentorshipViewProps {
 
 export function StudentMentorshipView({ userName }: StudentMentorshipViewProps) {
     const { data, isLoading, error } = useMentorshipData();
+    useMentorshipRealtime();
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [selectedRequirement, setSelectedRequirement] = useState<string | null>(null);
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);

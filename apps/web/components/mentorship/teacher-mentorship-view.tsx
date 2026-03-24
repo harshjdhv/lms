@@ -54,6 +54,7 @@ import { CreateRequirementDialog } from "./create-requirement-dialog";
 import { CreateFolderDialog } from "./create-folder-dialog";
 import { SubmissionReviewPanel } from "./submission-review-panel";
 import { StatsCard, StatsCardSkeleton, gradientPresets } from "@/components/ui/stats-card";
+import { useMentorshipRealtime } from "@/hooks/use-mentorship-realtime";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -76,6 +77,7 @@ interface TeacherMentorshipViewProps {
 
 export function TeacherMentorshipView({ userName }: TeacherMentorshipViewProps) {
     const { data, isLoading, error } = useMentorshipData();
+    useMentorshipRealtime();
     const [searchQuery, setSearchQuery] = useState("");
     const [addMenteeOpen, setAddMenteeOpen] = useState(false);
     const [createRequirementOpen, setCreateRequirementOpen] = useState(false);
