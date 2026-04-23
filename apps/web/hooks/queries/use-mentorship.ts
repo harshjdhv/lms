@@ -117,6 +117,29 @@ export interface MentorshipData {
   };
 }
 
+export interface AcademicSubject {
+  id: string;
+  formId: string;
+  subjectName: string;
+  totalMarks: number | null;
+  ia1Marks: number | null;
+  ia2Marks: number | null;
+  finalMarks: number | null;
+  position: number;
+}
+
+export interface SemesterAcademicForm {
+  id: string;
+  studentId: string;
+  mentorId: string | null;
+  semester: string;
+  courseCertificates: string[];
+  submittedAt: string | null;
+  updatedAt: string;
+  subjects: AcademicSubject[];
+  student?: MenteeUser;
+}
+
 // ==========================================
 // QUERY KEYS
 // ==========================================
@@ -133,6 +156,8 @@ export const mentorshipKeys = {
   requirement: (id: string) => [...mentorshipKeys.requirements(), id] as const,
   submissions: () => [...mentorshipKeys.all, "submissions"] as const,
   submission: (id: string) => [...mentorshipKeys.submissions(), id] as const,
+  academicForms: (studentId?: string) =>
+    [...mentorshipKeys.all, "academic-forms", studentId ?? "self"] as const,
 };
 
 // ==========================================
@@ -169,6 +194,24 @@ async function fetchRequirements(): Promise<DocumentRequirement[]> {
 async function fetchSubmissions(): Promise<DocumentSubmission[]> {
   const res = await fetch("/api/documents/submissions");
   if (!res.ok) throw new Error("Failed to fetch submissions");
+  return res.json();
+}
+
+async function fetchAcademicForms(studentId?: string): Promise<SemesterAcademicForm[]> {
+  const searchParams = new URLSearchParams();
+  if (studentId) {
+    searchParams.set("studentId", studentId);
+  }
+
+  const url = searchParams.size
+    ? `/api/mentorship/academic-forms?${searchParams.toString()}`
+    : "/api/mentorship/academic-forms";
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch academic forms");
+  }
   return res.json();
 }
 
@@ -212,6 +255,14 @@ export function useDocumentSubmissions() {
   return useQuery({
     queryKey: mentorshipKeys.submissions(),
     queryFn: fetchSubmissions,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useAcademicForms(studentId?: string) {
+  return useQuery({
+    queryKey: mentorshipKeys.academicForms(studentId),
+    queryFn: () => fetchAcademicForms(studentId),
     staleTime: 2 * 60 * 1000,
   });
 }
@@ -488,6 +539,39 @@ export function useReviewSubmission() {
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mentorshipKeys.all });
+    },
+  });
+}
+
+export function useSubmitAcademicForm() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      semester: string;
+      courseCertificates: string[];
+      subjects: Array<{
+        subjectName: string;
+        totalMarks?: number | null;
+        ia1Marks?: number | null;
+        ia2Marks?: number | null;
+        finalMarks?: number | null;
+      }>;
+    }) => {
+      const res = await fetch("/api/mentorship/academic-forms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to save academic form");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mentorshipKeys.academicForms() });
       queryClient.invalidateQueries({ queryKey: mentorshipKeys.all });
     },
   });

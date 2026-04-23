@@ -52,6 +52,8 @@ model User {
   documentFolders      DocumentFolder[]      @relation("MentorFolders")
   documentRequirements DocumentRequirement[] @relation("MentorDocuments")
   documentSubmissions  DocumentSubmission[]  @relation("StudentDocuments")
+  semesterForms        StudentSemesterForm[] @relation("StudentSemesterForms")
+  reviewedSemesterForms StudentSemesterForm[] @relation("MentorSemesterForms")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -403,4 +405,49 @@ model DocumentSubmission {
   @@index([requirementId])
   @@index([studentId])
   @@index([status])
+}
+
+model StudentSemesterForm {
+  id String @id @default(uuid())
+
+  studentId String
+  mentorId  String?
+  semester  String // e.g. "SEM-1"
+
+  // Courses/certifications list entered by student for this semester.
+  courseCertificates String[] @default([])
+
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  student User  @relation("StudentSemesterForms", fields: [studentId], references: [id], onDelete: Cascade)
+  mentor  User? @relation("MentorSemesterForms", fields: [mentorId], references: [id], onDelete: SetNull)
+
+  subjects StudentSemesterSubject[]
+
+  @@unique([studentId, semester])
+  @@index([studentId])
+  @@index([mentorId])
+  @@index([semester])
+}
+
+model StudentSemesterSubject {
+  id String @id @default(uuid())
+
+  formId String
+  form   StudentSemesterForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  subjectName String
+  totalMarks  Float?
+  ia1Marks    Float?
+  ia2Marks    Float?
+  finalMarks  Float?
+  position    Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([formId])
+  @@index([position])
 }

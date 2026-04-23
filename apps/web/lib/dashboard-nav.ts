@@ -15,6 +15,7 @@ type DashboardNavIconKey =
   | "dashboard"
   | "courses"
   | "assignments"
+  | "academic"
   | "community"
   | "announcements"
   | "mentorship"
@@ -40,6 +41,7 @@ const dashboardNavIcons: Record<DashboardNavIconKey, PhosphorIcon> = {
   dashboard: SquaresFour,
   courses: BookOpen,
   assignments: ClipboardText,
+  academic: ClipboardText,
   community: ChatCircleDots,
   announcements: Megaphone,
   mentorship: HandHeart,
@@ -50,6 +52,13 @@ export const dashboardNavConfig: DashboardNavConfigItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: "dashboard", match: "exact" },
   { title: "My Courses", url: "/dashboard/courses/my", icon: "courses", match: "exact" },
   { title: "Assignments", url: "/dashboard/assignments", icon: "assignments", match: "prefix" },
+  {
+    title: "Academic Form",
+    url: "/dashboard/academic-form",
+    icon: "academic",
+    match: "prefix",
+    titleByRole: { TEACHER: "Mentee Forms" },
+  },
   { title: "Community", url: "/dashboard/community", icon: "community", match: "prefix" },
   {
     title: "Announcements",

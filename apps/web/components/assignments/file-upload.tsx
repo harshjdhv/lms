@@ -9,6 +9,7 @@ import { Upload, X, Loader2 } from "lucide-react"
 export function FileUpload({ onUploadComplete }: { onUploadComplete: (url: string) => void }) {
     const [uploading, setUploading] = useState(false)
     const [fileUrl, setFileUrl] = useState<string | null>(null)
+    const bucket = process.env.NEXT_PUBLIC_SUPABASE_UPLOAD_BUCKET || "lmsbucket"
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -22,20 +23,15 @@ export function FileUpload({ onUploadComplete }: { onUploadComplete: (url: strin
 
         try {
             const { error } = await supabase.storage
-                .from('LMS')
+                .from(bucket)
                 .upload(filePath, file)
 
             if (error) {
-                // If the error is related to bucket not found or permissions, we might need to handle it better. 
-                // However, based on user input, the bucket exists.
-                // If it fails, we fall back to user instructions about keys, but client-side upload via supabase-js
-                // usually requires RLS policies on the bucket, not raw keys.
-                // Assuming RLS is set up for authenticated users.
                 throw error
             }
 
             const { data: { publicUrl } } = supabase.storage
-                .from('LMS')
+                .from(bucket)
                 .getPublicUrl(filePath)
 
             setFileUrl(publicUrl)
@@ -44,7 +40,11 @@ export function FileUpload({ onUploadComplete }: { onUploadComplete: (url: strin
 
         } catch (error: any) {
             console.error("Upload failed", error)
-            toast.error(error.message || "Upload failed. Check console.")
+            if (error?.message?.toLowerCase?.().includes("bucket")) {
+                toast.error(`Upload bucket '${bucket}' not found. Create it in Supabase Storage or set NEXT_PUBLIC_SUPABASE_UPLOAD_BUCKET.`)
+            } else {
+                toast.error(error.message || "Upload failed. Check console.")
+            }
         } finally {
             setUploading(false)
         }
